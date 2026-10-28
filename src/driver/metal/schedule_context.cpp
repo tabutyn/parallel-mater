@@ -2,14 +2,22 @@
 #include "schedule_context.hpp"
 #include "resource_records.hpp"
 #include <dlfcn.h>
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <cstring>
 #include <functional>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 
 namespace parallel_mater::metal {
 namespace {
 thread_local ScheduleContext *active{};
+std::atomic<std::uint64_t> profile_context_sequence{};
+std::mutex profile_output_mutex;
 struct Allocation { compute::BufferPtr buffer; ScheduleContext *owner{}; };
 std::mutex allocation_mutex;
 std::map<std::uintptr_t, Allocation> allocations;
@@ -29,11 +37,206 @@ Slice find(const void *pointer, std::size_t bytes = 1) {
 }
 void library_anchor() {}
 }
+
+struct ScheduleContext::ProfileState {
+    struct KernelCounters {
+        std::uint64_t dispatches{};
+        std::uint64_t workgroups{};
+    };
+    using KernelMap = std::map<std::string, KernelCounters, std::less<>>;
+    struct Snapshot {
+        compute::CommandStatistics commands{};
+        std::uint64_t readbacks{};
+        std::uint64_t host_waits{};
+        KernelMap kernels;
+    };
+    struct Phase {
+        std::string name;
+        Snapshot counters{};
+        std::uint32_t declared_launches{};
+    };
+    struct Report {
+        std::uint64_t context{};
+        std::uint64_t schedule{};
+        Snapshot counters{};
+        std::uint64_t declared_launches{};
+        std::vector<Phase> phases;
+        std::vector<compute::SubmissionPtr> completions;
+        double record_ms{};
+        double submit_ms{};
+        std::chrono::steady_clock::time_point submitted_at{};
+    };
+
+    explicit ProfileState(std::string output_path)
+        : context(profile_context_sequence.fetch_add(
+              1U, std::memory_order_relaxed) + 1U),
+          output(std::move(output_path)) {}
+
+    static compute::CommandStatistics add(
+        compute::CommandStatistics left,
+        const compute::CommandStatistics &right) noexcept {
+        left.dispatches += right.dispatches;
+        left.workgroups += right.workgroups;
+        left.dependency_barriers += right.dependency_barriers;
+        left.dependency_ranges += right.dependency_ranges;
+        left.transfer_commands += right.transfer_commands;
+        left.bytes_moved += right.bytes_moved;
+        return left;
+    }
+    static Snapshot difference(const Snapshot &value,
+                               const Snapshot &base) noexcept {
+        Snapshot result{{
+                    value.commands.dispatches - base.commands.dispatches,
+                    value.commands.workgroups - base.commands.workgroups,
+                    value.commands.dependency_barriers -
+                        base.commands.dependency_barriers,
+                    value.commands.dependency_ranges -
+                        base.commands.dependency_ranges,
+                    value.commands.transfer_commands -
+                        base.commands.transfer_commands,
+                    value.commands.bytes_moved - base.commands.bytes_moved,
+                },
+                value.readbacks - base.readbacks,
+                value.host_waits - base.host_waits,
+                {}};
+        for (const auto &[name, counters] : value.kernels) {
+            const auto found = base.kernels.find(name);
+            const KernelCounters previous = found == base.kernels.end()
+                ? KernelCounters{} : found->second;
+            const KernelCounters delta{
+                counters.dispatches - previous.dispatches,
+                counters.workgroups - previous.workgroups,
+            };
+            if (delta.dispatches || delta.workgroups)
+                result.kernels.emplace(name, delta);
+        }
+        return result;
+    }
+
+    std::uint64_t context{};
+    std::string output;
+    std::uint64_t schedule{};
+    std::uint64_t readbacks{};
+    std::uint64_t host_waits{};
+    KernelMap kernels;
+    Snapshot start{}, last{}, finish{};
+    std::vector<Phase> phases;
+    std::vector<compute::SubmissionPtr> completions;
+    std::vector<Report> pending;
+    std::chrono::steady_clock::time_point record_started{};
+    double submit_ms{};
+    bool active{};
+    bool finished{};
+};
+
+namespace {
+void write_kernel_counters(
+    std::ostream &output, const ScheduleContext::ProfileState::KernelMap &kernels) {
+    output << '[';
+    bool first = true;
+    for (const auto &[name, counters] : kernels) {
+        if (!first) output << ',';
+        first = false;
+        output << "{\"name\":\"" << name << "\",\"dispatches\":"
+               << counters.dispatches << ",\"workgroups\":"
+               << counters.workgroups << '}';
+    }
+    output << ']';
+}
+
+void write_profile(const ScheduleContext::ProfileState &state,
+                   const ScheduleContext::ProfileState::Report &report,
+                   double gpu_ms, double wait_ms,
+                   double submit_to_fence_ms) noexcept {
+    try {
+        std::ostringstream json;
+        json.imbue(std::locale::classic());
+        json << std::fixed << std::setprecision(6)
+             << "{\"schema\":\"parallel-mater-metal-schedule-profile/v1\""
+             << ",\"context\":" << report.context
+             << ",\"schedule\":" << report.schedule
+             << ",\"submissions\":" << report.completions.size()
+             << ",\"final\":true"
+             << ",\"dispatches\":" << report.counters.commands.dispatches
+             << ",\"workgroups\":" << report.counters.commands.workgroups
+             << ",\"dependency_barriers\":"
+             << report.counters.commands.dependency_barriers
+             << ",\"dependency_ranges\":"
+             << report.counters.commands.dependency_ranges
+             << ",\"native_barrier_commands\":0"
+             << ",\"transfer_commands\":"
+             << report.counters.commands.transfer_commands
+             << ",\"readbacks\":" << report.counters.readbacks
+             << ",\"host_waits\":" << report.counters.host_waits
+             << ",\"bytes_moved\":" << report.counters.commands.bytes_moved
+             << ",\"declared_launches\":" << report.declared_launches
+             << ",\"kernels\":";
+        write_kernel_counters(json, report.counters.kernels);
+        json
+             << ",\"gpu_ms\":" << gpu_ms
+             << ",\"gpu_timing_status\":\"supported\""
+             << ",\"record_ms\":" << report.record_ms
+             << ",\"submit_ms\":" << report.submit_ms
+             << ",\"wait_ms\":" << wait_ms
+             << ",\"submit_to_fence_ms\":" << submit_to_fence_ms
+             << ",\"barrier_model\":\"tracked-resources-and-ordered-encoders\""
+             << ",\"instrumentation\":{\"timestamp_queries\":0,"
+                "\"forced_waits\":0,\"result_bytes\":0}"
+             << ",\"phases\":[";
+        for (std::size_t index = 0U; index < report.phases.size(); ++index) {
+            if (index != 0U) json << ',';
+            const auto &phase = report.phases[index];
+            json << "{\"name\":\"" << phase.name
+                 << "\",\"dispatches\":" << phase.counters.commands.dispatches
+                 << ",\"workgroups\":" << phase.counters.commands.workgroups
+                 << ",\"dependency_barriers\":"
+                 << phase.counters.commands.dependency_barriers
+                 << ",\"dependency_ranges\":"
+                 << phase.counters.commands.dependency_ranges
+                 << ",\"native_barrier_commands\":0"
+                 << ",\"transfer_commands\":"
+                 << phase.counters.commands.transfer_commands
+                 << ",\"readbacks\":" << phase.counters.readbacks
+                 << ",\"host_waits\":" << phase.counters.host_waits
+                 << ",\"bytes_moved\":" << phase.counters.commands.bytes_moved
+                 << ",\"declared_launches\":" << phase.declared_launches
+                 << ",\"kernels\":";
+            write_kernel_counters(json, phase.counters.kernels);
+            json
+                 << ",\"gpu_timing_status\":\"aggregate-only\"}";
+        }
+        json << "]}";
+        std::lock_guard output_lock(profile_output_mutex);
+        if (state.output.empty()) {
+            std::fprintf(stderr, "MetalScheduleProfile %s\n", json.str().c_str());
+            return;
+        }
+        std::ofstream stream(state.output, std::ios::app);
+        stream.imbue(std::locale::classic());
+        stream << json.str() << '\n';
+        stream.flush();
+        if (!stream)
+            std::fprintf(stderr,
+                "Parallel Mater Metal: could not write schedule profile %s\n",
+                state.output.c_str());
+    } catch (const std::exception &error) {
+        std::fprintf(stderr,
+            "Parallel Mater Metal: schedule profile write failed: %s\n",
+            error.what());
+    }
+}
+}
+
 ScheduleContext *context(cudaStream_t stream) noexcept {
     return stream ? static_cast<ScheduleContext *>(stream) : active;
 }
 ScheduleContext::ScheduleContext(std::unique_ptr<compute::Device> device) : device_(std::move(device)) {
     if (!device_) throw std::runtime_error("Apple GPU unavailable (no CPU fallback)");
+    if (const char *enabled = std::getenv("PM_METAL_SCHEDULE_PROFILE");
+        enabled && std::strcmp(enabled, "1") == 0) {
+        const char *path = std::getenv("PM_METAL_SCHEDULE_PROFILE_FILE");
+        profile_ = std::make_unique<ProfileState>(path ? path : "");
+    }
     Dl_info library{};
     if (!dladdr(reinterpret_cast<const void *>(&library_anchor), &library) || !library.dli_fname)
         throw std::runtime_error("cannot locate Metal driver library");
@@ -194,18 +397,84 @@ compute::Record ScheduleContext::relocate_record(compute::Field layout, const Re
 void ScheduleContext::dispatch(const compute::Arguments &arguments, dim3 groups) {
     if (!command_) command_ = device_->commands();
     command_->dispatch(arguments, {groups.x, groups.y, groups.z});
+    if (profile_) {
+        auto &kernel = profile_->kernels[arguments.kernel()->name];
+        ++kernel.dispatches;
+        kernel.workgroups += std::uint64_t{groups.x} * groups.y * groups.z;
+    }
     ++dispatch_count;
 }
+compute::CommandStatistics ScheduleContext::command_statistics() const noexcept {
+    return ProfileState::add(submitted_statistics_,
+        command_ ? command_->statistics() : compute::CommandStatistics{});
+}
+void ScheduleContext::collect_profiles(bool wait_for_completion) {
+    if (!profile_) return;
+    auto &reports = profile_->pending;
+    for (auto iterator = reports.begin(); iterator != reports.end();) {
+        bool ready = true;
+        const auto wait_started = std::chrono::steady_clock::now();
+        for (const auto &completion : iterator->completions) {
+            if (wait_for_completion) completion->wait();
+            else if (!completion->ready()) { ready = false; break; }
+        }
+        if (!ready) { ++iterator; continue; }
+        const double wait_ms = wait_for_completion
+            ? std::chrono::duration<double, std::milli>(
+                  std::chrono::steady_clock::now() - wait_started).count()
+            : 0.0;
+        double gpu_ms{};
+        for (const auto &completion : iterator->completions)
+            gpu_ms += completion->elapsed_seconds() * 1000.0;
+        const double submit_to_fence_ms =
+            std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() -
+                iterator->submitted_at).count();
+        write_profile(*profile_, *iterator, gpu_ms, wait_ms,
+                      submit_to_fence_ms);
+        iterator = reports.erase(iterator);
+    }
+}
 compute::SubmissionPtr ScheduleContext::submit() {
+    collect_profiles(false);
     std::erase_if(pending_, [](const auto &completion) { return completion->ready(); });
     if (!command_) command_ = device_->commands();
     // Allocate the scheduler's tracking slot before GPU acceptance too. A
     // post-submit vector growth failure must never lose work from wait().
     pending_.emplace_back();
     try {
+        const auto statistics = command_->statistics();
+        const auto submit_started = std::chrono::steady_clock::now();
         auto completion = command_->submit();
+        const double submit_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - submit_started).count();
         pending_.back() = completion;
+        submitted_statistics_ = ProfileState::add(
+            submitted_statistics_, statistics);
         command_.reset();
+        if (profile_ && (profile_->active || profile_->finished)) {
+            profile_->completions.push_back(completion);
+            profile_->submit_ms += submit_ms;
+            if (profile_->finished) {
+                ProfileState::Report report;
+                report.context = profile_->context;
+                report.schedule = profile_->schedule;
+                report.counters = ProfileState::difference(
+                    profile_->finish, profile_->start);
+                for (const auto &phase : profile_->phases)
+                    report.declared_launches += phase.declared_launches;
+                report.phases = std::move(profile_->phases);
+                report.completions = std::move(profile_->completions);
+                report.record_ms = std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() -
+                    profile_->record_started).count();
+                report.submit_ms = profile_->submit_ms;
+                report.submitted_at = std::chrono::steady_clock::now();
+                profile_->pending.push_back(std::move(report));
+                profile_->submit_ms = 0.0;
+                profile_->finished = false;
+            }
+        }
         return completion;
     } catch (...) {
         pending_.pop_back();
@@ -215,6 +484,7 @@ compute::SubmissionPtr ScheduleContext::submit() {
 void ScheduleContext::wait() {
     std::lock_guard lock(mutex);
     if (command_) (void)submit();
+    collect_profiles(true);
     for (const auto &completion : pending_) completion->wait();
     pending_.clear();
 }
@@ -224,7 +494,14 @@ void ScheduleContext::copy(void *destination, const void *source, std::size_t by
     const auto dst = find(destination, bytes), src = find(source, bytes);
     if ((dst.buffer && dst.owner != this) || (src.buffer && src.owner != this))
         throw std::invalid_argument("cross-device Metal copy");
-    if (dst.buffer && src.buffer && dst.buffer != src.buffer) {
+    const bool same_range = dst.buffer && src.buffer &&
+        dst.buffer == src.buffer && dst.offset == src.offset;
+    const bool overlapping = dst.buffer && src.buffer &&
+        dst.buffer == src.buffer &&
+        dst.offset < src.offset + bytes && src.offset < dst.offset + bytes;
+    if (same_range) {
+        return;
+    } else if (dst.buffer && src.buffer && !overlapping) {
         if (!command_) command_ = device_->commands();
         command_->copy(dst.buffer, dst.offset, src.buffer, src.offset, bytes);
     } else if (dst.buffer && !src.buffer) {
@@ -232,6 +509,10 @@ void ScheduleContext::copy(void *destination, const void *source, std::size_t by
         command_->upload(dst.buffer, dst.offset, {static_cast<const std::byte *>(source), bytes});
     } else {
         // Preview readback boundary, including overlapping shared-arena copies.
+        if (profile_) {
+            ++profile_->host_waits;
+            if (src.buffer) ++profile_->readbacks;
+        }
         wait();
         std::memmove(destination, source, bytes);
     }
@@ -242,6 +523,62 @@ void ScheduleContext::clear(void *destination, int value, std::size_t bytes) {
     if (!dst.buffer || dst.owner != this) throw std::invalid_argument("unregistered Metal clear pointer");
     if (!command_) command_ = device_->commands();
     command_->fill(dst.buffer, dst.offset, bytes, static_cast<std::uint8_t>(value));
+}
+bool ScheduleContext::schedule_profile_enabled() const noexcept {
+    return profile_ != nullptr;
+}
+cudaError_t ScheduleContext::begin_schedule_profile() noexcept {
+    if (!profile_) return cudaSuccess;
+    return checked([&] {
+        std::lock_guard lock(mutex);
+        collect_profiles(false);
+        if (profile_->active || profile_->finished)
+            throw std::logic_error("Metal schedule profile already active");
+        profile_->active = true;
+        ++profile_->schedule;
+        profile_->phases.clear();
+        profile_->completions.clear();
+        profile_->submit_ms = 0.0;
+        profile_->start = profile_->last = {command_statistics(),
+            profile_->readbacks, profile_->host_waits, profile_->kernels};
+        profile_->record_started = std::chrono::steady_clock::now();
+    }, false);
+}
+cudaError_t ScheduleContext::record_schedule_profile_stage(
+    std::string_view name, std::uint32_t launches) noexcept {
+    if (!profile_) return cudaSuccess;
+    return checked([&] {
+        std::lock_guard lock(mutex);
+        if (!profile_->active)
+            throw std::logic_error("Metal schedule profile is not active");
+        if (name.empty() || name.find_first_of("\"\\\r\n") !=
+                std::string_view::npos)
+            throw std::invalid_argument("invalid Metal profile stage name");
+        const ProfileState::Snapshot current{command_statistics(),
+            profile_->readbacks, profile_->host_waits, profile_->kernels};
+        profile_->phases.push_back({std::string(name),
+            ProfileState::difference(current, profile_->last), launches});
+        profile_->last = current;
+    }, false);
+}
+cudaError_t ScheduleContext::end_schedule_profile() noexcept {
+    if (!profile_) return cudaSuccess;
+    return checked([&] {
+        std::lock_guard lock(mutex);
+        if (!profile_->active)
+            throw std::logic_error("Metal schedule profile is not active");
+        const ProfileState::Snapshot current{command_statistics(),
+            profile_->readbacks, profile_->host_waits, profile_->kernels};
+        const auto tail = ProfileState::difference(current, profile_->last);
+        if (tail.commands.dispatches || tail.commands.workgroups ||
+            tail.commands.dependency_barriers ||
+            tail.commands.transfer_commands || tail.readbacks ||
+            tail.host_waits)
+            profile_->phases.push_back({"schedule_tail", tail, 0U});
+        profile_->finish = current;
+        profile_->active = false;
+        profile_->finished = true;
+    }, false);
 }
 cudaError_t ScheduleContext::remember(cudaError_t value) noexcept { error_ = value; return value; }
 cudaError_t ScheduleContext::error(bool take) noexcept {
@@ -290,11 +627,28 @@ cudaError_t pmMetalRecordEvent(cudaEvent_t event, cudaStream_t stream) noexcept 
 }
 cudaError_t pmMetalWaitEvent(cudaEvent_t event) noexcept {
     if (!event || !event->submission) return cudaErrorInvalidResourceHandle;
-    try { event->submission->wait(); return cudaSuccess; } catch (...) { return cudaErrorLaunchFailure; }
+    try {
+        event->submission->wait();
+        return cudaSuccess;
+    } catch (const std::exception &error) {
+        std::fprintf(stderr, "Metal preview: %s\n", error.what());
+        return cudaErrorLaunchFailure;
+    } catch (...) {
+        std::fprintf(stderr, "Metal preview: unknown event wait failure\n");
+        return cudaErrorLaunchFailure;
+    }
 }
 cudaError_t pmMetalQueryEvent(cudaEvent_t event) noexcept {
     if (!event || !event->submission) return cudaErrorInvalidResourceHandle;
-    try { return event->submission->ready() ? cudaSuccess : cudaErrorNotReady; } catch (...) { return cudaErrorLaunchFailure; }
+    try {
+        return event->submission->ready() ? cudaSuccess : cudaErrorNotReady;
+    } catch (const std::exception &error) {
+        std::fprintf(stderr, "Metal preview: %s\n", error.what());
+        return cudaErrorLaunchFailure;
+    } catch (...) {
+        std::fprintf(stderr, "Metal preview: unknown event query failure\n");
+        return cudaErrorLaunchFailure;
+    }
 }
 cudaError_t pmMetalPeekError(cudaStream_t stream, bool take) noexcept {
     auto *execution = context(stream);

@@ -8,12 +8,167 @@ import device_intrinsics;
 import graphics_resources;
 
 static const uint kSoftReductionThreads = 128u;
+static const uint kSoftRealtimeBatchCapacity = 10u;
 #ifndef PM_SOFT_NEIGHBOR_GROUP_SIZE
 #define PM_SOFT_NEIGHBOR_GROUP_SIZE 16
 #endif
 // The adapter selects 16 masked lanes or a full 32-lane SIMD group. This
 // changes launch geometry, not the ordered neighbor accumulation below.
 static const uint kSoftNeighborGroupSize = PM_SOFT_NEIGHBOR_GROUP_SIZE;
+
+// Native adapters may group independent resources into one command. These
+// records contain no alternate equations: the batch entry points below call
+// the ordinary shared kernels with one record per dispatch-grid row.
+struct SoftBodyRealtimePredictBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> velocities;
+    PMBuffer<Vec3> previous_positions;
+    PMBuffer<float> correction_used;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<float> characteristic_lengths;
+    uint count;
+    uint capacity;
+    float velocity_damping;
+    float maximum_speed;
+    PMBuffer<uint> time_advances;
+};
+struct SoftBodyRealtimePredictBatch
+{
+    SoftBodyRealtimePredictBatchItem items[kSoftRealtimeBatchCapacity];
+};
+
+struct SoftBodyRealtimeLinksBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> position_deltas;
+    PMBuffer<float> correction_used;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<float> characteristic_lengths;
+    PMBuffer<uint> offsets;
+    PMBuffer<SoftBodyNeighbor> neighbors;
+    uint count;
+    uint capacity;
+    float compliance;
+};
+struct SoftBodyRealtimeLinksBatch
+{
+    SoftBodyRealtimeLinksBatchItem items[kSoftRealtimeBatchCapacity];
+};
+
+struct SoftBodyRealtimeApplyBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> position_deltas;
+    PMBuffer<float> correction_used;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<float> characteristic_lengths;
+    uint count;
+    uint capacity;
+};
+struct SoftBodyRealtimeApplyBatch
+{
+    SoftBodyRealtimeApplyBatchItem items[kSoftRealtimeBatchCapacity];
+};
+
+struct SoftBodyRealtimeShapeBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> corrections;
+    PMBuffer<Vec3> rest_positions;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<float> characteristic_lengths;
+    PMBuffer<float> correction_used;
+    uint count;
+    uint capacity;
+    float movable_mass;
+    Vec3 rest_center;
+    ShapeMatrix inverse_rest;
+    PMBuffer<Quaternion> stored_orientation;
+    float stiffness;
+};
+struct SoftBodyRealtimeShapeBatch
+{
+    SoftBodyRealtimeShapeBatchItem items[kSoftRealtimeBatchCapacity];
+};
+
+struct SoftBodyRealtimeContactsBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> previous_positions;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<float> characteristic_lengths;
+    PMBuffer<float> correction_used;
+    PMBuffer<Vec3> contact_normals;
+    PMBuffer<float> contact_offsets;
+    PMByteBuffer contact_active;
+    uint count;
+    uint capacity;
+    float node_radius;
+    float friction;
+};
+struct SoftBodyRealtimeContactsBatch
+{
+    SoftBodyRealtimeContactsBatchItem items[kSoftRealtimeBatchCapacity];
+};
+
+struct SoftBodyRealtimeCommitBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> previous_positions;
+    PMBuffer<Vec3> velocities;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<float> characteristic_lengths;
+    PMBuffer<Vec3> contact_normals;
+    PMBuffer<float> contact_offsets;
+    PMByteBuffer contact_active;
+    uint count;
+    uint capacity;
+    float node_radius;
+    float friction;
+    float maximum_speed;
+};
+struct SoftBodyRealtimeCommitBatch
+{
+    SoftBodyRealtimeCommitBatchItem items[kSoftRealtimeBatchCapacity];
+};
+
+struct SoftBodySurfaceBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> rest_positions;
+    PMBuffer<Vec3> surface_rest_positions;
+    PMBuffer<SoftBodySurfaceBinding> bindings;
+    PMBuffer<Vec3> surface_positions;
+    uint surface_vertex_count;
+};
+struct SoftBodySurfaceBatch
+{
+    SoftBodySurfaceBatchItem items[kSoftRealtimeBatchCapacity];
+};
+
+struct SoftBodyContactFrictionBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> velocities;
+    PMBuffer<float> inverse_masses;
+    PMBuffer<Vec3> contact_forces;
+    PMBuffer<Vec3> contact_normals;
+    PMBuffer<Vec3> contact_arms;
+    PMBuffer<FluidBodyImpulse> body_impulses;
+    PMBuffer<Vec3> contact_momentum_delta;
+    PMBuffer<Vec3> accumulated_friction_delta;
+    PMBuffer<float> accumulated_normal_delta;
+    PMBuffer<uint> contact_count;
+    uint count;
+    float movable_mass;
+    float contact_friction;
+    float maximum_speed;
+};
+struct SoftBodyContactFrictionBatch
+{
+    SoftBodyContactFrictionBatchItem items[kSoftRealtimeBatchCapacity];
+};
 groupshared Vec3 softValuesA[kSoftReductionThreads];
 groupshared Vec3 softValuesB[kSoftReductionThreads];
 groupshared float softInverseMasses[kSoftReductionThreads];
@@ -720,6 +875,116 @@ void soft_body_realtime_commit(
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
+void soft_body_realtime_predict_batch(
+    uniform SoftBodyRealtimePredictBatch batch, uniform uint batch_count,
+    uniform Vec3 gravity, uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodyRealtimePredictBatchItem item = batch.items[resource];
+    soft_body_realtime_predict(item.positions, item.velocities,
+        item.previous_positions, item.correction_used, item.inverse_masses,
+        item.characteristic_lengths, item.count, item.capacity, gravity,
+        item.velocity_damping, item.maximum_speed, dt, profile_version,
+        item.time_advances, status PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_project_links_batch(
+    uniform SoftBodyRealtimeLinksBatch batch, uniform uint batch_count,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodyRealtimeLinksBatchItem item = batch.items[resource];
+    soft_body_realtime_project_links(item.positions, item.position_deltas,
+        item.correction_used, item.inverse_masses,
+        item.characteristic_lengths, item.offsets, item.neighbors, item.count,
+        item.capacity, item.compliance, dt, profile_version,
+        status PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_apply_position_delta_batch(
+    uniform SoftBodyRealtimeApplyBatch batch, uniform uint batch_count,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodyRealtimeApplyBatchItem item = batch.items[resource];
+    soft_body_realtime_apply_position_delta(item.positions,
+        item.position_deltas, item.correction_used, item.inverse_masses,
+        item.characteristic_lengths, item.count, item.capacity, dt,
+        profile_version, status PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_project_shape_batch(
+    uniform SoftBodyRealtimeShapeBatch batch, uniform uint batch_count,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodyRealtimeShapeBatchItem item = batch.items[resource];
+    soft_body_realtime_project_shape(item.positions, item.corrections,
+        item.rest_positions, item.inverse_masses,
+        item.characteristic_lengths, item.correction_used, item.count,
+        item.capacity, item.movable_mass, item.rest_center,
+        item.inverse_rest, item.stored_orientation, item.stiffness, dt,
+        profile_version, status PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_project_contacts_batch(
+    uniform SoftBodyRealtimeContactsBatch batch, uniform uint batch_count,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodyRealtimeContactsBatchItem item = batch.items[resource];
+    soft_body_realtime_project_contacts(item.positions,
+        item.previous_positions, item.inverse_masses,
+        item.characteristic_lengths, item.correction_used,
+        item.contact_normals, item.contact_offsets, item.contact_active,
+        item.count, item.capacity, item.node_radius, item.friction, dt,
+        profile_version, status PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_commit_batch(
+    uniform SoftBodyRealtimeCommitBatch batch, uniform uint batch_count,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodyRealtimeCommitBatchItem item = batch.items[resource];
+    soft_body_realtime_commit(item.positions, item.previous_positions,
+        item.velocities, item.inverse_masses, item.characteristic_lengths,
+        item.contact_normals, item.contact_offsets, item.contact_active,
+        item.count, item.capacity, item.node_radius, item.friction,
+        item.maximum_speed, dt, profile_version,
+        status PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
 void soft_body_project_rest_shape(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> corrections,
     uniform PMBuffer<Vec3> rest_positions, uniform PMBuffer<float> inverse_masses,
@@ -1080,6 +1345,26 @@ void soft_body_apply_contact_friction(
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
+void soft_body_apply_contact_friction_batch(
+    uniform SoftBodyContactFrictionBatch batch, uniform uint batch_count,
+    uniform PMBuffer<BodyParameters> body_parameters, uniform Vec3 gravity,
+    uniform float dt PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodyContactFrictionBatchItem item = batch.items[resource];
+    soft_body_apply_contact_friction(item.positions, item.velocities,
+        item.inverse_masses, item.contact_forces, item.contact_normals,
+        item.contact_arms, item.body_impulses, body_parameters,
+        item.contact_momentum_delta, item.accumulated_friction_delta,
+        item.accumulated_normal_delta, item.contact_count, item.count,
+        item.movable_mass, gravity, dt, item.contact_friction,
+        item.maximum_speed PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
 void soft_body_damp_springs(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> output, uniform PMBuffer<float> inverse_masses,
@@ -1190,4 +1475,19 @@ void soft_body_update_surface(
             binding.weights[slot]));
     }
     surface_positions[vertex] = add(surface_rest_positions[vertex], delta);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_update_surface_batch(
+    uniform SoftBodySurfaceBatch batch, uniform uint batch_count
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SoftBodySurfaceBatchItem item = batch.items[resource];
+    soft_body_update_surface(item.positions, item.rest_positions,
+        item.surface_rest_positions, item.bindings, item.surface_positions,
+        item.surface_vertex_count PM_D3D12_DISPATCH_ARGUMENT);
 }

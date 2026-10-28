@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Shared Gallery behavior: bounded work, shared budgets, semantic controls.
 #include <parallel_mater_gallery/session.hpp>
+#include <parallel_mater_gallery/build_revision.hpp>
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 #include <parallel_mater_gallery/dump_truck.hpp>
@@ -438,13 +439,19 @@ PhysicsCaptureProvenance GallerySession::physics_capture_provenance() const {
     provenance.rigid_body_ids = physics_rigid_body_ids(runtime_.scene);
     return provenance;
 }
-FrameTimingStatistics GallerySession::qualify(unsigned frame_count) {
+FrameTimingStatistics GallerySession::qualify(
+    unsigned frame_count, const QualificationObserver &observer) {
     if (frame_count == 0 || frame_count > 100000)
         throw std::runtime_error("Qualification frame count must be 1..100000");
     struct DiagnosticScope { bool &flag; ~DiagnosticScope() { flag = false; } } scope{diagnostics_};
     diagnostics_ = true;
     set_active(true); set_paused(false); reset();
-    for (unsigned i = 0; i < frame_count; ++i) { frame(); validate_snapshot(); }
+    for (unsigned i = 0; i < frame_count; ++i) {
+        frame();
+        validate_snapshot();
+        if (observer && timing.latest())
+            observer(*timing.latest(), output().realtime_statistics);
+    }
     const auto statistics = timing.statistics();
     require(frames == frame_count, "Qualification simulation count mismatch");
     set_paused(true); frame();
@@ -459,7 +466,7 @@ FrameTimingStatistics GallerySession::qualify(unsigned frame_count) {
     frame(); validate_snapshot();
     return statistics;
 }
-std::string GallerySession::build_revision() { return PM_GALLERY_BUILD_REVISION; }
+std::string GallerySession::build_revision() { return gallery_build_revision; }
 PmNativeDeviceInfo GallerySession::native_render_device() const {
     require_scene();
     if (runtime_.native_renderer)
@@ -592,8 +599,10 @@ GalleryPresentationState GallerySession::presentation() const {
         .count_kind = selected.scene.count_kind,
         .workload_profile = limits.name,
         .execution_contract = gallery_execution_contract,
+        .rigid_body_limit = limits.brick_count,
         .fluid_particle_limit = limits.fluid_particles,
         .coupled_body_limit = limits.coupled_bodies,
+        .smoke_particle_limit = limits.smoke_particles,
         .width = width,
         .height = height,
         .target_updates_per_second = GalleryFramePolicy::default_target_fps,
@@ -608,7 +617,7 @@ GalleryPresentationState GallerySession::presentation() const {
         .presentation_latency_ticks =
             frame_policy_.interpolation_history_valid() ? 1U : 0U,
         .latest_timing = timing.latest(),
-        .build_revision = PM_GALLERY_BUILD_REVISION,
+        .build_revision = gallery_build_revision,
     };
 }
 void GallerySession::validate_snapshot() const {

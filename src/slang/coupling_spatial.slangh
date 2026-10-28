@@ -28,12 +28,15 @@ struct CouplingSpatialLeafMetadata
 };
 
 static const uint kCouplingSpatialRigidFamily = 1u;
+static const uint kCouplingSpatialFluidFamily = 2u;
 static const uint kCouplingSpatialClothFamily = 3u;
 static const uint kCouplingSpatialRopeFamily = 4u;
 static const uint kCouplingSpatialSoftFamily = 5u;
 static const uint kCouplingSpatialBodyPrimitive = 1u;
+static const uint kCouplingSpatialParticlePrimitive = 1u;
 static const uint kCouplingSpatialSegmentPrimitive = 1u;
 static const uint kCouplingSpatialTrianglePrimitive = 2u;
+static const uint kCouplingSpatialSmokeOwnerTag = 0x80000000u;
 static const uint kCouplingSpatialStaleEpoch = 1u << 9u;
 static const uint kCouplingSpatialQueryOverflow = 1u << 10u;
 static const uint kCouplingSpatialAdmissionInvalid = 1u << 12u;

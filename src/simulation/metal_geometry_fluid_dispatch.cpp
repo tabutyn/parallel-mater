@@ -4,7 +4,28 @@
 #include "types.hpp"
 #include "driver/metal/schedule_context.hpp"
 
+#include <span>
+
 namespace parallel_mater::simulation {
+namespace {
+template <typename Batch>
+metal::RelocatedRecord batch_record(const Batch &batch) noexcept {
+    static constexpr metal::HostMember members[]{
+        {"items", offsetof(Batch, items),
+         sizeof(static_cast<Batch *>(nullptr)->items)}};
+    return {std::as_bytes(std::span{&batch, 1}), members};
+}
+} // namespace
+
+void reduce_point_body_impulses_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const PointBodyImpulseBatch &batch, std::uint32_t batch_count,
+    const void *body_parameters, void *body_states,
+    const std::uint32_t *contact_flags, std::uint32_t body_count) noexcept {
+    (void)metal::launch(stream, "reduce_point_body_impulses_batch", grid,
+        batch_record(batch), batch_count, body_parameters, body_states,
+        contact_flags, body_count);
+}
 
 void collide_fluid_with_static_body(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
@@ -94,7 +115,8 @@ void detect_fluid_moving_contacts(
 
 void resolve_fluid_moving_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
-    void *velocities, float *foam, const std::uint32_t *count, float radius,
+    const void *previous_positions, void *velocities, void *velocity_deltas,
+    float *foam, const std::uint32_t *count, float radius,
     float particle_mass, float timestep, float maximum_speed,
     const void *body_parameters, const void *body_states, const void *meshes,
     const void *contacts, const std::uint32_t *contact_counts, void *impulses,
@@ -102,13 +124,14 @@ void resolve_fluid_moving_contacts(
     std::uint8_t *particle_contact_flags, std::uint32_t fluid_index,
     std::uint32_t fluid_generation, const void *body_ids, bool apply_paint,
     const void *paint_fields, std::uint32_t paint_field_capacity,
-    const void *paint_rules, std::uint32_t paint_rule_capacity) noexcept {
+    const void *paint_rules, std::uint32_t paint_rule_capacity,
+    float frame_inverse_timestep, float commit_velocity_scale) noexcept {
     if (auto *execution = metal::context(stream)) {
         if (execution->checked_result([&] { execution->paint_fields(paint_fields, paint_field_capacity, meshes); }) != PM_SUCCESS) return;
     }
     const auto fluid_id = FluidId{fluid_index, fluid_generation};
     (void)metal::launch(stream, "fluid_resolve_moving_contacts", grid,
-        positions, velocities, foam,
+        positions, previous_positions, velocities, velocity_deltas, foam,
         count, radius, particle_mass, timestep,
         maximum_speed,
         body_parameters,
@@ -119,7 +142,8 @@ void resolve_fluid_moving_contacts(
         impulses, collect_contacts,
         contact_samples, particle_contact_flags,
         fluid_id, body_ids, apply_paint, paint_fields, paint_field_capacity,
-        paint_rules, paint_rule_capacity);
+        paint_rules, paint_rule_capacity, frame_inverse_timestep,
+        commit_velocity_scale);
 }
 
 void reduce_fluid_body_impulses(

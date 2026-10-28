@@ -1,0 +1,2401 @@
+{
+  "schema": "parallel-mater-mobile-gallery-qualification/v2",
+  "scope": "scene output, shared controls, host frame timing, public realtime work and platform thermal state; native traces and full physics qualification remain separate artifacts",
+  "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+  "platform": "iPadOS",
+  "backend": "metal",
+  "execution_contract": "fixed-tick-60hz-v1",
+  "device": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+  "renderer": {
+    "kind": "native-gpu",
+    "readback": "diagnostic-only"
+  },
+  "nonce": "11c0328d-4d8c-42ee-8191-469e44e508fd",
+  "frames_per_scene": 30,
+  "completed": true,
+  "passed": true,
+  "lifecycle": [
+    {
+      "id": "attach",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "resize",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "background",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "foreground",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "failure_recovery",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "invalid_scene_recovery",
+      "applicable": true,
+      "passed": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "scene_selection",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "pause_resume",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "camera",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "directional",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "count",
+      "applicable": true,
+      "passed": true
+    },
+    {
+      "id": "primary_action",
+      "applicable": true,
+      "passed": true
+    }
+  ],
+  "mobile_session_contract": {
+    "attach": true,
+    "resize": true,
+    "background": true,
+    "foreground": true,
+    "failure_recovery": true,
+    "invalid_scene_recovery": true,
+    "scene_selection": true,
+    "pause_resume": true,
+    "camera": true,
+    "directional": true,
+    "count": true,
+    "primary_action": true
+  },
+  "failures": [],
+  "scenes": [
+    {
+      "id": "rigid-body",
+      "scene": "RIGID BODY",
+      "scene_asset": "RigidBody.glb",
+      "requirements": "rigidBodies",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 6.381397100000002,
+      "p50_ms": 5.939500000000001,
+      "p95_ms": 9.100458,
+      "p99_ms": 14.763166,
+      "timing_ms": {
+        "frame": {
+          "mean": 6.381397100000002,
+          "p50": 5.939500000000001,
+          "p95": 9.100458,
+          "p99": 14.763166
+        },
+        "physics": {
+          "mean": 5.091570833333335,
+          "p50": 4.692854499999999,
+          "p95": 7.573291,
+          "p99": 12.479292
+        },
+        "render": {
+          "mean": 1.2896207333333332,
+          "p50": 0.980583,
+          "p95": 2.482334,
+          "p99": 2.650917
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 2.6117584088131838,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 35,
+        "workgroups": 226,
+        "barriers": 42,
+        "submissions": 1,
+        "bytes_moved": 184,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 78283448,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 2
+      }
+    },
+    {
+      "id": "constraint-fixed",
+      "scene": "CONSTRAINT: FIXED",
+      "scene_asset": "ConstraintFixed.glb",
+      "requirements": "rigidBodies, rigidConstraints",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 27.4775278,
+      "p50_ms": 26.9410415,
+      "p95_ms": 35.097375,
+      "p99_ms": 37.935,
+      "timing_ms": {
+        "frame": {
+          "mean": 27.4775278,
+          "p50": 26.9410415,
+          "p95": 35.097375,
+          "p99": 37.935
+        },
+        "physics": {
+          "mean": 26.521484733333338,
+          "p50": 25.97,
+          "p95": 34.222583,
+          "p99": 36.883667
+        },
+        "render": {
+          "mean": 0.9559097000000001,
+          "p50": 0.9398960000000001,
+          "p95": 1.051167,
+          "p99": 1.272667
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0.6065562978304427,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 35,
+        "workgroups": 857,
+        "barriers": 42,
+        "submissions": 1,
+        "bytes_moved": 2872,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 74842808,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 50
+      }
+    },
+    {
+      "id": "constraint-point",
+      "scene": "CONSTRAINT: POINT",
+      "scene_asset": "Celestial.glb",
+      "requirements": "rigidBodies, rigidConstraints",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 7.7707875333333325,
+      "p50_ms": 6.7703545,
+      "p95_ms": 14.429084,
+      "p99_ms": 15.801291,
+      "timing_ms": {
+        "frame": {
+          "mean": 7.7707875333333325,
+          "p50": 6.7703545,
+          "p95": 14.429084,
+          "p99": 15.801291
+        },
+        "physics": {
+          "mean": 6.7962347,
+          "p50": 5.811916999999999,
+          "p95": 13.557417,
+          "p99": 14.919791
+        },
+        "render": {
+          "mean": 0.9744485666666667,
+          "p50": 0.95625,
+          "p95": 1.065959,
+          "p99": 1.492167
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 2.144784870826572,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 36,
+        "workgroups": 821,
+        "barriers": 43,
+        "submissions": 1,
+        "bytes_moved": 352,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 197968568,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 4
+      }
+    },
+    {
+      "id": "constraint-hinge",
+      "scene": "CONSTRAINT: HINGE + SLIDER",
+      "scene_asset": "ConstraintHinge.glb",
+      "requirements": "rigidBodies, rigidConstraints",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 11.4270293,
+      "p50_ms": 11.359729,
+      "p95_ms": 12.886708,
+      "p99_ms": 16.300375,
+      "timing_ms": {
+        "frame": {
+          "mean": 11.4270293,
+          "p50": 11.359729,
+          "p95": 12.886708,
+          "p99": 16.300375
+        },
+        "physics": {
+          "mean": 10.485487499999998,
+          "p50": 10.4159165,
+          "p95": 11.904125,
+          "p99": 14.939167
+        },
+        "render": {
+          "mean": 0.9414139333333333,
+          "p50": 0.9192290000000001,
+          "p95": 1.053917,
+          "p99": 1.360959
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.4585302179894708,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 36,
+        "workgroups": 821,
+        "barriers": 43,
+        "submissions": 1,
+        "bytes_moved": 352,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 197477048,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 4
+      }
+    },
+    {
+      "id": "constraint-piston",
+      "scene": "CONSTRAINT: PISTON",
+      "scene_asset": "ConstraintPiston.glb",
+      "requirements": "rigidBodies, rigidConstraints",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 6.459015333333332,
+      "p50_ms": 6.361458,
+      "p95_ms": 6.832541,
+      "p99_ms": 8.678709,
+      "timing_ms": {
+        "frame": {
+          "mean": 6.459015333333332,
+          "p50": 6.361458,
+          "p95": 6.832541,
+          "p99": 8.678709
+        },
+        "physics": {
+          "mean": 5.487883366666667,
+          "p50": 5.406979,
+          "p95": 5.8775,
+          "p99": 7.257208
+        },
+        "render": {
+          "mean": 0.9710069333333334,
+          "p50": 0.957021,
+          "p95": 1.016708,
+          "p99": 1.421125
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 2.580372808512877,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 36,
+        "workgroups": 227,
+        "barriers": 43,
+        "submissions": 1,
+        "bytes_moved": 184,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 82379448,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 1
+      }
+    },
+    {
+      "id": "constraint-generic",
+      "scene": "CONSTRAINT: GENERIC",
+      "scene_asset": "ConstraintGeneric.glb",
+      "requirements": "rigidBodies, rigidConstraints",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 8.679162533333333,
+      "p50_ms": 9.009375,
+      "p95_ms": 10.403458,
+      "p99_ms": 11.72025,
+      "timing_ms": {
+        "frame": {
+          "mean": 8.679162533333333,
+          "p50": 9.009375,
+          "p95": 10.403458,
+          "p99": 11.72025
+        },
+        "physics": {
+          "mean": 7.713647166666669,
+          "p50": 8.061021,
+          "p95": 9.450292,
+          "p99": 10.401416
+        },
+        "render": {
+          "mean": 0.9653943999999998,
+          "p50": 0.993958,
+          "p95": 1.041959,
+          "p99": 1.318666
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.9203082638319993,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 36,
+        "workgroups": 381,
+        "barriers": 43,
+        "submissions": 1,
+        "bytes_moved": 240,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 110871224,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 3
+      }
+    },
+    {
+      "id": "constraint-motor-spring",
+      "scene": "CONSTRAINT: MOTOR + SPRING",
+      "scene_asset": "ConstraintMotorSpring.glb",
+      "requirements": "rigidBodies, rigidConstraints",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 11.9096875,
+      "p50_ms": 11.683437,
+      "p95_ms": 15.623166,
+      "p99_ms": 16.323875,
+      "timing_ms": {
+        "frame": {
+          "mean": 11.9096875,
+          "p50": 11.683437,
+          "p95": 15.623166,
+          "p99": 16.323875
+        },
+        "physics": {
+          "mean": 10.996581866666668,
+          "p50": 10.816125,
+          "p95": 14.324708,
+          "p99": 15.373375
+        },
+        "render": {
+          "mean": 0.9129750666666667,
+          "p50": 0.897187,
+          "p95": 0.999458,
+          "p99": 1.298084
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.3994210625510592,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 35,
+        "workgroups": 755,
+        "barriers": 42,
+        "submissions": 1,
+        "bytes_moved": 632,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 50250400,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 9
+      }
+    },
+    {
+      "id": "dump-truck",
+      "scene": "DUMP",
+      "scene_asset": "DumpTruck.glb",
+      "requirements": "rigidBodies, rigidConstraints",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 11.7481695,
+      "p50_ms": 11.6284585,
+      "p95_ms": 12.926083,
+      "p99_ms": 13.477166,
+      "timing_ms": {
+        "frame": {
+          "mean": 11.7481695,
+          "p50": 11.6284585,
+          "p95": 12.926083,
+          "p99": 13.477166
+        },
+        "physics": {
+          "mean": 10.834675199999998,
+          "p50": 10.716437500000001,
+          "p95": 12.024042,
+          "p99": 12.208
+        },
+        "render": {
+          "mean": 0.9133792666666667,
+          "p50": 0.9028754999999999,
+          "p95": 0.975208,
+          "p99": 1.268916
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.4186607995314564,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 35,
+        "workgroups": 805,
+        "barriers": 42,
+        "submissions": 1,
+        "bytes_moved": 1192,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 8,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 52232864,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 20
+      }
+    },
+    {
+      "id": "fluid",
+      "scene": "FLUID",
+      "scene_asset": "Fluid.glb",
+      "requirements": "rigidBodies, particleLiquids",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 7.459016666666668,
+      "p50_ms": 7.376937,
+      "p95_ms": 7.954125,
+      "p99_ms": 8.868917,
+      "timing_ms": {
+        "frame": {
+          "mean": 7.459016666666668,
+          "p50": 7.376937,
+          "p95": 7.954125,
+          "p99": 8.868917
+        },
+        "physics": {
+          "mean": 6.388018033333334,
+          "p50": 6.314854,
+          "p95": 6.737958,
+          "p99": 7.441
+        },
+        "render": {
+          "mean": 1.0708653000000001,
+          "p50": 1.0565625,
+          "p95": 1.216083,
+          "p99": 1.427541
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 2.2344322691196203,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 81,
+        "workgroups": 153,
+        "barriers": 96,
+        "submissions": 1,
+        "bytes_moved": 11620,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 18,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 6,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 2,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 53707424,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 7,
+        "moving_body_count": 0
+      }
+    },
+    {
+      "id": "fluid-rigid",
+      "scene": "FLUID RIGID",
+      "scene_asset": "FluidRigid.glb",
+      "requirements": "rigidBodies, particleLiquids, liquidRigidCoupling",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 9.557937533333332,
+      "p50_ms": 9.528896,
+      "p95_ms": 9.74925,
+      "p99_ms": 11.164083,
+      "timing_ms": {
+        "frame": {
+          "mean": 9.557937533333332,
+          "p50": 9.528896,
+          "p95": 9.74925,
+          "p99": 11.164083
+        },
+        "physics": {
+          "mean": 8.501116633333336,
+          "p50": 8.498249999999999,
+          "p95": 8.6425,
+          "p99": 9.726791
+        },
+        "render": {
+          "mean": 1.0566929999999997,
+          "p50": 1.041125,
+          "p95": 1.106584,
+          "p99": 1.437041
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.7437514607912035,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 82,
+        "workgroups": 725,
+        "barriers": 97,
+        "submissions": 1,
+        "bytes_moved": 11908,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 18,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 6,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 2,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 149013176,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 7,
+        "moving_body_count": 4
+      }
+    },
+    {
+      "id": "peg-paint",
+      "scene": "PEG PAINT",
+      "scene_asset": "Pegs.glb",
+      "requirements": "rigidBodies, particleLiquids, paint",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 15.440568099999998,
+      "p50_ms": 15.531334000000001,
+      "p95_ms": 17.87575,
+      "p99_ms": 19.382791,
+      "timing_ms": {
+        "frame": {
+          "mean": 15.440568099999998,
+          "p50": 15.531334000000001,
+          "p95": 17.87575,
+          "p99": 19.382791
+        },
+        "physics": {
+          "mean": 14.488868066666665,
+          "p50": 14.5464375,
+          "p95": 16.829625,
+          "p99": 18.50325
+        },
+        "render": {
+          "mean": 0.9515374333333333,
+          "p50": 0.9325835,
+          "p95": 1.072458,
+          "p99": 1.351209
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.079407663497891,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 75,
+        "workgroups": 1233,
+        "barriers": 96,
+        "submissions": 1,
+        "bytes_moved": 27412,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 18,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 6,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 2,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 252609232,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 256,
+        "moving_body_count": 1
+      }
+    },
+    {
+      "id": "cloth",
+      "scene": "CLOTH",
+      "scene_asset": "Cloth.glb",
+      "requirements": "rigidBodies, cloth",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 13.8591223,
+      "p50_ms": 13.952313,
+      "p95_ms": 18.014583,
+      "p99_ms": 18.694625,
+      "timing_ms": {
+        "frame": {
+          "mean": 13.8591223,
+          "p50": 13.952313,
+          "p95": 18.014583,
+          "p99": 18.694625
+        },
+        "physics": {
+          "mean": 12.816258333333334,
+          "p50": 12.9449995,
+          "p95": 16.957375,
+          "p99": 17.600708
+        },
+        "render": {
+          "mean": 1.0427654,
+          "p50": 1.0431045,
+          "p95": 1.169625,
+          "p99": 1.339125
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.2025774197765084,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 111,
+        "workgroups": 755,
+        "barriers": 148,
+        "submissions": 1,
+        "bytes_moved": 69221,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 20,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 8,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 1,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 67322552,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 1
+      }
+    },
+    {
+      "id": "cloth-tear",
+      "scene": "CLOTH TEAR",
+      "scene_asset": "ClothTear.glb",
+      "requirements": "rigidBodies, cloth",
+      "workload_profile": "",
+      "available": false,
+      "skipped": true,
+      "passed": false,
+      "steps": 30,
+      "mean_ms": 0,
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "timing_ms": {
+        "frame": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "physics": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0,
+      "timing_window_frames": 0,
+      "realtime_work": {
+        "dispatches": 0,
+        "workgroups": 0,
+        "barriers": 0,
+        "submissions": 0,
+        "bytes_moved": 0,
+        "time_advances": 0,
+        "spatial_builds": 0,
+        "spatial_refits": 0,
+        "spatial_publications": 0,
+        "numerical_iterations": 0,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 0,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "unavailable",
+      "thermal_state_after": "unavailable",
+      "session_controls": true,
+      "memory_footprint_bytes": 0,
+      "workload": {
+        "target_updates_per_second": 0,
+        "rigid_body_limit": 0,
+        "fluid_particle_limit": 0,
+        "coupled_body_limit": 0,
+        "smoke_particle_limit": 0,
+        "render_width": 0,
+        "render_height": 0,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      },
+      "reason": "Unsupported by fixed-tick-60hz-v1: cloth fracture"
+    },
+    {
+      "id": "cloth-paint",
+      "scene": "CLOTH PAINT",
+      "scene_asset": "ClothPaint.glb",
+      "requirements": "rigidBodies, cloth, paint",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 13.977504200000002,
+      "p50_ms": 14.098291499999998,
+      "p95_ms": 15.990375,
+      "p99_ms": 17.40225,
+      "timing_ms": {
+        "frame": {
+          "mean": 13.977504200000002,
+          "p50": 14.098291499999998,
+          "p95": 15.990375,
+          "p99": 17.40225
+        },
+        "physics": {
+          "mean": 12.898449933333334,
+          "p50": 12.962104,
+          "p95": 14.975375,
+          "p99": 15.878792
+        },
+        "render": {
+          "mean": 1.0789472666666668,
+          "p50": 1.065979,
+          "p95": 1.226292,
+          "p99": 1.52325
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.192392239517343,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 111,
+        "workgroups": 755,
+        "barriers": 149,
+        "submissions": 1,
+        "bytes_moved": 134757,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 20,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 8,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 1,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 70025912,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 1
+      }
+    },
+    {
+      "id": "cloth-water",
+      "scene": "WATER CLOTH",
+      "scene_asset": "ClothWater.glb",
+      "requirements": "rigidBodies, particleLiquids, cloth, domainCouplings",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 19.641886199999995,
+      "p50_ms": 19.629292,
+      "p95_ms": 20.132667,
+      "p99_ms": 21.39575,
+      "timing_ms": {
+        "frame": {
+          "mean": 19.641886199999995,
+          "p50": 19.629292,
+          "p95": 20.132667,
+          "p99": 21.39575
+        },
+        "physics": {
+          "mean": 18.647701433333335,
+          "p50": 18.598458,
+          "p95": 19.232042,
+          "p99": 19.998542
+        },
+        "render": {
+          "mean": 0.9940529333333336,
+          "p50": 0.995125,
+          "p95": 1.152709,
+          "p99": 1.396916
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0.8485268352639714,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 139,
+        "workgroups": 250,
+        "barriers": 193,
+        "submissions": 1,
+        "bytes_moved": 35106,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 30,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 6,
+          "cloth": 8,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 5,
+        "coupling_sweeps": 8
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 58606264,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 256,
+        "moving_body_count": 0
+      }
+    },
+    {
+      "id": "soft-body",
+      "scene": "SOFT BODY",
+      "scene_asset": "Softbody.glb",
+      "requirements": "rigidBodies, softBodies",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 15.017387600000003,
+      "p50_ms": 14.8666255,
+      "p95_ms": 16.010958,
+      "p99_ms": 17.15775,
+      "timing_ms": {
+        "frame": {
+          "mean": 15.017387600000003,
+          "p50": 14.8666255,
+          "p95": 16.010958,
+          "p99": 17.15775
+        },
+        "physics": {
+          "mean": 14.021927866666664,
+          "p50": 13.8937505,
+          "p95": 14.9845,
+          "p99": 15.77075
+        },
+        "render": {
+          "mean": 0.9952958666666668,
+          "p50": 0.9856670000000001,
+          "p95": 1.098292,
+          "p99": 1.386709
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.1098246898748931,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 84,
+        "workgroups": 320,
+        "barriers": 127,
+        "submissions": 1,
+        "bytes_moved": 63405,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 20,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 8,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 1,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 61211344,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      }
+    },
+    {
+      "id": "soft-body-rigid",
+      "scene": "SOFT BODY RIGID",
+      "scene_asset": "SoftbodyRigidBody.glb",
+      "requirements": "rigidBodies, softBodies",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 16.126294366666663,
+      "p50_ms": 15.3052915,
+      "p95_ms": 20.900375,
+      "p99_ms": 22.332375,
+      "timing_ms": {
+        "frame": {
+          "mean": 16.126294366666663,
+          "p50": 15.3052915,
+          "p95": 20.900375,
+          "p99": 22.332375
+        },
+        "physics": {
+          "mean": 15.13300416666667,
+          "p50": 14.316687,
+          "p95": 19.904959,
+          "p99": 20.950083
+        },
+        "render": {
+          "mean": 0.9931333666666669,
+          "p50": 0.988479,
+          "p95": 1.241209,
+          "p99": 1.381958
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 1.0335088245909343,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 85,
+        "workgroups": 680,
+        "barriers": 128,
+        "submissions": 1,
+        "bytes_moved": 63645,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 20,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 8,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 1,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 120521424,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 2
+      }
+    },
+    {
+      "id": "soft-body-cloth",
+      "scene": "SOFT BODY CLOTH",
+      "scene_asset": "SoftbodyCloth.glb",
+      "requirements": "rigidBodies, cloth, softBodies, domainCouplings",
+      "workload_profile": "",
+      "available": false,
+      "skipped": true,
+      "passed": false,
+      "steps": 30,
+      "mean_ms": 0,
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "timing_ms": {
+        "frame": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "physics": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0,
+      "timing_window_frames": 0,
+      "realtime_work": {
+        "dispatches": 0,
+        "workgroups": 0,
+        "barriers": 0,
+        "submissions": 0,
+        "bytes_moved": 0,
+        "time_advances": 0,
+        "spatial_builds": 0,
+        "spatial_refits": 0,
+        "spatial_publications": 0,
+        "numerical_iterations": 0,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 0,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "unavailable",
+      "thermal_state_after": "unavailable",
+      "session_controls": true,
+      "memory_footprint_bytes": 0,
+      "workload": {
+        "target_updates_per_second": 0,
+        "rigid_body_limit": 0,
+        "fluid_particle_limit": 0,
+        "coupled_body_limit": 0,
+        "smoke_particle_limit": 0,
+        "render_width": 0,
+        "render_height": 0,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      },
+      "reason": "Unsupported by fixed-tick-60hz-v1: cloth fracture"
+    },
+    {
+      "id": "soft-body-fluid",
+      "scene": "SOFT BODY FLUID",
+      "scene_asset": "SoftbodyFluid.glb",
+      "requirements": "rigidBodies, particleLiquids, softBodies, domainCouplings",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 22.94543063333333,
+      "p50_ms": 22.9140835,
+      "p95_ms": 23.541041,
+      "p99_ms": 24.0575,
+      "timing_ms": {
+        "frame": {
+          "mean": 22.94543063333333,
+          "p50": 22.9140835,
+          "p95": 23.541041,
+          "p99": 24.0575
+        },
+        "physics": {
+          "mean": 21.92581253333334,
+          "p50": 21.924917,
+          "p95": 22.542417,
+          "p99": 22.822083
+        },
+        "render": {
+          "mean": 1.0194623666666667,
+          "p50": 1.0305625,
+          "p95": 1.15075,
+          "p99": 1.235209
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0.7263610695407493,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 171,
+        "workgroups": 776,
+        "barriers": 234,
+        "submissions": 1,
+        "bytes_moved": 172993,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 30,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 6,
+          "cloth": 0,
+          "soft_body": 8,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 4,
+        "coupling_sweeps": 8
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 82576080,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 1,
+        "moving_body_count": 0
+      }
+    },
+    {
+      "id": "rope",
+      "scene": "ROPE",
+      "scene_asset": "Rope.glb",
+      "requirements": "rigidBodies, rope",
+      "workload_profile": "",
+      "available": false,
+      "skipped": true,
+      "passed": false,
+      "steps": 30,
+      "mean_ms": 0,
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "timing_ms": {
+        "frame": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "physics": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0,
+      "timing_window_frames": 0,
+      "realtime_work": {
+        "dispatches": 0,
+        "workgroups": 0,
+        "barriers": 0,
+        "submissions": 0,
+        "bytes_moved": 0,
+        "time_advances": 0,
+        "spatial_builds": 0,
+        "spatial_refits": 0,
+        "spatial_publications": 0,
+        "numerical_iterations": 0,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 0,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "unavailable",
+      "thermal_state_after": "unavailable",
+      "session_controls": true,
+      "memory_footprint_bytes": 0,
+      "workload": {
+        "target_updates_per_second": 0,
+        "rigid_body_limit": 0,
+        "fluid_particle_limit": 0,
+        "coupled_body_limit": 0,
+        "smoke_particle_limit": 0,
+        "render_width": 0,
+        "render_height": 0,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      },
+      "reason": "Missing backend interactions: rope self contact"
+    },
+    {
+      "id": "rope-fluid",
+      "scene": "ROPE FLUID",
+      "scene_asset": "RopeFluid.glb",
+      "requirements": "rigidBodies, particleLiquids, rope, domainCouplings",
+      "workload_profile": "",
+      "available": false,
+      "skipped": true,
+      "passed": false,
+      "steps": 30,
+      "mean_ms": 0,
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "timing_ms": {
+        "frame": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "physics": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0,
+      "timing_window_frames": 0,
+      "realtime_work": {
+        "dispatches": 0,
+        "workgroups": 0,
+        "barriers": 0,
+        "submissions": 0,
+        "bytes_moved": 0,
+        "time_advances": 0,
+        "spatial_builds": 0,
+        "spatial_refits": 0,
+        "spatial_publications": 0,
+        "numerical_iterations": 0,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 0,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "unavailable",
+      "thermal_state_after": "unavailable",
+      "session_controls": true,
+      "memory_footprint_bytes": 0,
+      "workload": {
+        "target_updates_per_second": 0,
+        "rigid_body_limit": 0,
+        "fluid_particle_limit": 0,
+        "coupled_body_limit": 0,
+        "smoke_particle_limit": 0,
+        "render_width": 0,
+        "render_height": 0,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      },
+      "reason": "Missing backend interactions: rope self contact"
+    },
+    {
+      "id": "rope-soft-body",
+      "scene": "ROPE SOFT BODY",
+      "scene_asset": "RopeSoftbody.glb",
+      "requirements": "rigidBodies, rope, softBodies, domainCouplings",
+      "workload_profile": "",
+      "available": false,
+      "skipped": true,
+      "passed": false,
+      "steps": 30,
+      "mean_ms": 0,
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "timing_ms": {
+        "frame": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "physics": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0,
+      "timing_window_frames": 0,
+      "realtime_work": {
+        "dispatches": 0,
+        "workgroups": 0,
+        "barriers": 0,
+        "submissions": 0,
+        "bytes_moved": 0,
+        "time_advances": 0,
+        "spatial_builds": 0,
+        "spatial_refits": 0,
+        "spatial_publications": 0,
+        "numerical_iterations": 0,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 0,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "unavailable",
+      "thermal_state_after": "unavailable",
+      "session_controls": true,
+      "memory_footprint_bytes": 0,
+      "workload": {
+        "target_updates_per_second": 0,
+        "rigid_body_limit": 0,
+        "fluid_particle_limit": 0,
+        "coupled_body_limit": 0,
+        "smoke_particle_limit": 0,
+        "render_width": 0,
+        "render_height": 0,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      },
+      "reason": "Missing backend interactions: rope self contact"
+    },
+    {
+      "id": "rope-cloth",
+      "scene": "ROPE CLOTH",
+      "scene_asset": "RopeCloth.glb",
+      "requirements": "rigidBodies, cloth, rope, domainCouplings",
+      "workload_profile": "",
+      "available": false,
+      "skipped": true,
+      "passed": false,
+      "steps": 30,
+      "mean_ms": 0,
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "timing_ms": {
+        "frame": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "physics": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0,
+      "timing_window_frames": 0,
+      "realtime_work": {
+        "dispatches": 0,
+        "workgroups": 0,
+        "barriers": 0,
+        "submissions": 0,
+        "bytes_moved": 0,
+        "time_advances": 0,
+        "spatial_builds": 0,
+        "spatial_refits": 0,
+        "spatial_publications": 0,
+        "numerical_iterations": 0,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 0,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "unavailable",
+      "thermal_state_after": "unavailable",
+      "session_controls": true,
+      "memory_footprint_bytes": 0,
+      "workload": {
+        "target_updates_per_second": 0,
+        "rigid_body_limit": 0,
+        "fluid_particle_limit": 0,
+        "coupled_body_limit": 0,
+        "smoke_particle_limit": 0,
+        "render_width": 0,
+        "render_height": 0,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      },
+      "reason": "Missing backend interactions: rope self contact"
+    },
+    {
+      "id": "smoke",
+      "scene": "SMOKE",
+      "scene_asset": "Smoke.glb",
+      "requirements": "rigidBodies, smoke",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 16.8117861,
+      "p50_ms": 17.345291500000002,
+      "p95_ms": 17.573834,
+      "p99_ms": 17.874458,
+      "timing_ms": {
+        "frame": {
+          "mean": 16.8117861,
+          "p50": 17.345291500000002,
+          "p95": 17.573834,
+          "p99": 17.874458
+        },
+        "physics": {
+          "mean": 15.821759766666672,
+          "p50": 16.341396,
+          "p95": 16.594584,
+          "p99": 16.6215
+        },
+        "render": {
+          "mean": 0.9898821000000001,
+          "p50": 0.9874585,
+          "p95": 1.041,
+          "p99": 1.365833
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0.9913680460103564,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 73,
+        "workgroups": 59822,
+        "barriers": 115,
+        "submissions": 1,
+        "bytes_moved": 10600344,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 24,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 12
+        },
+        "coupling_edges": 2,
+        "coupling_sweeps": 4
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 199754496,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      }
+    },
+    {
+      "id": "smoke-water",
+      "scene": "SMOKE WATER",
+      "scene_asset": "SmokeWater.glb",
+      "requirements": "rigidBodies, particleLiquids, smoke, domainCouplings",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 21.627122133333337,
+      "p50_ms": 21.818541000000003,
+      "p95_ms": 22.4795,
+      "p99_ms": 22.527541,
+      "timing_ms": {
+        "frame": {
+          "mean": 21.627122133333337,
+          "p50": 21.818541000000003,
+          "p95": 22.4795,
+          "p99": 22.527541
+        },
+        "physics": {
+          "mean": 20.653911133333335,
+          "p50": 20.884209,
+          "p95": 21.488292,
+          "p99": 21.500375
+        },
+        "render": {
+          "mean": 0.9730527666666666,
+          "p50": 0.977708,
+          "p95": 1.047209,
+          "p99": 1.291875
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0.7706373244276064,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 123,
+        "workgroups": 60291,
+        "barriers": 183,
+        "submissions": 1,
+        "bytes_moved": 10611380,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 34,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 6,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 12
+        },
+        "coupling_edges": 6,
+        "coupling_sweeps": 8
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 264209176,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 256,
+        "moving_body_count": 1
+      }
+    },
+    {
+      "id": "smoke-soft-body",
+      "scene": "SMOKE SOFT BODY",
+      "scene_asset": "SmokeSoftbody.glb",
+      "requirements": "rigidBodies, softBodies, smoke, domainCouplings",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 104.88877490000002,
+      "p50_ms": 104.8550415,
+      "p95_ms": 107.991125,
+      "p99_ms": 108.536292,
+      "timing_ms": {
+        "frame": {
+          "mean": 104.88877490000002,
+          "p50": 104.8550415,
+          "p95": 107.991125,
+          "p99": 108.536292
+        },
+        "physics": {
+          "mean": 103.862754,
+          "p50": 103.82510450000001,
+          "p95": 107.040958,
+          "p99": 107.410708
+        },
+        "render": {
+          "mean": 1.0257805333333334,
+          "p50": 1.005083,
+          "p95": 1.133625,
+          "p99": 1.453417
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0.15889848605621446,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 269,
+        "workgroups": 63060,
+        "barriers": 639,
+        "submissions": 1,
+        "bytes_moved": 11078152,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 36,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 8,
+          "rope": 0,
+          "smoke": 12
+        },
+        "coupling_edges": 62,
+        "coupling_sweeps": 8
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 264979272,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 1
+      }
+    },
+    {
+      "id": "smoke-cloth",
+      "scene": "SMOKE CLOTH",
+      "scene_asset": "SmokeCloth.glb",
+      "requirements": "rigidBodies, cloth, smoke, domainCouplings",
+      "workload_profile": "ipad-metal-preview",
+      "available": true,
+      "skipped": false,
+      "passed": true,
+      "steps": 30,
+      "mean_ms": 22.102767966666665,
+      "p50_ms": 22.2151455,
+      "p95_ms": 22.630208,
+      "p99_ms": 22.662834,
+      "timing_ms": {
+        "frame": {
+          "mean": 22.102767966666665,
+          "p50": 22.2151455,
+          "p95": 22.630208,
+          "p99": 22.662834
+        },
+        "physics": {
+          "mean": 21.109661133333326,
+          "p50": 21.2207915,
+          "p95": 21.710333,
+          "p99": 21.746083
+        },
+        "render": {
+          "mean": 0.9929487000000002,
+          "p50": 0.9890005,
+          "p95": 1.0605,
+          "p99": 1.442458
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0.7540534091040626,
+      "timing_window_frames": 30,
+      "realtime_work": {
+        "dispatches": 140,
+        "workgroups": 60102,
+        "barriers": 196,
+        "submissions": 1,
+        "bytes_moved": 10630525,
+        "time_advances": 1,
+        "spatial_builds": 1,
+        "spatial_refits": 0,
+        "spatial_publications": 1,
+        "numerical_iterations": 36,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 8,
+          "fluid": 0,
+          "cloth": 8,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 12
+        },
+        "coupling_edges": 5,
+        "coupling_sweeps": 8
+      },
+      "thermal_state_before": "nominal",
+      "thermal_state_after": "nominal",
+      "session_controls": true,
+      "memory_footprint_bytes": 227853080,
+      "workload": {
+        "target_updates_per_second": 60,
+        "rigid_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "coupled_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "render_width": 960,
+        "render_height": 720,
+        "peak_particle_count": 0,
+        "moving_body_count": 1
+      }
+    },
+    {
+      "id": "smoke-rope",
+      "scene": "SMOKE ROPE",
+      "scene_asset": "SmokeRope.glb",
+      "requirements": "rigidBodies, rope, smoke, domainCouplings",
+      "workload_profile": "",
+      "available": false,
+      "skipped": true,
+      "passed": false,
+      "steps": 30,
+      "mean_ms": 0,
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "p99_ms": 0,
+      "timing_ms": {
+        "frame": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "physics": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "simulation_to_wall_clock_rate": 0,
+      "timing_window_frames": 0,
+      "realtime_work": {
+        "dispatches": 0,
+        "workgroups": 0,
+        "barriers": 0,
+        "submissions": 0,
+        "bytes_moved": 0,
+        "time_advances": 0,
+        "spatial_builds": 0,
+        "spatial_refits": 0,
+        "spatial_publications": 0,
+        "numerical_iterations": 0,
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "domain_iterations": {
+          "rigid": 0,
+          "fluid": 0,
+          "cloth": 0,
+          "soft_body": 0,
+          "rope": 0,
+          "smoke": 0
+        },
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "thermal_state_before": "unavailable",
+      "thermal_state_after": "unavailable",
+      "session_controls": true,
+      "memory_footprint_bytes": 0,
+      "workload": {
+        "target_updates_per_second": 0,
+        "rigid_body_limit": 0,
+        "fluid_particle_limit": 0,
+        "coupled_body_limit": 0,
+        "smoke_particle_limit": 0,
+        "render_width": 0,
+        "render_height": 0,
+        "peak_particle_count": 0,
+        "moving_body_count": 0
+      },
+      "reason": "Missing backend interactions: rope self contact"
+    }
+  ]
+}

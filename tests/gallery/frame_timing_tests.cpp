@@ -76,9 +76,19 @@ int main() {
     near(stats.mean_ms, 11, "Shared statistics mean mismatch");
     near(stats.median_ms, 11, "Even-size median must average middle samples");
     near(stats.p95_ms, 20, "Shared p95 must include stalls");
+    near(stats.p99_ms, 20, "Shared p99 must include stalls");
     near(stats.physics_ms, 2.5, "Statistics must include zero-step frames");
+    near(stats.physics_median_ms, 2.5, "Physics p50 mismatch");
+    near(stats.physics_p95_ms, 5.0, "Physics p95 mismatch");
+    near(stats.physics_p99_ms, 5.0, "Physics p99 mismatch");
     near(stats.render_ms, 2.5, "Statistics render mean mismatch");
+    near(stats.render_median_ms, 2.5, "Render p50 mismatch");
+    near(stats.render_p95_ms, 4.0, "Render p95 mismatch");
+    near(stats.render_p99_ms, 4.0, "Render p99 mismatch");
     near(stats.present_ms, 4, "Statistics present mean mismatch");
+    near(stats.present_median_ms, 4.0, "Present p50 mismatch");
+    near(stats.present_p95_ms, 8.0, "Present p95 mismatch");
+    near(stats.present_p99_ms, 8.0, "Present p99 mismatch");
 
     timings.begin_frame(at(22));
     timings.begin_phase(FramePhase::render, at(23));

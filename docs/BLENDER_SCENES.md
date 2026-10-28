@@ -97,7 +97,7 @@ Blender's own playback does not apply those custom initial velocities.
 The source includes a presentation camera and studio lights for editing/rendering.
 The gallery uses its own camera and material-color lighting. Arrows tilt gravity; Space releases
 or restores the assembly; R resets. The GPU scene test checks shared anchor drift,
-motion, tilted gravity, release and restoration at the gallery's four substeps.
+motion, tilted gravity, release and restoration at the Gallery's sole 1/60-second step.
 
 ## Dump truck
 

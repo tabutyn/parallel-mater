@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "simulation/fluid_spatial.hpp"
+#include "simulation/deformable_spatial.hpp"
 
 #include <algorithm>
 #include <array>
@@ -283,6 +284,32 @@ void test_population_identity_and_boundary_admission() {
         [](std::uint8_t value) { return value != 0U; }));
 }
 
+void test_coupling_visibility_does_not_reject_source() {
+    std::array<SpatialLeafMetadata, 2> metadata{};
+    metadata[0].identity = particle_identity(8U, 1U, 1U);
+    metadata[0].sort_key = 1U;
+    metadata[0].query_mask = coupling_spatial_query_mask;
+    metadata[0].admission_mask = coupling_spatial_query_mask;
+    metadata[0].flags = spatial_leaf_retained;
+
+    metadata[1].identity = particle_identity(9U, 1U, 2U);
+    metadata[1].sort_key = 2U;
+    metadata[1].query_mask = fluid_spatial_query_mask |
+        coupling_spatial_query_mask;
+    metadata[1].admission_mask = fluid_source_admission_mask;
+    metadata[1].flags = spatial_leaf_provisional;
+
+    const std::array<SpatialAabb, 2> bounds{
+        box({0.0F, 0.0F, 0.0F}, 10.0F),
+        box({0.0F, 0.0F, 0.0F}, 0.1F)};
+    std::array<std::uint8_t, 2> admission{};
+    CHECK(spatial_resolve_admission(metadata, bounds, admission) ==
+          PM_SUCCESS);
+    CHECK(admission[0] == 1U);
+    CHECK(admission[1] == 1U);
+    CHECK((metadata[1].query_mask & coupling_spatial_query_mask) != 0U);
+}
+
 void test_one_update_reused_by_sweeps() {
     const SpatialEpochToken token{42U, 7U, 9U, 1U, 0U, 3U};
     SpatialEpochCounters counters{1U, 0U, 1U, 96U, 0U, 3840U};
@@ -318,6 +345,7 @@ int main() {
     test_plan_and_budget();
     test_full_tick_heterogeneous_completeness();
     test_population_identity_and_boundary_admission();
+    test_coupling_visibility_does_not_reject_source();
     test_one_update_reused_by_sweeps();
     if (failures == 0)
         std::printf("F8-09 host fluid spatial contract passed\n");

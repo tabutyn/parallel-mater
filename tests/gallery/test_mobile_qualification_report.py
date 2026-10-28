@@ -23,13 +23,44 @@ def passing_report():
         {
             "id": f"scene-{index}",
             "scene": f"Scene {index}",
+            "scene_asset": f"Scene{index}.glb",
+            "workload_profile": "test-profile",
             "available": True,
             "skipped": False,
             "passed": True,
             "steps": 3,
+            "timing_ms": {
+                phase: {key: 1.0 for key in ("mean", "p50", "p95", "p99")}
+                for phase in ("frame", "physics", "render", "present")
+            },
+            "simulation_to_wall_clock_rate": 1.0,
+            "realtime_work": {
+                field: 0 for field in (
+                    "dispatches", "workgroups", "barriers", "submissions",
+                    "bytes_moved", "time_advances", "spatial_builds",
+                    "spatial_refits", "spatial_publications",
+                    "numerical_iterations", "intra_tick_host_readbacks",
+                    "intra_tick_host_waits", "coupling_edges",
+                    "coupling_sweeps")
+            },
+            "workload": {
+                field: 0 for field in (
+                    "target_updates_per_second", "rigid_body_limit",
+                    "fluid_particle_limit", "coupled_body_limit",
+                    "smoke_particle_limit", "render_width", "render_height",
+                    "peak_particle_count",
+                    "moving_body_count")
+            },
+            "thermal_state_before": "nominal",
+            "thermal_state_after": "nominal",
         }
         for index in range(27)
     ]
+    for scene in scenes:
+        scene["realtime_work"]["domain_iterations"] = {
+            domain: 0 for domain in (
+                "rigid", "fluid", "cloth", "soft_body", "rope", "smoke")
+        }
     scenes.append({
         "id": "unavailable",
         "scene": "Unavailable",
@@ -75,6 +106,9 @@ class MobileGalleryReportTests(unittest.TestCase):
             lambda report: report["failures"].append(
                 {"stage": "scene", "message": "failed"}),
             lambda report: report["scenes"].pop(),
+            lambda report: report["scenes"][0].pop("timing_ms"),
+            lambda report: report["scenes"][0].pop("realtime_work"),
+            lambda report: report["scenes"][0].pop("thermal_state_after"),
         ):
             with self.subTest(mutation=mutation):
                 report = passing_report()

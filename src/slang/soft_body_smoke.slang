@@ -12,23 +12,58 @@ import geometry_smoke;
 import smoke_grid;
 import graphics_resources;
 
+#include "smoke_coupling_candidates.slangh"
+
+static const uint kSmokeSoftBodyBatchCapacity = 10u;
+
+struct SmokeSoftBodyContactBatchItem
+{
+    PMBuffer<Vec3> surface;
+    PMBuffer<SoftBodySurfaceBinding> bindings;
+    PMBuffer<uint> indices;
+    uint index_count;
+    PMBuffer<Vec3> node_velocities;
+    PMBuffer<Vec3> minimum;
+    PMBuffer<Vec3> maximum;
+    float clearance;
+    PMBuffer<uint> triangle_generations;
+    uint soft_owner_slot;
+    uint soft_owner_generation;
+    uint soft_topology_revision;
+};
+
+struct SmokeSoftBodyContactBatch
+{
+    SmokeSoftBodyContactBatchItem items[kSmokeSoftBodyBatchCapacity];
+};
+
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
 void smoke_soft_body_wind(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform uint node_count,
     uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
-    uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<uint64_t> keys,
-    uniform PMBuffer<uint> indices, uniform SmokeGridField grid, uniform float drag,
+    uniform PMBuffer<Vec3> smoke_velocities, uniform uint smoke_owner_slot,
+    uniform uint smoke_owner_generation, uniform uint smoke_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
+    uniform SmokeGridField grid, uniform float drag,
     uniform float maximum_acceleration, uniform float dt,
     uniform float maximum_speed PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= node_count || inverse_masses[node] == 0.0f) return;
-    velocities[node] = clamp_length(add(velocities[node], smoke_wind_delta(
+    velocities[node] = clamp_length(add(velocities[node], smoke_coupling_wind_delta(
         positions[node], velocities[node], smoke_positions, smoke_velocities,
-        keys, indices, smoke, grid, drag, maximum_acceleration, dt)),
+        smoke, smoke_owner_slot, smoke_owner_generation,
+        smoke_topology_revision, spatial_metadata, spatial_admission,
+        spatial_leaf_capacity, candidate_counts, candidate_sources,
+        candidates_per_query, spatial_status, node, grid, drag,
+        maximum_acceleration, dt)),
         maximum_speed);
 }
 
@@ -174,4 +209,35 @@ void smoke_soft_body_contact(
         tangentSpeed < sourceSpeed)
         relative = multiply(relative, sourceSpeed / tangentSpeed);
     velocities[particle] = add(bodyVelocity, relative);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(256), 1, 1)]
+void smoke_soft_body_contact_batch(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform uint count, uniform float lifetime,
+    uniform SmokeSoftBodyContactBatch batch, uniform uint batch_count,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission,
+    uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query,
+    uniform PMBuffer<uint> spatial_status,
+    uniform SmokeGridField grid PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SmokeSoftBodyContactBatchItem item = batch.items[resource];
+    smoke_soft_body_contact(positions, previous_positions, velocities, ages,
+        count, lifetime, item.surface, item.bindings, item.indices,
+        item.index_count, item.node_velocities, item.minimum, item.maximum,
+        item.clearance, item.triangle_generations, item.soft_owner_slot,
+        item.soft_owner_generation, item.soft_topology_revision,
+        spatial_metadata, spatial_admission, spatial_leaf_capacity,
+        candidate_counts, candidate_sources, candidates_per_query,
+        spatial_status, grid PM_D3D12_DISPATCH_ARGUMENT);
 }

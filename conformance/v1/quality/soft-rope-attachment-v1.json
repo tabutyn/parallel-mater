@@ -13,9 +13,9 @@
   "fixtures": [
     {
       "id": "supported-hanging-rope",
-      "timestep_seconds": 0.008333333333333333,
-      "step_count": 120,
-      "substeps": 2,
+      "timestep_seconds": 0.016666666666666666,
+      "step_count": 60,
+      "substeps": 1,
       "gravity_m_s2": [0.0, -9.81, 0.0],
       "soft_node_mass_kg": 0.25,
       "soft_nodes_m": [[-0.1, 0.0, -0.1], [0.1, 0.0, -0.1], [0.0, 0.0, 0.1], [0.0, 0.2, 0.0]],

@@ -1,0 +1,9 @@
+Brick startup: Apple M4 - Metal GPU preview (qualification incomplete) (metal) -> 386 bricks, scale 1, 2 walls [command line]
+Gallery scene ready index=0 revision=1
+Desktop · Metal · Apple M4 - Metal GPU preview (qualification incomplete)
+Renderer: Metal GPU renderer · readback: diagnostic captures only
+Scene: RIGID BODY · TUNABLE RIGID WALL COURSE
+Controls: ARROWS GRAVITY  P WALLS  R RESET
+Build revision: 55523941739eb170b2dbd18ac5f87a0c3a35fc58
+Execution contract: fixed-tick-60hz-v1
+Interactive smoke: 180 frames, renderer=metal-direct-fenced

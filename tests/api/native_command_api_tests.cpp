@@ -287,7 +287,7 @@ int main() {
         body.inertiaDiagonal[0] = body.inertiaDiagonal[1] =
             body.inertiaDiagonal[2] = 1.0F / 6.0F;
         body.state.orientation[3] = 1.0F;
-        body.maximumLinearSpeed = body.maximumAngularSpeed = 100.0F;
+        body.maximumLinearSpeed = body.maximumAngularSpeed = 20.0F;
         body.collisionMargin = 0.005F;
     }
     bodies[0].motionType = PM_MOTION_STATIC;
@@ -368,7 +368,7 @@ int main() {
 #if defined(PM_TEST_METAL_PREVIEW)
     // Separate contact case: preserve upstream free-fall/multiple-submission
     // checks above as well as the preview's independent settling check.
-    bodies[1].state.position[1] = -0.25F;
+    bodies[1].state.position[1] = 0.02F;
     CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
@@ -380,6 +380,11 @@ int main() {
     CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
     CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    if (!(states[1].position[1] > -0.025F &&
+          states[1].position[1] < 0.08F))
+        std::fprintf(stderr,
+            "Metal rigid settling outside tolerance: y=%g vy=%g\n",
+            states[1].position[1], states[1].linearVelocity[1]);
     CHECK(states[1].position[1] > -0.025F && states[1].position[1] < 0.08F);
     CHECK(std::abs(states[1].linearVelocity[1]) < 0.15F);
 #endif

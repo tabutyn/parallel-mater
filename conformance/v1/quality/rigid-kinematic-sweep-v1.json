@@ -12,9 +12,9 @@
   },
   "fixture": {
     "case_id": "rigid-direct",
-    "case_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+    "case_sha256": "1b1a68c58cd90dc8fefae91c50d326f7c366f4f64078f365dcc64f96eeb07209",
     "frames": 60,
-    "substeps": 4,
+    "substeps": 1,
     "timestep_seconds": 0.016666666666666666,
     "preimpact_frame": 20,
     "impact_frame": 21,

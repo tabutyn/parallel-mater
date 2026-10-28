@@ -29,7 +29,13 @@ struct FrameTimingSample {
 // throughput (fps()) intentionally excludes time outside measured frames.
 struct FrameTimingStatistics {
     std::size_t count{};
-    double mean_ms{}, median_ms{}, p95_ms{}, physics_ms{}, render_ms{}, present_ms{}, cadence_fps{};
+    double mean_ms{}, median_ms{}, p95_ms{}, p99_ms{};
+    double physics_ms{}, physics_median_ms{}, physics_p95_ms{},
+        physics_p99_ms{};
+    double render_ms{}, render_median_ms{}, render_p95_ms{}, render_p99_ms{};
+    double present_ms{}, present_median_ms{}, present_p95_ms{},
+        present_p99_ms{};
+    double cadence_fps{};
 };
 
 // Host wall time, not GPU kernel time. Call sites supply phase boundaries only.

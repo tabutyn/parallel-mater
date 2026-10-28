@@ -135,6 +135,13 @@ void raw_war_waw_and_order() {
     auto repeated_read = access(buffer, 12, 4, compute::ResourceAccess::read);
     command->dispatch(repeated_read, {1});
     command->fill(buffer, 4, 12, 2);
+    const auto statistics = command->statistics();
+    require(statistics.dispatches == 2 && statistics.workgroups == 2 &&
+        statistics.dependency_barriers == 2 &&
+        statistics.dependency_ranges == 3 &&
+        statistics.transfer_commands == 2 &&
+        statistics.bytes_moved == 28,
+        "encoder-side command statistics mismatch");
     auto completion = command->submit();
 
     require(state->events.size() == 7, "unexpected dependency event count");

@@ -73,7 +73,7 @@ struct Fixture {
     unsigned nodes{};
     unsigned internal{};
     std::uint8_t *flags{};
-    unsigned *identities{};
+    PmSpatialLeafMetadata_0 *metadata{};
     PmSpatialAabb_0 *input_bounds{};
     unsigned *counts{};
     unsigned *offsets{};
@@ -101,7 +101,7 @@ struct Fixture {
           nodes(live == 0U ? 0U : 2U * live - 1U),
           internal(live == 0U ? 0U : live - 1U) {
         flags = managed<std::uint8_t>(capacity);
-        identities = managed<unsigned>(capacity);
+        metadata = managed<PmSpatialLeafMetadata_0>(capacity);
         input_bounds = managed<PmSpatialAabb_0>(capacity);
         counts = managed<unsigned>(capacity_blocks);
         offsets = managed<unsigned>(capacity_blocks);
@@ -128,7 +128,7 @@ struct Fixture {
 
     ~Fixture() {
         for (void *pointer : std::array<void *, 22>{
-                 flags, identities, input_bounds, counts, offsets,
+                 flags, metadata, input_bounds, counts, offsets,
                  active_indices, active_count, block_bounds, scene_bounds,
                  keys[0], keys[1], values[0], values[1], histograms,
                  radix_offsets, left, right, parents, leaf_sources,
@@ -146,7 +146,8 @@ struct Fixture {
             expected_sources.push_back(source);
         }
         for (unsigned index = 0; index < capacity; ++index) {
-            identities[index] = 0x9e3779b9U * (index + 1U);
+            metadata[index] = {};
+            metadata[index].sort_key_0 = 0x9e3779b9U * (index + 1U);
             const float x = float(index % 17U) * 0.25F;
             const float y = float((index / 17U) % 19U) * 0.2F;
             const float z = float((index / (17U * 19U)) % 23U) * 0.15F;
@@ -208,7 +209,7 @@ struct Fixture {
             block_bounds, active_blocks, active_count, capacity,
             scene_bounds, status);
         pm_spatial_emit_keys<<<active_blocks, tile>>>(
-            active_indices, active_count, capacity, identities, input_bounds,
+            active_indices, active_count, capacity, metadata, input_bounds,
             scene_bounds, keys[0], values[0], status);
         launch_sort();
         pm_spatial_build_topology<<<active_blocks, tile>>>(
@@ -228,7 +229,7 @@ struct Fixture {
     }
 
     bool allocated() const {
-        return flags && identities && input_bounds && counts && offsets &&
+        return flags && metadata && input_bounds && counts && offsets &&
             active_indices && active_count && block_bounds && scene_bounds &&
             keys[0] && keys[1] && values[0] && values[1] && histograms &&
             radix_offsets && left && right && parents && leaf_sources &&
@@ -250,7 +251,8 @@ void validate_fixture(Fixture &fixture) {
         const unsigned source = fixture.values[0][index];
         CHECK(source < fixture.capacity);
         if (source >= fixture.capacity) continue;
-        CHECK(std::uint32_t(fixture.keys[0][index]) == fixture.identities[source]);
+        CHECK(std::uint32_t(fixture.keys[0][index]) ==
+              fixture.metadata[source].sort_key_0);
         CHECK(fixture.leaf_sources[index] == source);
     }
     if (fixture.live == 0U) return;
@@ -350,7 +352,7 @@ void validate_errors() {
     Fixture fixture(64U, 8U);
     const unsigned first = fixture.expected_sources[0];
     const unsigned second = fixture.expected_sources[1];
-    fixture.identities[second] = fixture.identities[first];
+    fixture.metadata[second].sort_key_0 = fixture.metadata[first].sort_key_0;
     fixture.input_bounds[second] = fixture.input_bounds[first];
     fixture.launch_build();
     CHECK(cudaDeviceSynchronize() == cudaSuccess);
@@ -372,7 +374,7 @@ void validate_errors() {
     *fixture.status = 0U;
     pm_spatial_emit_keys<<<1U, tile>>>(
         fixture.active_indices, fixture.active_count, fixture.capacity,
-        fixture.identities, fixture.input_bounds, fixture.scene_bounds,
+        fixture.metadata, fixture.input_bounds, fixture.scene_bounds,
         fixture.keys[0], fixture.values[0], fixture.status);
     CHECK(cudaDeviceSynchronize() == cudaSuccess);
     CHECK((*fixture.status & spatial_status_count_overflow) != 0U);
@@ -430,7 +432,7 @@ void validate_service_kernels() {
         if (active_ordinal == 1U)
             metadata[index].flags |= spatial_leaf_transfer_destination;
         if (active_ordinal <= 1U) metadata[index].transfer_group = 7U;
-        fixture.identities[index] = metadata[index].sort_key;
+        fixture.metadata[index].sort_key_0 = metadata[index].sort_key;
         fixture.input_bounds[index].minimum_0 =
             make_float4(x[active_ordinal][0], 0.0F, 0.0F, 0.0F);
         fixture.input_bounds[index].maximum_0 =

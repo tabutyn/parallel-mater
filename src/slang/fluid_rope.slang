@@ -11,7 +11,10 @@ import graphics_resources;
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void fluid_rope_contacts(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> velocity_deltas,
     uniform PMBuffer<uint> particle_count, uniform float particle_mass,
     uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
     uniform uint rope_count, uniform PMBuffer<uint> segment_generations,
@@ -26,7 +29,9 @@ void fluid_rope_contacts(
     uniform PMBuffer<uint> contribution_nodes,
     uniform PMBuffer<Vec3> contribution_impulses,
     uniform PMBuffer<uint> contact_count,
-    uniform PMBuffer<float> maximum_penetration, uniform bool transfer_impulse PM_D3D12_DISPATCH_PARAMETER)
+    uniform PMBuffer<float> maximum_penetration, uniform bool transfer_impulse,
+    uniform float frame_inverse_dt,
+    uniform float commit_velocity_scale PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
@@ -101,12 +106,23 @@ void fluid_rope_contacts(
         ? multiply(subtract(position, closest), 1.0f / separation)
         : normalized_or(multiply(relative, -1.0f), up);
     float penetration = distance - separation;
-    positions[particle] = add(position, multiply(normal, penetration));
+    Vec3 correctedPosition = add(position, multiply(normal, penetration));
+    positions[particle] = correctedPosition;
     float approach = min(dot(relative, normal), 0.0f);
     Vec3 tangent = subtract(relative, multiply(normal, dot(relative, normal)));
     Vec3 velocityChange = subtract(
         multiply(tangent, -friction), multiply(normal, approach));
-    velocities[particle] = add(velocities[particle], velocityChange);
+    Vec3 targetVelocity = add(velocities[particle], velocityChange);
+    velocities[particle] = targetVelocity;
+    // Commit derives velocity from the corrected position. Encode the
+    // coupling target into its existing velocity-delta scratch so projection
+    // does not invent an unpaired impulse and commit does not erase contact.
+    Vec3 positionalVelocity = multiply(
+        subtract(correctedPosition, previous_positions[particle]),
+        frame_inverse_dt);
+    velocity_deltas[particle] = subtract(
+        multiply(targetVelocity, 1.0f / commit_velocity_scale),
+        positionalVelocity);
     if (!transfer_impulse) return;
     pmAtomicAdd(contact_count, 1u);
     pmAtomicMaxPositiveFloat(maximum_penetration, penetration);
@@ -125,7 +141,10 @@ void fluid_rope_contacts(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void fluid_rope_apply(
-    uniform PMBuffer<Vec3> rope_velocities, uniform PMBuffer<Vec3> fluid_contact_forces,
+    uniform PMBuffer<Vec3> rope_positions,
+    uniform PMBuffer<Vec3> rope_previous_positions,
+    uniform PMBuffer<Vec3> rope_velocities,
+    uniform PMBuffer<Vec3> fluid_contact_forces,
     uniform uint rope_count, uniform float rope_mass,
     uniform float rope_maximum_speed, uniform bool first_attached,
     uniform bool last_attached,
@@ -133,7 +152,8 @@ void fluid_rope_apply(
     uniform PMBuffer<uint> contribution_nodes,
     uniform PMBuffer<Vec3> contribution_impulses,
     uniform float maximum_acceleration,
-    uniform float dt, uniform float frame_inverse_dt PM_D3D12_DISPATCH_PARAMETER)
+    uniform float dt, uniform float frame_inverse_dt,
+    uniform float commit_velocity_scale PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
@@ -153,9 +173,17 @@ void fluid_rope_apply(
     Vec3 velocityChange = clamp_length(
         multiply(reaction, 1.0f / mass),
         maximum_acceleration * dt);
-    rope_velocities[node] = clamp_length(
-        add(rope_velocities[node], velocityChange), rope_maximum_speed);
+    Vec3 committedVelocity = multiply(subtract(
+        rope_positions[node], rope_previous_positions[node]),
+        frame_inverse_dt * commit_velocity_scale);
+    Vec3 targetVelocity = clamp_length(
+        add(committedVelocity, velocityChange), rope_maximum_speed);
+    Vec3 appliedVelocityChange = subtract(targetVelocity, committedVelocity);
+    rope_positions[node] = add(rope_positions[node], multiply(
+        appliedVelocityChange,
+        1.0f / (frame_inverse_dt * commit_velocity_scale)));
+    rope_velocities[node] = targetVelocity;
     fluid_contact_forces[node] = add(
         fluid_contact_forces[node],
-        multiply(velocityChange, mass * frame_inverse_dt));
+        multiply(appliedVelocityChange, mass * frame_inverse_dt));
 }

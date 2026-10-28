@@ -1588,10 +1588,12 @@ bool rigid_requires_swept_pair_contact(__constref RigidBodyState previousA,
 bool rigid_convex_face_manifold(RigidBodyState bodyState,
     TriangleMeshResource bodyMesh, HingeContactFrame bodyHinge,
     RigidBodyState colliderState, TriangleMeshResource colliderMesh,
-    HingeContactFrame colliderHinge, float margin,
+    HingeContactFrame colliderHinge, float margin, float correctionReach,
     out ContactManifold output)
 {
     rigid_clear_manifold(output);
+    float restOffset = min(margin, 1.0e-3f);
+    float contactReach = margin + correctionReach;
     if (!pmBufferPresent(bodyMesh.solid_planes) ||
         !pmBufferPresent(colliderMesh.solid_planes) ||
         bodyMesh.index_count > 96u || colliderMesh.index_count > 96u)
@@ -1629,7 +1631,7 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
             }
         }
     }
-    if (bestSeparation > margin) return true;
+    if (bestSeparation > contactReach) return true;
 
     TriangleMeshResource referenceMesh = referenceIsBody
         ? bodyMesh : colliderMesh;
@@ -1680,7 +1682,7 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
             CollisionPlane plane = referenceMesh.solid_planes[planeIndex];
             float offset = plane.offset +
                 (dot(plane.normal, reference.normal) > 0.99999f
-                    ? margin : 0.0f);
+                    ? contactReach : 0.0f);
             uint clippedCount = 0u;
             Vec3 previous = polygon[count - 1u];
             float previousDistance = dot(plane.normal, previous) - offset;
@@ -1704,13 +1706,13 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
         {
             float distance = dot(reference.normal, polygon[vertex]) -
                              reference.offset;
-            if (distance > margin) continue;
+            if (distance > contactReach) continue;
             Contact contact = {};
             contact.normal = normal;
             contact.point = transform_point(referenceState,
                 subtract(polygon[vertex],
                     multiply(reference.normal, distance * 0.5f)));
-            contact.penetration = -distance;
+            contact.penetration = restOffset - distance + 1.0e-5f;
             contact.body_hinge = bodyHinge;
             contact.collider_hinge = colliderHinge;
             contact.impact_fraction = 1.0f;
@@ -1791,13 +1793,14 @@ bool rigid_swept_convex_face_manifold(RigidBodyState previousBody,
     if (entry == 0.0f)
     {
         bool clipped = rigid_convex_face_manifold(body, bodyMesh, bodyHinge,
-            collider, colliderMesh, colliderHinge, margin, output);
+            collider, colliderMesh, colliderHinge, margin, 0.0f, output);
         if (clipped && output.count != 0u) return true;
         // A touching body can cross the entire collider in one step. Use its
         // initial face when the final poses are disjoint; the triangle CCD
         // intentionally leaves already-touching features to this manifold.
         if (!rigid_convex_face_manifold(previousBody, bodyMesh, bodyHinge,
-            previousCollider, colliderMesh, colliderHinge, margin, output) ||
+            previousCollider, colliderMesh, colliderHinge, margin, 0.0f,
+            output) ||
             output.count == 0u) return false;
         for (uint point = 0u; point < output.count; ++point)
         {
@@ -1816,7 +1819,7 @@ bool rigid_swept_convex_face_manifold(RigidBodyState previousBody,
         multiply(colliderMotion, entry));
     if (!rigid_convex_face_manifold(impactBody, bodyMesh, bodyHinge,
         impactCollider, colliderMesh, colliderHinge, restOffset + 1.0e-5f,
-        output) || output.count == 0u) return false;
+        0.0f, output) || output.count == 0u) return false;
     for (uint point = 0u; point < output.count; ++point)
     {
         Contact contact = output.contacts[point];
@@ -2717,6 +2720,19 @@ void pm_reduce_rigid_leaf_manifolds(
     manifolds[activeIndex] = result;
 }
 
+float rigid_solver_correction_reach(BodyParameters body,
+    TriangleMeshResource mesh)
+{
+    if (body.motion != MotionType.dynamic) return 0.0f;
+    Vec3 extent = subtract(mesh.maximum, mesh.minimum);
+    // The sole F8 schedule permits one quarter of the characteristic length
+    // per dynamic body and caps that length at two metres. The shared BVH
+    // already publishes this envelope; retain the same pairs in narrow phase
+    // so an earlier solver correction cannot create an unobserved overlap.
+    return min(0.5f, 0.25f * max(0.0f,
+        min(extent.x, min(extent.y, extent.z))));
+}
+
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void pm_prepare_rigid_face_manifolds(
@@ -2744,6 +2760,9 @@ void pm_prepare_rigid_face_manifolds(
         pmBufferPresent(colliderMesh.solid_planes) &&
         bodyMesh.index_count <= 96u && colliderMesh.index_count <= 96u;
     if (!facePair) return;
+    float correctionReach =
+        rigid_solver_correction_reach(parameters[a], bodyMesh) +
+        rigid_solver_correction_reach(parameters[b], colliderMesh);
     Vec3 bodyReference;
     Vec3 colliderReference;
     HingeContactFrame bodyHinge = rigid_hinge_contact_frame(parameters,
@@ -2767,7 +2786,8 @@ void pm_prepare_rigid_face_manifolds(
     if (!faceContact)
     {
         faceContact = rigid_convex_face_manifold(states[a], bodyMesh, bodyHinge,
-            states[b], colliderMesh, colliderHinge, margin, faceManifold);
+            states[b], colliderMesh, colliderHinge, margin, correctionReach,
+            faceManifold);
         if (swept && faceManifold.count == 0u) faceContact = false;
     }
     if (faceContact)

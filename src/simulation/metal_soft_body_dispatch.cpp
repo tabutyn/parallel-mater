@@ -13,7 +13,98 @@ Vec3 vec3(const float value[3]) noexcept {
     return {value[0], value[1], value[2]};
 }
 
+template <typename Batch>
+metal::RelocatedRecord batch_record(const Batch &batch) noexcept {
+    static constexpr metal::HostMember members[]{
+        {"items", offsetof(Batch, items),
+         sizeof(static_cast<Batch *>(nullptr)->items)}};
+    return {std::as_bytes(std::span{&batch, 1}), members};
+}
+
 } // namespace
+
+void predict_soft_body_realtime_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SoftBodyRealtimePredictBatch &batch, std::uint32_t batch_count,
+    const float gravity[3], float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "soft_body_realtime_predict_batch", grid,
+        batch_record(batch), batch_count, vec3(gravity), timestep,
+        profile_version, status);
+}
+
+void project_soft_body_realtime_links_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SoftBodyRealtimeLinksBatch &batch, std::uint32_t batch_count,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "soft_body_realtime_project_links_batch",
+        grid, batch_record(batch), batch_count, timestep, profile_version,
+        status);
+}
+
+void apply_soft_body_realtime_position_delta_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SoftBodyRealtimeApplyBatch &batch, std::uint32_t batch_count,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream,
+        "soft_body_realtime_apply_position_delta_batch", grid,
+        batch_record(batch), batch_count, timestep, profile_version, status);
+}
+
+void project_soft_body_realtime_shape_batch(
+    device::ExecutionQueue stream,
+    const SoftBodyRealtimeShapeBatch &batch, std::uint32_t batch_count,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "soft_body_realtime_project_shape_batch",
+        device::DispatchSize{1U, batch_count, 1U}, batch_record(batch),
+        batch_count, timestep, profile_version, status);
+}
+
+void project_soft_body_realtime_contacts_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SoftBodyRealtimeContactsBatch &batch, std::uint32_t batch_count,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "soft_body_realtime_project_contacts_batch",
+        grid, batch_record(batch), batch_count, timestep, profile_version,
+        status);
+}
+
+void commit_soft_body_realtime_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SoftBodyRealtimeCommitBatch &batch, std::uint32_t batch_count,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "soft_body_realtime_commit_batch", grid,
+        batch_record(batch), batch_count, timestep, profile_version, status);
+}
+
+void update_soft_body_surface_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SoftBodySurfaceBatch &batch, std::uint32_t batch_count) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "soft_body_update_surface_batch", grid,
+        batch_record(batch), batch_count);
+}
+
+void apply_soft_body_contact_friction_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SoftBodyContactFrictionBatch &batch, std::uint32_t batch_count,
+    const void *body_parameters, const float gravity[3],
+    float timestep) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "soft_body_apply_contact_friction_batch",
+        grid, batch_record(batch), batch_count, body_parameters,
+        vec3(gravity), timestep);
+}
 
 void predict_soft_body_realtime(
     device::DispatchSize grid, device::DispatchSize,

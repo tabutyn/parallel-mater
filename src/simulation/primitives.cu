@@ -105,14 +105,13 @@ PmResult initialize_spatial_epoch_device(
 
 PmResult build_spatial_index_device(
     device::ExecutionQueue stream, const SpatialBuildPlan &plan,
-    const SpatialDeviceBuffers &buffers, const std::uint32_t *sort_keys,
+    const SpatialDeviceBuffers &buffers,
     std::uint32_t expected_active_count) noexcept {
     if (expected_active_count > plan.capacity ||
         (plan.capacity != 0U && (buffers.metadata == nullptr ||
             buffers.bounds == nullptr || buffers.build_flags == nullptr ||
             buffers.build_output == nullptr ||
-            buffers.build_scratch == nullptr ||
-            (expected_active_count != 0U && sort_keys == nullptr))))
+            buffers.build_scratch == nullptr)))
         return PM_ERROR_INVALID_ARGUMENT;
     if (plan.capacity == 0U) return PM_SUCCESS;
 
@@ -187,7 +186,7 @@ PmResult build_spatial_index_device(
         active_blocks, tile, 0U,
         static_cast<cudaStream_t>(stream.native_handle)>>>(
         active, active_count, plan.capacity,
-        const_cast<std::uint32_t *>(sort_keys),
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(buffers.metadata),
         reinterpret_cast<PmSpatialAabb_0 *>(buffers.bounds),
         reinterpret_cast<PmSpatialAabb_0 *>(scene_bounds),
         reinterpret_cast<unsigned long long *>(keys0), values0, status);

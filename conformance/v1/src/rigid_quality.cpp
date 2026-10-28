@@ -22,7 +22,7 @@ using namespace parallel_mater::gallery;
 
 constexpr std::uint32_t brick_frames = 300U;
 constexpr std::uint32_t attachment_frames = 2400U;
-constexpr std::uint32_t substeps = 4U;
+constexpr std::uint32_t substeps = 1U;
 constexpr float timestep = 1.0F / 60.0F;
 
 [[nodiscard]] std::filesystem::path bundled_asset(

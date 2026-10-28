@@ -13,6 +13,26 @@ import graphics_resources;
 groupshared Vec3 smoke_grid_rigid_linear[128];
 groupshared Vec3 smoke_grid_rigid_angular[128];
 
+static const uint kSmokeGridSoftBodyBatchCapacity = 10u;
+
+struct SmokeGridSoftBodyForceBatchItem
+{
+    PMBuffer<Vec3> surface;
+    PMBuffer<uint> indices;
+    uint index_count;
+    PMBuffer<SoftBodySurfaceBinding> bindings;
+    PMBuffer<Vec3> node_velocity_snapshot;
+    PMBuffer<Vec3> node_velocities;
+    PMBuffer<float> inverse_masses;
+    float drag_coefficient;
+    float maximum_acceleration;
+};
+
+struct SmokeGridSoftBodyForceBatch
+{
+    SmokeGridSoftBodyForceBatchItem items[kSmokeGridSoftBodyBatchCapacity];
+};
+
 uint smoke_grid_hash(uint value)
 {
     value ^= value >> 16u;
@@ -1043,6 +1063,25 @@ void smoke_grid_soft_body_force(
 
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
+void smoke_grid_soft_body_force_batch(
+    uniform SmokeGridSoftBodyForceBatch batch, uniform uint batch_count,
+    uniform SmokeGridField grid, uniform float density_scale,
+    uniform float kinematic_viscosity, uniform float les_coefficient,
+    uniform float dt PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SmokeGridSoftBodyForceBatchItem item = batch.items[resource];
+    smoke_grid_soft_body_force(item.surface, item.indices, item.index_count,
+        item.bindings, item.node_velocity_snapshot, item.node_velocities,
+        item.inverse_masses, grid, item.drag_coefficient, density_scale,
+        kinematic_viscosity, les_coefficient, item.maximum_acceleration, dt
+        PM_D3D12_DISPATCH_ARGUMENT);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_cloth_force(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<uint> indices,
@@ -1466,7 +1505,7 @@ void smoke_grid_realtime_record_invalid(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_begin(
     uniform SmokeGridField grid, uniform SmokeOptions options,
     uniform float dt, uniform uint profile_version,
@@ -1491,7 +1530,7 @@ void smoke_realtime_grid_begin(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_source(
     uniform SmokeGridField grid, uniform SmokeOptions options,
     uniform PMBuffer<float> density_rate,
@@ -1531,7 +1570,7 @@ void smoke_realtime_grid_source(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_advect_scalar(
     uniform SmokeGridField grid, uniform SmokeOptions options,
     uniform PMBuffer<float> source, uniform PMBuffer<float> destination,
@@ -1569,7 +1608,7 @@ void smoke_realtime_grid_advect_scalar(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_advect_face(
     uniform int axis, uniform SmokeGridField grid,
     uniform SmokeOptions options, uniform PMBuffer<float> source,
@@ -1609,7 +1648,7 @@ void smoke_realtime_grid_advect_face(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_face_forces(
     uniform int axis, uniform SmokeGridField grid,
     uniform SmokeOptions options, uniform PMBuffer<float> source,
@@ -1677,7 +1716,7 @@ void smoke_realtime_grid_face_forces(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_boundaries(
     uniform int axis, uniform SmokeGridField grid,
     uniform SmokeOptions options, uniform PMBuffer<float> values,
@@ -1726,7 +1765,7 @@ void smoke_realtime_grid_boundaries(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_divergence(
     uniform SmokeGridField grid, uniform SmokeOptions options,
     uniform PMBuffer<float> divergence, uniform float dt,
@@ -1763,7 +1802,7 @@ void smoke_realtime_grid_divergence(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_pressure_cycle(
     uniform SmokeGridField grid, uniform SmokeOptions options,
     uniform PMBuffer<float> rhs, uniform PMBuffer<float> pressure,
@@ -1818,7 +1857,7 @@ void smoke_realtime_grid_pressure_cycle(
 }
 
 [shader("compute")]
-[numthreads(PM_THREADS(128), 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_realtime_grid_project_face(
     uniform int axis, uniform SmokeGridField grid,
     uniform SmokeOptions options, uniform PMBuffer<float> pressure,

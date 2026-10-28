@@ -759,14 +759,13 @@ PmResult initialize_spatial_epoch_device(
 
 PmResult build_spatial_index_device(
     device::ExecutionQueue stream, const SpatialBuildPlan &plan,
-    const SpatialDeviceBuffers &buffers, const std::uint32_t *sort_keys,
+    const SpatialDeviceBuffers &buffers,
     std::uint32_t expected_active_count) noexcept {
     if (expected_active_count > plan.capacity ||
         (plan.capacity != 0U && (buffers.metadata == nullptr ||
             buffers.bounds == nullptr || buffers.build_flags == nullptr ||
             buffers.build_output == nullptr ||
-            buffers.build_scratch == nullptr ||
-            (expected_active_count != 0U && sort_keys == nullptr))))
+            buffers.build_scratch == nullptr)))
         return PM_ERROR_INVALID_ARGUMENT;
     if (plan.capacity == 0U) return PM_SUCCESS;
     auto *execution = d3d12::context(stream.native_handle);
@@ -870,7 +869,7 @@ PmResult build_spatial_index_device(
     key_values.buffer(KeyLayout::arg_active_indices, *execution, active);
     key_values.buffer(KeyLayout::arg_active_count, *execution, active_count);
     key_values.set(KeyLayout::arg_capacity, plan.capacity);
-    key_values.buffer(KeyLayout::arg_identities, *execution, sort_keys);
+    key_values.buffer(KeyLayout::arg_metadata, *execution, buffers.metadata);
     key_values.buffer(KeyLayout::arg_input_bounds, *execution,
                       buffers.bounds);
     key_values.buffer(KeyLayout::arg_scene_bounds, *execution, scene_bounds);

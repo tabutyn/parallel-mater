@@ -1,0 +1,10 @@
+{
+  "schema_version": 2,
+  "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+  "dirty": false,
+  "backend": "metal",
+  "execution_contract": "fixed-tick-60hz-v1",
+  "release_channel": "development-preview",
+  "build_number": 1906,
+  "logo_sha256": "1741f9d7759b2af13255f92a97dbb27a9e50854db634bf1cf3823b455a9e90d3"
+}

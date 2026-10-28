@@ -27,7 +27,7 @@ struct CaseDefinition {
     std::string glb_path{};
     std::string glb_sha256{};
     std::uint32_t frames{60U};
-    std::uint32_t substeps{4U};
+    std::uint32_t substeps{1U};
     double timestep{1.0 / 60.0};
     std::array<double, 3U> gravity{0.0, -9.81, 0.0};
     std::string tolerance_profile{"constraint_contact"};

@@ -99,9 +99,13 @@ int main() {
     PmLiquidMaterialState material{};
     material.restDensity = 1000;
     material.particleRadius = 0.025F;
-    material.supportRadius = 0.1F;
+    material.supportRadius = 0.05F;
+    material.restParticleVolume = 0.05F * 0.05F * 0.05F;
     material.pressureStiffness = 50;
-    material.maximumSpeed = 100;
+    // The public runtime has one fixed 60 Hz schedule. Keep the fixture inside
+    // its displacement envelope instead of relying on the removed legacy
+    // substep path.
+    material.maximumSpeed = 1.499F;
     material.densityIterations = 1;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
@@ -197,17 +201,30 @@ int main() {
     }
     // Non-multiple workgroup size plus unused capacity exercises sort sentinels.
     run(active, 10, -9.81F);
+    float expected_position_y = 2.0F;
+    float expected_velocity_y = 0.0F;
+    for (std::uint32_t frame = 0; frame < 10; ++frame) {
+        expected_velocity_y -= 9.81F / 60.0F;
+        expected_position_y += expected_velocity_y / 60.0F;
+        expected_velocity_y *= 0.95F;
+    }
     for (std::uint32_t i = 0; i < active; ++i) {
         CHECK(states[i].stableId == i);
         CHECK(std::abs(states[i].position[0] - particles[i].position[0]) < 1e-5F);
-        CHECK(std::abs(states[i].position[1] - (2.0F - 9.81F * 55.0F / 3600.0F)) < 1e-5F);
-        CHECK(std::abs(states[i].velocity[1] + 9.81F / 6.0F) < 1e-5F);
+        CHECK(std::abs(states[i].position[1] - expected_position_y) < 1e-5F);
+        CHECK(std::abs(states[i].velocity[1] - expected_velocity_y) < 1e-5F);
         CHECK(states[i].temperatureCelsius == 20);
     }
     particles[0] = {}; particles[1] = {};
-    particles[0].position[0] = -0.025F;
-    particles[1].position[0] = 0.025F;
+    particles[0].position[0] = -0.02F;
+    particles[1].position[0] = 0.02F;
     run(2, 1, 0);
+    if (!(states[0].velocity[0] < -0.01F && states[1].velocity[0] > 0.01F))
+        std::fprintf(stderr,
+            "liquid pair vx=(%g,%g) x=(%g,%g) acceleration=(%g,%g)\n",
+            states[0].velocity[0], states[1].velocity[0],
+            states[0].position[0], states[1].position[0],
+            states[0].acceleration[0], states[1].acceleration[0]);
     CHECK(states[0].velocity[0] < -0.01F && states[1].velocity[0] > 0.01F);
     CHECK(std::abs(states[0].velocity[0] + states[1].velocity[0]) < 1e-6F);
     CHECK(std::abs(states[0].position[0] + states[1].position[0]) < 1e-6F);
@@ -219,12 +236,15 @@ int main() {
     body.mass = 1;
     body.state.orientation[3] = 1;
     for (auto &value : body.inertiaDiagonal) value = 1.0F / 6.0F;
-    body.maximumLinearSpeed = body.maximumAngularSpeed = 100;
+    body.maximumLinearSpeed = body.maximumAngularSpeed = 20;
     body.collisionMargin = 0.005F;
     particles[0] = {};
     particles[0].position[1] = 0.54F;
     particles[0].velocity[1] = -1;
     run(1, 1, 0, &body);
+    if (states[0].position[1] < 0.524F || states[0].velocity[1] < -1e-4F)
+        std::fprintf(stderr, "liquid rigid static y=%g vy=%g\n",
+            states[0].position[1], states[0].velocity[1]);
     CHECK(states[0].position[1] >= 0.524F);
     CHECK(states[0].velocity[1] >= -1e-4F);
     body.motionType = PM_MOTION_DYNAMIC;

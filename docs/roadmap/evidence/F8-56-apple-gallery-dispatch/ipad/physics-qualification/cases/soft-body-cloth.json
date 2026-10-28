@@ -1,0 +1,1 @@
+{"case_id":"soft-body-cloth","case_sha256":"cfa7cd8b3ede7a4a9710f16a9c511984192f5a405f9be31e04d4a96ced4872ab","execution_status":"unsupported","quality_status":"not_evaluated","reason":"fixed-tick-60hz-v1 does not implement cloth fracture","schema":"parallel-mater-conformance-execution/v1"}

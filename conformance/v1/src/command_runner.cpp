@@ -384,6 +384,13 @@ void initialize_frame(Runtime &runtime) {
                                    const std::filesystem::path &root) {
     Runtime runtime{};
     runtime.scene = load_scene(definition, root);
+    std::string error;
+    if (!apply_gallery_fixed_tick_material_contract(runtime.scene, error)) {
+        if (std::string_view(error).starts_with(
+                "fixed-tick-60hz-v1 does not implement "))
+            throw UnsupportedCase(error);
+        throw std::runtime_error("apply fixed-tick material contract: " + error);
+    }
     for (std::size_t index = 0U; index < runtime.scene.rigid_bodies.size(); ++index) {
         const auto &body = runtime.scene.rigid_bodies[index];
         runtime.body_names.push_back(definition.kind == CaseKind::analytic
@@ -401,7 +408,6 @@ void initialize_frame(Runtime &runtime) {
         runtime.constraint_present.push_back(true);
     }
     initialize_frame(runtime);
-    std::string error;
     PmResult creation_category{};
     if (!CommandScene::create(runtime.scene, 0U, runtime.command_scene,
                               runtime.instance, error, std::nullopt, &creation_category)) {

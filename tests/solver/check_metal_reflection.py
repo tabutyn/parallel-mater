@@ -30,6 +30,11 @@ def check(manifest: Path) -> None:
             r"\b(?:threadgroup_barrier|simdgroup_barrier|pmGridBarrier\w*)\s*\(", source
         ):
             raise ValueError("staged AVBD must synchronize at dispatch boundaries only")
+        if entry == "pm_spatial_union_bounds":
+            if source.count("atomic_thread_fence(mem_flags::mem_device") < 2:
+                raise ValueError("BVH union is missing its release/acquire device fences")
+            if "threadgroup_barrier" in source:
+                raise ValueError("BVH union cannot use a divergent collective Metal barrier")
         # Regression for Slang's multi-entry global-input lowering failure:
         # helper reads must have a native input at the kernel boundary.
         for helper, semantic in (

@@ -1,0 +1,1 @@
+{"case_id":"cloth-tear","case_sha256":"88a96048f773b822511b86a063329690d1c879c7493d4f216cf3bb982e67d2e0","execution_status":"unsupported","quality_status":"not_evaluated","reason":"fixed-tick-60hz-v1 does not implement cloth fracture","schema":"parallel-mater-conformance-execution/v1"}

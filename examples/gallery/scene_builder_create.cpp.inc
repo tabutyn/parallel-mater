@@ -599,7 +599,7 @@ bool CommandScene::create(const SceneDefinition &scene,
 
     PmQueryPoolCreateInfo query_info{};
     query_info.sType = PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-    query_info.queryType = PM_QUERY_STEP_STATISTICS;
+    query_info.queryType = PM_QUERY_REALTIME_STEP_STATISTICS;
     query_info.queryCount = 1U;
     if (!checked(pmCreateQueryPool(next->device, &query_info,
                                    &next->statistics_query),

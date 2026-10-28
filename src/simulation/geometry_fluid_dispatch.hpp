@@ -3,9 +3,30 @@
 
 #include "device/device.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace parallel_mater::simulation {
+
+inline constexpr std::size_t point_body_impulse_batch_capacity = 10U;
+
+struct PointBodyImpulseBatchItem {
+    const void *impulses{};
+    const std::uint32_t *particle_count{};
+    const void *position_corrections{};
+    std::uint32_t reserved{};
+};
+
+struct PointBodyImpulseBatch {
+    std::array<PointBodyImpulseBatchItem,
+               point_body_impulse_batch_capacity> items{};
+};
+
+void reduce_point_body_impulses_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const PointBodyImpulseBatch &batch, std::uint32_t batch_count,
+    const void *body_parameters, void *body_states,
+    const std::uint32_t *contact_flags, std::uint32_t body_count) noexcept;
 
 void collide_fluid_with_static_body(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
@@ -46,7 +67,8 @@ void detect_fluid_moving_contacts(
 
 void resolve_fluid_moving_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
-    void *velocities, float *foam, const std::uint32_t *count, float radius,
+    const void *previous_positions, void *velocities, void *velocity_deltas,
+    float *foam, const std::uint32_t *count, float radius,
     float particle_mass, float timestep, float maximum_speed,
     const void *body_parameters, const void *body_states, const void *meshes,
     const void *contacts, const std::uint32_t *contact_counts, void *impulses,
@@ -54,7 +76,8 @@ void resolve_fluid_moving_contacts(
     std::uint8_t *particle_contact_flags, std::uint32_t fluid_index,
     std::uint32_t fluid_generation, const void *body_ids, bool apply_paint,
     const void *paint_fields, std::uint32_t paint_field_capacity,
-    const void *paint_rules, std::uint32_t paint_rule_capacity) noexcept;
+    const void *paint_rules, std::uint32_t paint_rule_capacity,
+    float frame_inverse_timestep, float commit_velocity_scale) noexcept;
 
 void reduce_fluid_body_impulses(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *impulses,

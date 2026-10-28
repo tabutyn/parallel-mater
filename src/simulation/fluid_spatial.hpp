@@ -13,6 +13,11 @@ namespace parallel_mater::simulation {
 inline constexpr std::uint32_t fluid_spatial_family = 2U;
 inline constexpr std::uint32_t fluid_spatial_particle_primitive = 1U;
 inline constexpr std::uint32_t fluid_spatial_query_mask = 1U << 1U;
+// Source clearance is liquid-local. Coupling masks remain on the proposal's
+// query visibility, but conservative rigid/deformable bounds must not reject
+// a source before the domain contact solvers evaluate the actual geometry.
+inline constexpr std::uint32_t fluid_source_admission_mask =
+    fluid_spatial_query_mask;
 inline constexpr std::uint32_t fluid_spatial_density_sweeps = 6U;
 
 // The shared service owns the hierarchy and unfiltered query output. This plan

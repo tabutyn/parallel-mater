@@ -479,7 +479,6 @@ void fluid_detect_moving_contacts(
             return;
         }
             BodyParameters body = parameters[bodyIndex];
-            if (body.motion == MotionType.static_body) continue;
             RigidBodyState state = states[bodyIndex];
             RigidBodyState old = first_iteration
                 ? previous_states[bodyIndex] : state;
@@ -554,7 +553,11 @@ void fluid_detect_moving_contacts(
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void fluid_resolve_moving_contacts(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> foam,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> velocity_deltas,
+    uniform PMBuffer<float> foam,
     uniform PMBuffer<uint> count, uniform float radius, uniform float particle_mass,
     uniform float timestep, uniform float maximum_speed,
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
@@ -565,7 +568,9 @@ void fluid_resolve_moving_contacts(
     uniform PMByteBuffer particle_contact_flags, uniform FluidId fluid_id,
     uniform PMBuffer<RigidBodyId> body_ids, uniform bool apply_paint,
     uniform PMBuffer<PaintFieldResource> paint_fields, uniform uint field_capacity,
-    uniform PMBuffer<PaintRuleResource> paint_rules, uniform uint rule_capacity PM_D3D12_DISPATCH_PARAMETER)
+    uniform PMBuffer<PaintRuleResource> paint_rules, uniform uint rule_capacity,
+    uniform float frame_inverse_dt,
+    uniform float commit_velocity_scale PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
@@ -590,7 +595,9 @@ void fluid_resolve_moving_contacts(
             body_ids[bestBody], meshes, paint_fields, field_capacity,
             paint_rules, rule_capacity);
     }
-    positions[particle] = add(end, multiply(bestNormal, bestPenetration));
+    Vec3 correctedPosition = add(
+        end, multiply(bestNormal, bestPenetration));
+    positions[particle] = correctedPosition;
     if (collect_contacts && particle_contact_flags[particle] != 2u)
     {
         samples[particle] = {bestContact, bestNormal, 0.0f, bestBody};
@@ -604,7 +611,16 @@ void fluid_resolve_moving_contacts(
     float incoming = dot(relative, bestNormal);
     float recoverySpeed = min(maximum_speed,
         min(0.5f * radius, 0.2f * bestPenetration) / timestep);
-    if (incoming >= recoverySpeed) return;
+    if (incoming >= recoverySpeed)
+    {
+        Vec3 positionalVelocity = multiply(subtract(
+            correctedPosition, previous_positions[particle]),
+            frame_inverse_dt);
+        velocity_deltas[particle] = subtract(
+            multiply(velocity, 1.0f / commit_velocity_scale),
+            positionalVelocity);
+        return;
+    }
     Vec3 normalCross = cross(arm, bestNormal);
     float batchSize = 1.0f + float(contact_counts[bestBody] - 1u) *
         min(1.0f, 4.0f * particle_mass * body.inverse_mass);
@@ -642,6 +658,12 @@ void fluid_resolve_moving_contacts(
         }
     }
     velocities[particle] = velocity;
+    Vec3 positionalVelocity = multiply(subtract(
+        correctedPosition, previous_positions[particle]),
+        frame_inverse_dt);
+    velocity_deltas[particle] = subtract(
+        multiply(velocity, 1.0f / commit_velocity_scale),
+        positionalVelocity);
     foam[particle] = max(foam[particle], min(1.0f, -incoming * 0.35f));
     impulses[particle] = {multiply(impulse, -1.0f),
         multiply(cross(arm, impulse), -1.0f), bestBody};
@@ -700,5 +722,37 @@ void reduce_point_body_impulses(
             inverse_inertia_world(options, state, fluid_impulse_angular[0])),
             options.maximum_angular_speed);
         states[body] = state;
+    }
+}
+
+static const uint kPointBodyImpulseBatchCapacity = 10u;
+struct PointBodyImpulseBatchItem
+{
+    PMBuffer<FluidBodyImpulse> impulses;
+    PMBuffer<uint> particle_count;
+    PMBuffer<Vec3> position_corrections;
+    uint reserved;
+};
+struct PointBodyImpulseBatch
+{
+    PointBodyImpulseBatchItem items[kPointBodyImpulseBatchCapacity];
+};
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void reduce_point_body_impulses_batch(
+    uniform PointBodyImpulseBatch batch, uniform uint batch_count,
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<uint> contact_flags, uniform uint body_count
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    for (uint resource = 0u; resource < batch_count; ++resource)
+    {
+        PointBodyImpulseBatchItem item = batch.items[resource];
+        reduce_point_body_impulses(item.impulses, item.particle_count,
+            parameters, states, contact_flags, body_count,
+            item.position_corrections PM_D3D12_DISPATCH_ARGUMENT);
     }
 }

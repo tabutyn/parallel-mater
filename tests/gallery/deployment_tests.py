@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import pathlib
+import plistlib
 import subprocess
 import tempfile
 import types
@@ -57,6 +58,12 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(clean["backend"], "metal")
             self.assertEqual(clean["execution_contract"], deploy.EXECUTION_CONTRACT)
 
+            header = root / "build_revision.hpp"
+            run("cmake", f"-DSOURCE_DIR={source}", f"-DOUTPUT={header}", "-P",
+                str(REPOSITORY_ROOT / "cmake/GenerateGalleryBuildRevision.cmake"),
+                cwd=root)
+            self.assertIn(revision, header.read_text())
+
             tracked.write_text("dirty\n")
             run(*command, cwd=root)
             dirty = json.loads(output.read_text())
@@ -101,6 +108,35 @@ class DeploymentTests(unittest.TestCase):
         report = self.physics_report()
         self.assertEqual(len(deploy.validate_physics_qualification(
             report, "fresh", "revision", report["binary_identity"])), 36)
+
+        report = self.physics_report()
+        for artifact in report["artifacts"][:2]:
+            artifact["status"] = "unsupported"
+        report["trajectory"].update(completed=28, unsupported=2)
+        self.assertEqual(len(deploy.validate_physics_qualification(
+            report, "fresh", "revision", report["binary_identity"])), 36)
+
+    def test_physics_qualification_rejects_failed_or_inconsistent_results(self):
+        report = self.physics_report()
+        report["artifacts"][0]["status"] = "failed"
+        report["trajectory"].update(completed=29, failed=1)
+        with self.assertRaisesRegex(RuntimeError, "failed trajectories"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", report["binary_identity"])
+
+        report = self.physics_report()
+        report["trajectory"].update(completed=29, unsupported=1)
+        with self.assertRaisesRegex(RuntimeError, "totals disagree"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", report["binary_identity"])
+
+        report = self.physics_report()
+        quality = next(artifact for artifact in report["artifacts"]
+                       if artifact["kind"] == "physical-quality")
+        quality["status"] = "failed"
+        with self.assertRaisesRegex(RuntimeError, "failed physical quality"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", report["binary_identity"])
 
     def test_physics_qualification_rejects_stale_partial_mismatched_and_gallery_only(self):
         for field, value, message in (
@@ -164,6 +200,9 @@ class DeploymentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             app = pathlib.Path(tmp)
             (app / "Assets.car").touch()
+            (app / "Info.plist").write_bytes(plistlib.dumps({
+                "CFBundleExecutable": "Gallery"}))
+            (app / "Gallery").write_bytes(b"current")
             info = dict(schema_version=2, revision="current", dirty=False,
                         backend="metal",
                         execution_contract=deploy.EXECUTION_CONTRACT,
@@ -188,6 +227,24 @@ class DeploymentTests(unittest.TestCase):
             info["backend"] = "metal"
             (app / "Assets.car").unlink()
             with self.assertRaisesRegex(RuntimeError, "icon asset catalog"): check()
+
+    def test_build_identity_rejects_stale_compiled_revision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            app = pathlib.Path(tmp)
+            (app / "Assets.car").touch()
+            (app / "Info.plist").write_bytes(plistlib.dumps({
+                "CFBundleExecutable": "Gallery"}))
+            (app / "Gallery").write_bytes(b"old")
+            (app / "build-info.json").write_text(json.dumps({
+                "schema_version": 2, "revision": "current", "dirty": False,
+                "backend": "metal", "execution_contract": deploy.EXECUTION_CONTRACT,
+                "release_channel": "development-preview"}))
+            def run(*args, **kwargs):
+                return types.SimpleNamespace(stdout=(
+                    "current\n" if "rev-parse" in args else ""))
+            with patch.object(deploy, "run", side_effect=run), \
+                    self.assertRaisesRegex(RuntimeError, "Compiled Gallery revision"):
+                deploy.build_info(app, "ipad")
 
 
 if __name__ == "__main__": unittest.main()

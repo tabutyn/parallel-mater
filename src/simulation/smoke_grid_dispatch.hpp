@@ -5,9 +5,37 @@
 
 #include "device/device.hpp"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace parallel_mater::simulation {
+
+inline constexpr std::size_t smoke_grid_soft_body_batch_capacity = 10U;
+
+struct SmokeGridSoftBodyForceBatchItem {
+    const void *surface{};
+    const std::uint32_t *indices{};
+    std::uint32_t index_count{};
+    const void *bindings{};
+    const void *node_velocity_snapshot{};
+    void *node_velocities{};
+    const float *inverse_masses{};
+    float drag_coefficient{};
+    float maximum_acceleration{};
+};
+
+struct SmokeGridSoftBodyForceBatch {
+    std::array<SmokeGridSoftBodyForceBatchItem,
+               smoke_grid_soft_body_batch_capacity> items{};
+};
+
+void apply_smoke_grid_force_to_soft_body_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SmokeGridSoftBodyForceBatch &batch, std::uint32_t batch_count,
+    const SmokeGridDispatchField &field, float density_scale,
+    float kinematic_viscosity, float les_coefficient,
+    float timestep) noexcept;
 
 struct SmokeGridBoundaryDispatch {
     std::uint32_t *solid{};

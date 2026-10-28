@@ -1,0 +1,1330 @@
+{
+  "capture_contract": {
+    "host_readbacks": 0,
+    "host_waits": 0,
+    "instrumentation_forced_waits": 0,
+    "native_encoder_counters": true,
+    "native_global_barriers": 0,
+    "one_submission_per_tick": true
+  },
+  "cold_priming_timing_ms": {
+    "gpu_ms": {
+      "maximum": 111.779124,
+      "mean": 111.779124,
+      "minimum": 111.779124,
+      "p50": 111.779124,
+      "p95": 111.779124,
+      "p99": 111.779124
+    },
+    "record_ms": {
+      "maximum": 21.741875,
+      "mean": 21.741875,
+      "minimum": 21.741875,
+      "p50": 21.741875,
+      "p95": 21.741875,
+      "p99": 21.741875
+    },
+    "submit_ms": {
+      "maximum": 0.007333,
+      "mean": 0.007333,
+      "minimum": 0.007333,
+      "p50": 0.007333,
+      "p95": 0.007333,
+      "p99": 0.007333
+    },
+    "submit_to_fence_ms": {
+      "maximum": 112.899042,
+      "mean": 112.899042,
+      "minimum": 112.899042,
+      "p50": 112.899042,
+      "p95": 112.899042,
+      "p99": 112.899042
+    },
+    "wait_ms": {
+      "maximum": 0.0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0
+    }
+  },
+  "counters_per_rendered_frame": {
+    "bytes_moved": {
+      "maximum": 21744,
+      "mean": 20868.40268456376,
+      "minimum": 0,
+      "p50": 21744,
+      "p95": 21744,
+      "p99": 21744
+    },
+    "declared_launches": {
+      "maximum": 34,
+      "mean": 32.630872483221474,
+      "minimum": 0,
+      "p50": 34,
+      "p95": 34,
+      "p99": 34
+    },
+    "dependency_barriers": {
+      "maximum": 35,
+      "mean": 33.59060402684564,
+      "minimum": 0,
+      "p50": 35,
+      "p95": 35,
+      "p99": 35
+    },
+    "dependency_ranges": {
+      "maximum": 73,
+      "mean": 70.06040268456375,
+      "minimum": 0,
+      "p50": 73,
+      "p95": 73,
+      "p99": 73
+    },
+    "dispatches": {
+      "maximum": 34,
+      "mean": 32.630872483221474,
+      "minimum": 0,
+      "p50": 34,
+      "p95": 34,
+      "p99": 34
+    },
+    "host_waits": {
+      "maximum": 0,
+      "mean": 0.0,
+      "minimum": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "native_barrier_commands": {
+      "maximum": 0,
+      "mean": 0.0,
+      "minimum": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "readbacks": {
+      "maximum": 0,
+      "mean": 0.0,
+      "minimum": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "transfer_commands": {
+      "maximum": 7,
+      "mean": 6.718120805369128,
+      "minimum": 0,
+      "p50": 7,
+      "p95": 7,
+      "p99": 7
+    },
+    "workgroups": {
+      "maximum": 4354,
+      "mean": 4178.6711409395975,
+      "minimum": 0,
+      "p50": 4354,
+      "p95": 4354,
+      "p99": 4354
+    }
+  },
+  "counters_per_simulated_second": {
+    "bytes_moved": 1304640.0,
+    "declared_launches": 2040.0,
+    "dependency_barriers": 2100.0,
+    "dependency_ranges": 4380.0,
+    "dispatches": 2040.0,
+    "host_waits": 0.0,
+    "native_barrier_commands": 0.0,
+    "readbacks": 0.0,
+    "transfer_commands": 420.0,
+    "workgroups": 261240.0
+  },
+  "counters_per_tick": {
+    "bytes_moved": {
+      "maximum": 21744,
+      "mean": 21744.0,
+      "minimum": 21744,
+      "p50": 21744,
+      "p95": 21744,
+      "p99": 21744
+    },
+    "declared_launches": {
+      "maximum": 34,
+      "mean": 34.0,
+      "minimum": 34,
+      "p50": 34,
+      "p95": 34,
+      "p99": 34
+    },
+    "dependency_barriers": {
+      "maximum": 35,
+      "mean": 35.0,
+      "minimum": 35,
+      "p50": 35,
+      "p95": 35,
+      "p99": 35
+    },
+    "dependency_ranges": {
+      "maximum": 73,
+      "mean": 73.0,
+      "minimum": 73,
+      "p50": 73,
+      "p95": 73,
+      "p99": 73
+    },
+    "dispatches": {
+      "maximum": 34,
+      "mean": 34.0,
+      "minimum": 34,
+      "p50": 34,
+      "p95": 34,
+      "p99": 34
+    },
+    "host_waits": {
+      "maximum": 0,
+      "mean": 0.0,
+      "minimum": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "native_barrier_commands": {
+      "maximum": 0,
+      "mean": 0.0,
+      "minimum": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "readbacks": {
+      "maximum": 0,
+      "mean": 0.0,
+      "minimum": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "transfer_commands": {
+      "maximum": 7,
+      "mean": 7.0,
+      "minimum": 7,
+      "p50": 7,
+      "p95": 7,
+      "p99": 7
+    },
+    "workgroups": {
+      "maximum": 4354,
+      "mean": 4354.0,
+      "minimum": 4354,
+      "p50": 4354,
+      "p95": 4354,
+      "p99": 4354
+    }
+  },
+  "fixed_ceiling": {
+    "declared_launches": 40,
+    "dependency_barriers": 45,
+    "dispatches": 40
+  },
+  "fixed_tick_hz": 60,
+  "frame_timing_ms": {
+    "other_ms": {
+      "maximum": 0.000999,
+      "mean": 0.0003871476510067114,
+      "minimum": 0.0,
+      "p50": 0.000376,
+      "p95": 0.000584,
+      "p99": 0.000917
+    },
+    "physics_ms": {
+      "maximum": 101.489958,
+      "mean": 13.08474522818792,
+      "minimum": 0.0,
+      "p50": 9.998959,
+      "p95": 20.980166,
+      "p99": 100.93625
+    },
+    "present_ms": {
+      "maximum": 14.159458,
+      "mean": 3.4683398053691277,
+      "minimum": 0.007125,
+      "p50": 2.994166,
+      "p95": 8.624334,
+      "p99": 12.559292
+    },
+    "render_ms": {
+      "maximum": 3.770834,
+      "mean": 2.485745677852349,
+      "minimum": 1.851043,
+      "p50": 2.410208,
+      "p95": 3.305625,
+      "p99": 3.422209
+    },
+    "total_ms": {
+      "maximum": 103.521542,
+      "mean": 19.039217859060404,
+      "minimum": 2.396417,
+      "p50": 16.705292,
+      "p95": 23.216,
+      "p99": 102.94975
+    }
+  },
+  "passed": true,
+  "priming_samples": 1,
+  "profile_schema": "parallel-mater-metal-schedule-profile/v1",
+  "reconciliation": [
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 32
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 33
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 34
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 35
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 36
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 37
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 38
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 39
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 40
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 41
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 42
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 43
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 44
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 45
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 46
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 47
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 48
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 49
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 50
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 51
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 52
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 53
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 54
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 55
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 56
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 57
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 58
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 59
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 60
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 61
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 62
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 63
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 64
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 65
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 66
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 67
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 68
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 69
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 70
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 71
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 72
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 73
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 74
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 75
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 76
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 77
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 78
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 79
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 80
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 81
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 82
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 83
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 84
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 85
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 86
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 87
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 88
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 89
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 90
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 91
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 92
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 93
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 94
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 95
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 96
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 97
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 98
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 99
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 100
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 101
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 102
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 103
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 104
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 105
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 106
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 107
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 108
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 109
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 110
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 111
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 112
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 113
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 114
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 115
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 116
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 117
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 118
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 119
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 120
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 121
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 122
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 123
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 124
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 125
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 126
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 127
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 128
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 129
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 130
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 131
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 132
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 133
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 134
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 135
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 136
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 137
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 138
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 139
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 140
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 141
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 142
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 143
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 144
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 145
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 146
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 147
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 148
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 149
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 150
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 151
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 152
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 153
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 154
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 155
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 156
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 157
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 158
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 159
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 160
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 161
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 162
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 163
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 164
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 165
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 166
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 167
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 168
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 169
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 170
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 171
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 172
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 173
+    },
+    {
+      "context": 3,
+      "declared_launches": 34,
+      "native_dispatches": 34,
+      "native_minus_declared": 0,
+      "schedule": 174
+    }
+  ],
+  "rendered_frame_count": 149,
+  "sample_count": 143,
+  "schema": "parallel-mater-metal-schedule-evaluation/v1",
+  "simulation_to_wall_clock_rate": 0.8401356529179786,
+  "timing_ms_per_tick": {
+    "gpu_ms": {
+      "maximum": 99.837583,
+      "mean": 11.792131706293707,
+      "minimum": 3.35125,
+      "p50": 8.455875,
+      "p95": 18.902042,
+      "p99": 99.373959
+    },
+    "record_ms": {
+      "maximum": 0.90475,
+      "mean": 0.650828993006993,
+      "minimum": 0.527,
+      "p50": 0.643542,
+      "p95": 0.762708,
+      "p99": 0.823209
+    },
+    "submit_ms": {
+      "maximum": 0.008875,
+      "mean": 0.004579601398601398,
+      "minimum": 0.002875,
+      "p50": 0.004125,
+      "p95": 0.006667,
+      "p99": 0.007291
+    },
+    "submit_to_fence_ms": {
+      "maximum": 100.113583,
+      "mean": 12.090860692307693,
+      "minimum": 3.606166,
+      "p50": 8.713959,
+      "p95": 19.313625,
+      "p99": 99.634583
+    },
+    "wait_ms": {
+      "maximum": 0.0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0
+    }
+  },
+  "warmup_samples_excluded": 30,
+  "workload": "rigid-386"
+}

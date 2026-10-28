@@ -35,7 +35,11 @@ function(parallel_mater_add_slang_metal_kernels)
             set(source "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/metal_device_contract.slang")
         endif()
         parallel_mater_slang_definition_arguments("${module}" METAL definitions)
-        foreach(entry IN LISTS PARALLEL_MATER_SLANG_${module}_ENTRIES)
+        set(module_entries "${PARALLEL_MATER_SLANG_${module}_METAL_ENTRIES}")
+        if(NOT module_entries)
+            set(module_entries "${PARALLEL_MATER_SLANG_${module}_ENTRIES}")
+        endif()
+        foreach(entry IN LISTS module_entries)
             set(base "${generated_dir}/${module}/${entry}")
             add_custom_command(
                 OUTPUT "${base}.metal" "${base}.json"
@@ -64,7 +68,9 @@ function(parallel_mater_add_slang_metal_kernels)
                 add_custom_command(
                     OUTPUT "${base}.air" "${base}.metallib"
                     COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk ${metal_sdk} metal
-                        -std=metal3.0 -Werror -fno-fast-math -ffp-contract=off
+                        # The shared device fence needs Metal 3.2's non-collective
+                        # atomic_thread_fence on Apple silicon.
+                        -std=metal3.2 -Werror -fno-fast-math -ffp-contract=off
                         # Slang retains unused atomic fetch results in MSL.
                         # Keep all other native diagnostics as errors.
                         -Wno-unused-variable

@@ -244,7 +244,7 @@ cross-compilation alone is not device qualification.
 The command-gallery brick gate also checks torque-free rotation, independent
 floor clearance, closed/open concave seams, both sides of an open sheet, and
 vertical sheet-edge impacts across and along a floor's tessellation diagonal.
-Centered convex impacts cover four substeps, a complete one-step crossing,
+Centered convex impacts cover the sole 1/60-second step, a complete one-step crossing,
 and a one-step crossing that starts already touching. No lateral velocity or
 spin may be invented by the contact manifold.
 

@@ -137,7 +137,8 @@ void test_budget_and_epoch() {
     CHECK(grid.grid_cells == 131'072U);
     CHECK(grid.grid_faces == 401'408U);
     CHECK(grid.domain_dispatches == 30U);
-    CHECK(grid.domain_workgroups == 29'988U);
+    CHECK(smoke_realtime_grid_block_size == 256U);
+    CHECK(grid.domain_workgroups == 15'012U);
     CHECK(grid.cell_visits == 3'838'356U);
     CHECK(grid.solver_scratch_bytes == 4'281'080U);
     run_contract(grid);

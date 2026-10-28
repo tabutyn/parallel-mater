@@ -1,0 +1,98 @@
+// SPDX-License-Identifier: MIT
+#ifndef PARALLEL_MATER_SMOKE_COUPLING_CANDIDATES_SLANGH
+#define PARALLEL_MATER_SMOKE_COUPLING_CANDIDATES_SLANGH
+
+SmokeFlowSample smoke_coupling_sample_candidates(
+    Vec3 point, PMBuffer<Vec3> positions, PMBuffer<Vec3> velocities,
+    SmokeOptions options, uint smoke_owner_slot,
+    uint smoke_owner_generation, uint smoke_topology_revision,
+    PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    PMByteBuffer spatial_admission, uint spatial_leaf_capacity,
+    PMBuffer<uint> candidate_counts, PMBuffer<uint> candidate_sources,
+    uint candidates_per_query, PMBuffer<uint> spatial_status,
+    uint query)
+{
+    SmokeFlowSample sample = {};
+    uint candidateCount = candidate_counts[query];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return sample;
+    }
+    float support = 3.0f * options.particle_radius;
+    float inverse = 1.0f / support;
+    uint candidateBase = query * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return sample;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialFluidFamily ||
+            leaf.identity.owner_slot !=
+                (smoke_owner_slot | kCouplingSpatialSmokeOwnerTag))
+            continue;
+        if (leaf.identity.owner_generation != smoke_owner_generation ||
+            leaf.identity.topology_revision != smoke_topology_revision ||
+            leaf.identity.primitive_kind !=
+                kCouplingSpatialParticlePrimitive ||
+            leaf.payload_ref >= options.capacity)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return sample;
+        }
+        uint other = leaf.payload_ref;
+        float distance = vector_length(subtract(point, positions[other]));
+        if (distance >= support) continue;
+        float q = 1.0f - distance * inverse;
+        float weight = q * q * q;
+        sample.number_density += weight;
+        sample.velocity = add(sample.velocity,
+            multiply(velocities[other], weight));
+    }
+    if (sample.number_density > 1.0e-6f)
+        sample.velocity = multiply(
+            sample.velocity, 1.0f / sample.number_density);
+    return sample;
+}
+
+Vec3 smoke_coupling_wind_delta(
+    Vec3 position, Vec3 velocity, PMBuffer<Vec3> smoke_positions,
+    PMBuffer<Vec3> smoke_velocities, SmokeOptions smoke,
+    uint smoke_owner_slot, uint smoke_owner_generation,
+    uint smoke_topology_revision,
+    PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    PMByteBuffer spatial_admission, uint spatial_leaf_capacity,
+    PMBuffer<uint> candidate_counts, PMBuffer<uint> candidate_sources,
+    uint candidates_per_query, PMBuffer<uint> spatial_status, uint query,
+    SmokeGridField grid, float drag, float maximum_acceleration, float dt)
+{
+    if (grid.n != 0u && smoke_grid_contains(position, grid))
+    {
+        Vec3 air = {};
+        float density = 0.0f;
+        smoke_grid_sample(position, grid, air, density);
+        float response = 1.0f - exp(-drag * clamp_scalar(
+            density * smoke.rest_number_density, 0.0f, 1.0f) * dt);
+        return clamp_length(multiply(subtract(air, velocity), response),
+            maximum_acceleration * dt);
+    }
+    SmokeFlowSample local = smoke_coupling_sample_candidates(
+        position, smoke_positions, smoke_velocities, smoke,
+        smoke_owner_slot, smoke_owner_generation, smoke_topology_revision,
+        spatial_metadata, spatial_admission, spatial_leaf_capacity,
+        candidate_counts, candidate_sources, candidates_per_query,
+        spatial_status, query);
+    if (local.number_density <= 1.0e-6f) return {};
+    float occupancy = min(
+        1.0f, local.number_density / smoke.rest_number_density);
+    float response = 1.0f - exp(-drag * occupancy * dt);
+    return clamp_length(multiply(subtract(local.velocity, velocity), response),
+        maximum_acceleration * dt);
+}
+
+#endif

@@ -17350,7 +17350,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-cpu",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -17361,7 +17362,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-cpu",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -17373,13 +17375,15 @@
       "driver": "slang-cpu",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -17389,7 +17393,103 @@
     {
       "driver": "slang-cuda",
       "kind": "case_validation",
+      "message": "cloth-core: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "cloth-tear: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "cloth-water: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "compound-weld-lifecycle: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-breaking: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-fixed: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-generic-spring: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-generic: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-hinge: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-motor: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-piston: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-point: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "constraint-slider: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "fluid-lifecycle: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
       "message": "fluid-rigid: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "passive-active: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "rigid-direct: stale case hash",
       "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
@@ -20553,7 +20653,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-cuda",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -20564,7 +20665,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-cuda",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -20593,7 +20695,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-cuda",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -20604,7 +20707,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-cuda",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -20616,13 +20720,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20634,13 +20740,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20652,13 +20760,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20670,13 +20780,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20688,13 +20800,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20706,13 +20820,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20724,13 +20840,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20742,13 +20860,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20760,13 +20880,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20778,13 +20900,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20796,13 +20920,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20814,13 +20940,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20832,13 +20960,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20850,13 +20980,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20868,13 +21000,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20886,13 +21020,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20904,13 +21040,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20922,13 +21060,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20940,13 +21080,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20958,13 +21100,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20976,13 +21120,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20994,13 +21140,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21012,13 +21160,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21030,13 +21180,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21048,13 +21200,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21066,13 +21220,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21084,13 +21240,15 @@
       "driver": "slang-cuda",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21100,7 +21258,103 @@
     {
       "driver": "slang-d3d12",
       "kind": "case_validation",
+      "message": "cloth-core: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "cloth-tear: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "cloth-water: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "compound-weld-lifecycle: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-breaking: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-fixed: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-generic-spring: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-generic: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-hinge: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-motor: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-piston: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-point: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "constraint-slider: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "fluid-lifecycle: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
       "message": "fluid-rigid: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "passive-active: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "rigid-direct: stale case hash",
       "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
@@ -21519,7 +21773,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-d3d12",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -21530,7 +21785,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-d3d12",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -21542,13 +21798,15 @@
       "driver": "slang-d3d12",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21560,13 +21818,15 @@
       "driver": "slang-d3d12",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21578,13 +21838,15 @@
       "driver": "slang-d3d12",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24345,7 +24607,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-metal",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -24356,7 +24619,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-metal",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -24367,7 +24631,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-metal",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -24378,7 +24643,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-metal",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -24390,13 +24656,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24408,13 +24676,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24426,13 +24696,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24444,13 +24716,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24462,13 +24736,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24480,13 +24756,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24498,13 +24776,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24516,13 +24796,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24534,13 +24816,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24552,13 +24836,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24570,13 +24856,15 @@
       "driver": "slang-metal",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -26594,7 +26882,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-vulkan",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -26605,7 +26894,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-vulkan",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -26616,7 +26906,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-vulkan",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -26638,7 +26929,8 @@
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-vulkan",
       "expected": [
-        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+        "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6"
       ],
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
@@ -26672,13 +26964,15 @@
       "driver": "slang-vulkan",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -26690,13 +26984,15 @@
       "driver": "slang-vulkan",
       "expected": [
         "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
+        "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
         "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
         "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
         "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
-        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+        "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -26705,7 +27001,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
+  "obligations_sha256": "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be",
   "qualification_complete": true,
   "qualified_capability_count": 1,
   "report_count": 47,
@@ -27655,7 +27951,7 @@
         "name": "slang-cuda",
         "version": null
       },
-      "failure_count": 6,
+      "failure_count": 22,
       "id": "windows-gtx1080-physics-2026-10-16:slang-cuda",
       "kind": "legacy-physics",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
@@ -27689,7 +27985,7 @@
         "name": "slang-d3d12",
         "version": null
       },
-      "failure_count": 6,
+      "failure_count": 22,
       "id": "windows-gtx1080-physics-2026-10-16:slang-d3d12",
       "kind": "legacy-physics",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
@@ -28089,7 +28385,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "eac1925758a8af29f4b8809803ddc62f32f3bbd02b717ad79a2ccc7d7428b73e",
+  "sources_sha256": "c974acc8929019679748b0ca665c802c5bb12dc003d70d6c2ebe8cd5eb50bd3d",
   "valid": true,
   "validation_failures": []
 }

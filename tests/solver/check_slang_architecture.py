@@ -484,16 +484,62 @@ for retired_production_call in (
     "calculate_fluid_body_bounds(",
     "index_fluid_body_cells(",
     "refit_fluid_soft_surface(",
+    "index_smoke_for_deformable_drag(",
+    "index_smoke_particles(",
 ):
     if retired_production_call in production_backend:
         failures.append(
             "src/simulation/production_realtime_backend.cu.inc: second "
             f"production broad phase returned ({retired_production_call})"
         )
+
+for path, entry in (
+    ("src/slang/cloth_smoke.slang", "smoke_cloth_wind"),
+    ("src/slang/soft_body_smoke.slang", "smoke_soft_body_wind"),
+    ("src/slang/rope_smoke.slang", "smoke_rope_wind"),
+):
+    body = shader_entry(path, entry)
+    for required in (
+        "candidate_counts", "candidate_sources", "spatial_metadata",
+        "spatial_admission", "candidates_per_query", "spatial_status",
+        "smoke_coupling_wind_delta",
+    ):
+        if required not in body:
+            failures.append(
+                f"{path}:{entry}: missing shared smoke candidate {required}"
+            )
+    for retired in ("PMBuffer<uint64_t> keys", "smoke_wind_delta("):
+        if retired in body:
+            failures.append(
+                f"{path}:{entry}: private smoke search returned ({retired})"
+            )
 if production_backend.count("build_spatial_index_device(") != 1:
     failures.append(
         "src/simulation/production_realtime_backend.cu.inc: expected exactly "
         "one shared spatial build call"
+    )
+spatial_emit_keys = shader_entry(
+    "src/slang/primitives/spatial_build.slang", "pm_spatial_emit_keys")
+for required in (
+    "PMBuffer<PmSpatialLeafMetadata> metadata",
+    "metadata[source].sort_key",
+):
+    if required not in spatial_emit_keys:
+        failures.append(
+            "src/slang/primitives/spatial_build.slang:pm_spatial_emit_keys: "
+            f"missing authoritative leaf key source {required}"
+        )
+if "PMBuffer<uint> identities" in spatial_emit_keys:
+    failures.append(
+        "src/slang/primitives/spatial_build.slang:pm_spatial_emit_keys: "
+        "query exclusion keys were reused as BVH leaf identities"
+    )
+spatial_build_call = production_backend.split(
+    "build_spatial_index_device(", 1)[1].split(");", 1)[0]
+if "excluded" in spatial_build_call:
+    failures.append(
+        "src/simulation/production_realtime_backend.cu.inc: shared BVH build "
+        "still consumes query exclusion keys"
     )
 
 migrated_launches = {

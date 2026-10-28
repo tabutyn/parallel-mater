@@ -1,0 +1,36 @@
+{
+  "driver": {
+    "device": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+    "name": "slang-metal"
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "expected_impulse_error_n_s": 0.0,
+    "final_point_segment_separation_m": 0.10538114788157144,
+    "fluid_contact_impulse_n_s": [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    "initial_segment_fraction": 0.25,
+    "maximum_endpoint_speed_m_s": 0.3750000298023224,
+    "maximum_node_distribution_error_n_s": 5.960464477539063e-08,
+    "maximum_node_force_impulse_residual_n_s": 1.2318293252100432e-07,
+    "maximum_overlap_penetration_m": 0.0,
+    "maximum_tangential_impulse_n_s": 0.0,
+    "reciprocal_impulse_residual_n_s": 5.960464477539063e-08,
+    "rope_contact_impulse_n_s": [
+      1.0000000596046448,
+      0.0,
+      0.0
+    ]
+  },
+  "passed": true,
+  "profile_id": "fluid-rope-contact-v1",
+  "profile_sha256": "cf62d762b47a575bc1d11c22ca2486ff7a28b307366f28d6c97bbe9f132b5540",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

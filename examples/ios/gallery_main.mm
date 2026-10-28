@@ -202,6 +202,7 @@ UIImage *frame_image(const GallerySession &session) {
     NSString *_details;
     unsigned _backgrounds, _foregrounds;
     std::uint64_t _backgroundFrames;
+    UIBackgroundTaskIdentifier _backgroundTask;
     unsigned _renderWidth, _renderHeight;
 }
 @end
@@ -280,6 +281,7 @@ UIImage *frame_image(const GallerySession &session) {
     [super viewDidLoad];
     UIApplication.sharedApplication.idleTimerDisabled = YES;
     _active = YES; _selection = -1;
+    _backgroundTask = UIBackgroundTaskInvalid;
     _worker = dispatch_queue_create("org.parallelmater.gallery.simulation", DISPATCH_QUEUE_SERIAL);
     self.view.backgroundColor = [UIColor colorWithWhite:0.075 alpha:1];
     _image = [PMMetalView new];
@@ -356,6 +358,24 @@ UIImage *frame_image(const GallerySession &session) {
                 const auto resources = std::filesystem::path(root.fileSystemRepresentation);
                 setenv("PM_DRIVER_FILES", (resources / "manifests/slang-metal.json").c_str(), 1);
                 setenv("PM_LAYER_FILES", (resources / "manifests/validation.json").c_str(), 1);
+                if ([NSProcessInfo.processInfo.arguments
+                        containsObject:@"--metal-schedule-profile"]) {
+                    NSURL *documents = [NSFileManager.defaultManager
+                        URLsForDirectory:NSDocumentDirectory
+                               inDomains:NSUserDomainMask].firstObject;
+                    NSURL *profile = [documents URLByAppendingPathComponent:
+                        @"metal-schedule-profile.jsonl"];
+                    NSError *removeError = nil;
+                    if ([NSFileManager.defaultManager fileExistsAtPath:profile.path] &&
+                        ![NSFileManager.defaultManager removeItemAtURL:profile
+                                                                 error:&removeError])
+                        throw std::runtime_error(std::string(
+                            "Removing stale Metal schedule profile: ") +
+                            removeError.localizedDescription.UTF8String);
+                    setenv("PM_METAL_SCHEDULE_PROFILE", "1", 1);
+                    setenv("PM_METAL_SCHEDULE_PROFILE_FILE",
+                           profile.fileSystemRepresentation, 1);
+                }
                 struct utsname machine{}; uname(&machine);
                 self->_mobile = std::make_unique<MobileGallerySession>(parallel_mater::gallery::GallerySessionConfig{
                     .assets = resources / "assets", .profiles = resources / "config/device-profiles.json",
@@ -508,13 +528,35 @@ UIImage *frame_image(const GallerySession &session) {
 - (void)zoom:(UIPinchGestureRecognizer *)gesture { _zoom += std::log(gesture.scale) * 10; gesture.scale = 1; }
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)a shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)b { (void)a; (void)b; return YES; }
 - (void)background {
-    UIApplication.sharedApplication.idleTimerDisabled = NO;
+    UIApplication *application = UIApplication.sharedApplication;
+    application.idleTimerDisabled = NO;
     _active = NO; [self releaseDirections]; _orbitX = _orbitY = _zoom = 0;
+    if (_backgroundTask != UIBackgroundTaskInvalid) {
+        [application endBackgroundTask:_backgroundTask];
+        _backgroundTask = UIBackgroundTaskInvalid;
+    }
+    _backgroundTask = [application
+        beginBackgroundTaskWithName:@"ParallelMater lifecycle checkpoint"
+        expirationHandler:^{
+            if (self->_backgroundTask != UIBackgroundTaskInvalid) {
+                [UIApplication.sharedApplication
+                    endBackgroundTask:self->_backgroundTask];
+                self->_backgroundTask = UIBackgroundTaskInvalid;
+            }
+        }];
     dispatch_async(_worker, ^{
-        if (!self->_mobile) return;
-        self->_mobile->set_foreground(false); ++self->_backgrounds;
-        self->_backgroundFrames = self->_session->frames;
-        [self writeRuntimeInfo];
+        if (self->_mobile) {
+            self->_mobile->set_foreground(false); ++self->_backgrounds;
+            self->_backgroundFrames = self->_session->frames;
+            [self writeRuntimeInfo];
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (self->_backgroundTask != UIBackgroundTaskInvalid) {
+                [UIApplication.sharedApplication
+                    endBackgroundTask:self->_backgroundTask];
+                self->_backgroundTask = UIBackgroundTaskInvalid;
+            }
+        });
     });
 }
 - (void)foreground {
@@ -543,6 +585,10 @@ UIImage *frame_image(const GallerySession &session) {
     UIApplication.sharedApplication.idleTimerDisabled = NO;
     _active = NO; [_display invalidate];
     [NSNotificationCenter.defaultCenter removeObserver:self];
+    if (_backgroundTask != UIBackgroundTaskInvalid) {
+        [UIApplication.sharedApplication endBackgroundTask:_backgroundTask];
+        _backgroundTask = UIBackgroundTaskInvalid;
+    }
     dispatch_async(_worker, ^{
         self->_session = nullptr;
         self->_mobile.reset();
@@ -574,6 +620,15 @@ UIImage *frame_image(const GallerySession &session) {
             return true;
         },
         .memory_footprint = [] { return memory_footprint(); },
+        .thermal_state = [] {
+            switch (NSProcessInfo.processInfo.thermalState) {
+            case NSProcessInfoThermalStateNominal: return std::string("nominal");
+            case NSProcessInfoThermalStateFair: return std::string("fair");
+            case NSProcessInfoThermalStateSerious: return std::string("serious");
+            case NSProcessInfoThermalStateCritical: return std::string("critical");
+            }
+            return std::string("unknown");
+        },
         .checkpoint = [](std::string_view json) {
             write_text_report(@"smoke-report.json", std::string(json));
         },

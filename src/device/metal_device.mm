@@ -87,6 +87,20 @@ public:
     PmResult last_error(bool take) noexcept override {
         return from_driver_error(context_.error(take));
     }
+    bool schedule_profile_enabled() const noexcept override {
+        return context_.schedule_profile_enabled();
+    }
+    PmResult begin_schedule_profile() noexcept override {
+        return from_driver_error(context_.begin_schedule_profile());
+    }
+    PmResult record_schedule_profile_stage(
+        std::string_view name, std::uint32_t launches) noexcept override {
+        return from_driver_error(
+            context_.record_schedule_profile_stage(name, launches));
+    }
+    PmResult end_schedule_profile() noexcept override {
+        return from_driver_error(context_.end_schedule_profile());
+    }
     PmResult memory_budget(MemoryBudgetSnapshot &snapshot) noexcept override {
         id<MTLDevice> gpu = (__bridge id<MTLDevice>)native_device_handle();
         snapshot.total = gpu.recommendedMaxWorkingSetSize;

@@ -12,7 +12,7 @@ void require(bool condition, const char *message) {
 }
 struct State {
     bool fail_encode{}, fail_submit{};
-    unsigned encoders{}, accepted_fills{};
+    unsigned encoders{}, accepted_fills{}, accepted_copies{};
 };
 class Buffer final : public compute::Buffer {
 public:
@@ -49,7 +49,7 @@ public:
     void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &, compute::Extent) override {}
     void copy(const compute::BufferPtr &, std::size_t, const compute::BufferPtr &,
-              std::size_t, std::size_t) override {}
+              std::size_t, std::size_t) override { ++copies_; }
     compute::BufferPtr upload(const compute::BufferPtr &, std::size_t,
                              std::span<const std::byte>) override { return {}; }
     void fill(const compute::BufferPtr &, std::size_t, std::size_t, std::uint8_t) override {
@@ -60,11 +60,13 @@ public:
         if (std::exchange(state_.fail_submit, false)) throw std::bad_alloc();
         auto token = std::make_shared<Completion>();
         state_.accepted_fills += fills_;
+        state_.accepted_copies += copies_;
         return token;
     }
 private:
     State &state_;
     unsigned fills_{};
+    unsigned copies_{};
 };
 class Device final : public compute::Device {
 public:
@@ -118,6 +120,13 @@ void recovery() {
         state.encoders == encoders && state.accepted_fills == 3,
         "validation failure discarded earlier valid recording");
     require(context.error(false) == cudaSuccess, "public service failure poisoned sticky launch error");
+
+    auto *bytes = static_cast<std::byte *>(buffer);
+    require(context.checked([&] {
+        context.copy(bytes + 32, bytes, 16);
+        context.wait();
+    }, false) == cudaSuccess && state.accepted_copies == 1,
+        "non-overlapping slices of one Metal arena used a host copy");
     context.free(buffer);
 }
 } // namespace

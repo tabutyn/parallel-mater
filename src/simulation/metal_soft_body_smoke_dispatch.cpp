@@ -8,14 +8,29 @@ namespace parallel_mater::simulation {
 namespace {
 using metal_bindings::smoke_options;
 
+template <typename Batch>
+metal::RelocatedRecord batch_record(const Batch &batch) noexcept {
+    static constexpr metal::HostMember members[]{
+        {"items", offsetof(Batch, items),
+         sizeof(static_cast<Batch *>(nullptr)->items)}};
+    return {std::as_bytes(std::span{&batch, 1}), members};
+}
+
 } // namespace
 
 void apply_smoke_wind_to_soft_body(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const float *inverse_masses, std::uint32_t node_count,
     const SmokeDispatchOptions &smoke, const void *smoke_positions,
-    const void *smoke_velocities, const std::uint64_t *keys,
-    const std::uint32_t *indices, const SmokeGridDispatchField &smoke_grid,
+    const void *smoke_velocities, std::uint32_t smoke_owner_slot,
+    std::uint32_t smoke_owner_generation,
+    std::uint32_t smoke_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    const SmokeGridDispatchField &smoke_grid,
     float drag, float maximum_acceleration, float timestep,
     float maximum_speed) noexcept {
     (void)metal::launch(stream, "smoke_soft_body_wind", grid,
@@ -23,8 +38,10 @@ void apply_smoke_wind_to_soft_body(
         inverse_masses, node_count, smoke_options(smoke),
         smoke_positions,
         smoke_velocities,
-        keys,
-        indices, metal::grid_record(smoke_grid), drag,
+        smoke_owner_slot, smoke_owner_generation, smoke_topology_revision,
+        spatial_metadata, spatial_admission, spatial_leaf_capacity,
+        candidate_counts, candidate_sources, candidates_per_query,
+        spatial_status, metal::grid_record(smoke_grid), drag,
         maximum_acceleration, timestep, maximum_speed);
 }
 
@@ -59,6 +76,27 @@ void collide_smoke_with_soft_body(
         soft_topology_revision, spatial_metadata, spatial_admission,
         spatial_leaf_capacity, candidate_counts, candidate_sources,
         candidates_per_query, spatial_status,
+        metal::grid_record(smoke_grid));
+}
+
+void collide_smoke_with_soft_body_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    void *positions, const void *previous_positions, void *velocities,
+    const float *ages, std::uint32_t count,
+    const SmokeDispatchOptions &smoke,
+    const SmokeSoftBodyContactBatch &batch, std::uint32_t batch_count,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    const SmokeGridDispatchField &smoke_grid) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "smoke_soft_body_contact_batch", grid,
+        positions, previous_positions, velocities, ages, count,
+        smoke.lifetime, batch_record(batch), batch_count, spatial_metadata,
+        spatial_admission, spatial_leaf_capacity, candidate_counts,
+        candidate_sources, candidates_per_query, spatial_status,
         metal::grid_record(smoke_grid));
 }
 

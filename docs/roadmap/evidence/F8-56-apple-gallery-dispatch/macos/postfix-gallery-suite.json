@@ -1,0 +1,37 @@
+{
+  "schema": "parallel-mater-macos-gallery-suite/v1",
+  "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+  "execution_contract": "fixed-tick-60hz-v1",
+  "captures": [
+    {
+      "id": "rigid-386",
+      "workload": "rigid-386",
+      "evaluation": "rigid-386/macos-metal-schedule-evaluation.json"
+    },
+    {
+      "id": "fluid",
+      "workload": "gallery-fluid",
+      "evaluation": "fluid/macos-metal-schedule-evaluation.json"
+    },
+    {
+      "id": "cloth",
+      "workload": "gallery-cloth",
+      "evaluation": "cloth/macos-metal-schedule-evaluation.json"
+    },
+    {
+      "id": "soft-body",
+      "workload": "gallery-soft-body",
+      "evaluation": "soft-body/macos-metal-schedule-evaluation.json"
+    },
+    {
+      "id": "soft-body-fluid",
+      "workload": "gallery-soft-body-fluid",
+      "evaluation": "soft-body-fluid/macos-metal-schedule-evaluation.json"
+    },
+    {
+      "id": "smoke-soft-body",
+      "workload": "gallery-smoke-soft-body",
+      "evaluation": "smoke-soft-body/macos-metal-schedule-evaluation.json"
+    }
+  ]
+}

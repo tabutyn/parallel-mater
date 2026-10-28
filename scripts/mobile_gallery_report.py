@@ -72,6 +72,53 @@ def validate_mobile_gallery_report(report, nonce=None, expected_scenes=28):
     if not all(scene.get("passed") and scene.get("steps") == frames
                for scene in supported):
         raise RuntimeError("Supported mobile Gallery scene checks failed")
+    for scene in supported:
+        timing = scene.get("timing_ms")
+        if (not isinstance(timing, dict) or
+                any(not isinstance(timing.get(phase), dict)
+                    for phase in ("frame", "physics", "render", "present")) or
+                any(not isinstance(timing[phase].get(percentile), (int, float))
+                    for phase in ("frame", "physics", "render", "present")
+                    for percentile in ("mean", "p50", "p95", "p99"))):
+            raise RuntimeError("Supported mobile Gallery scene lacks timing distributions")
+        work = scene.get("realtime_work")
+        if (not isinstance(work, dict) or
+                any(not isinstance(work.get(field), int) or work[field] < 0
+                    for field in ("dispatches", "workgroups", "barriers",
+                                  "submissions", "bytes_moved", "time_advances",
+                                  "spatial_builds", "spatial_refits",
+                                  "spatial_publications", "numerical_iterations",
+                                  "intra_tick_host_readbacks",
+                                  "intra_tick_host_waits", "coupling_edges",
+                                  "coupling_sweeps")) or
+                not isinstance(work.get("domain_iterations"), dict) or
+                any(not isinstance(work["domain_iterations"].get(domain), int) or
+                    work["domain_iterations"][domain] < 0
+                    for domain in ("rigid", "fluid", "cloth", "soft_body",
+                                   "rope", "smoke"))):
+            raise RuntimeError("Supported mobile Gallery scene lacks public realtime work")
+        workload = scene.get("workload")
+        if (not isinstance(scene.get("scene_asset"), str) or
+                not scene["scene_asset"] or
+                not isinstance(scene.get("workload_profile"), str) or
+                not scene["workload_profile"] or
+                not isinstance(workload, dict) or
+                any(not isinstance(workload.get(field), int) or
+                    workload[field] < 0 for field in (
+                        "target_updates_per_second", "rigid_body_limit",
+                        "fluid_particle_limit", "coupled_body_limit",
+                        "smoke_particle_limit", "render_width",
+                        "render_height", "peak_particle_count",
+                        "moving_body_count"))):
+            raise RuntimeError("Supported mobile Gallery scene lacks workload identity")
+        if (not isinstance(scene.get("simulation_to_wall_clock_rate"), (int, float)) or
+                scene["simulation_to_wall_clock_rate"] < 0):
+            raise RuntimeError("Supported mobile Gallery scene lacks simulation/wall rate")
+        if (not isinstance(scene.get("thermal_state_before"), str) or
+                not scene["thermal_state_before"] or
+                not isinstance(scene.get("thermal_state_after"), str) or
+                not scene["thermal_state_after"]):
+            raise RuntimeError("Supported mobile Gallery scene lacks thermal state")
     if not all(scene.get("skipped") and scene.get("reason")
                for scene in unavailable):
         raise RuntimeError("Unavailable mobile Gallery scenes lack exact reasons")

@@ -101,14 +101,13 @@ PmResult initialize_spatial_epoch_device(
 
 PmResult build_spatial_index_device(
     device::ExecutionQueue stream, const SpatialBuildPlan &plan,
-    const SpatialDeviceBuffers &buffers, const std::uint32_t *sort_keys,
+    const SpatialDeviceBuffers &buffers,
     std::uint32_t expected_active_count) noexcept {
     if (expected_active_count > plan.capacity ||
         (plan.capacity != 0U && (buffers.metadata == nullptr ||
             buffers.bounds == nullptr || buffers.build_flags == nullptr ||
             buffers.build_output == nullptr ||
-            buffers.build_scratch == nullptr ||
-            (expected_active_count != 0U && sort_keys == nullptr))))
+            buffers.build_scratch == nullptr)))
         return PM_ERROR_INVALID_ARGUMENT;
     if (plan.capacity == 0U) return PM_SUCCESS;
     auto *counts = spatial_range<std::uint32_t>(
@@ -174,7 +173,7 @@ PmResult build_spatial_index_device(
     if (result != PM_SUCCESS) return result;
     result = metal::launch(stream, "pm_spatial_emit_keys", active_blocks,
         active, active_count, plan.capacity,
-        const_cast<std::uint32_t *>(sort_keys), buffers.bounds, scene_bounds,
+        buffers.metadata, buffers.bounds, scene_bounds,
         keys0, values0, status);
     if (result != PM_SUCCESS) return result;
     if (expected_active_count > 1U &&

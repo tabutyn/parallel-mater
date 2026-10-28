@@ -2,6 +2,7 @@
 #include <parallel_mater_gallery/frame_timing.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <iomanip>
 #include <locale>
@@ -94,10 +95,16 @@ FrameTimingStatistics FrameTimingCollector::statistics() const {
     FrameTimingStatistics result;
     result.count = recent_.size();
     if (!result.count) return result;
-    std::vector<double> sorted;
-    sorted.reserve(result.count);
+    std::vector<double> total, physics, render, present;
+    total.reserve(result.count);
+    physics.reserve(result.count);
+    render.reserve(result.count);
+    present.reserve(result.count);
     for (const auto &entry : recent_) {
-        sorted.push_back(entry.sample.total_ms);
+        total.push_back(entry.sample.total_ms);
+        physics.push_back(entry.sample.physics_ms);
+        render.push_back(entry.sample.render_ms);
+        present.push_back(entry.sample.present_ms.value_or(0));
         result.mean_ms += entry.sample.total_ms;
         result.physics_ms += entry.sample.physics_ms;
         result.render_ms += entry.sample.render_ms;
@@ -106,9 +113,29 @@ FrameTimingStatistics FrameTimingCollector::statistics() const {
     const double count = static_cast<double>(result.count);
     result.mean_ms /= count; result.physics_ms /= count;
     result.render_ms /= count; result.present_ms /= count;
-    std::sort(sorted.begin(), sorted.end());
-    result.median_ms = (sorted[(result.count - 1) / 2] + sorted[result.count / 2]) * .5;
-    result.p95_ms = sorted[static_cast<std::size_t>(std::ceil(count * .95)) - 1];
+    const auto percentiles = [count](std::vector<double> values) {
+        std::sort(values.begin(), values.end());
+        return std::array{
+            (values[(values.size() - 1) / 2] + values[values.size() / 2]) * .5,
+            values[static_cast<std::size_t>(std::ceil(count * .95)) - 1],
+            values[static_cast<std::size_t>(std::ceil(count * .99)) - 1]};
+    };
+    const auto total_percentiles = percentiles(std::move(total));
+    result.median_ms = total_percentiles[0];
+    result.p95_ms = total_percentiles[1];
+    result.p99_ms = total_percentiles[2];
+    const auto physics_percentiles = percentiles(std::move(physics));
+    result.physics_median_ms = physics_percentiles[0];
+    result.physics_p95_ms = physics_percentiles[1];
+    result.physics_p99_ms = physics_percentiles[2];
+    const auto render_percentiles = percentiles(std::move(render));
+    result.render_median_ms = render_percentiles[0];
+    result.render_p95_ms = render_percentiles[1];
+    result.render_p99_ms = render_percentiles[2];
+    const auto present_percentiles = percentiles(std::move(present));
+    result.present_median_ms = present_percentiles[0];
+    result.present_p95_ms = present_percentiles[1];
+    result.present_p99_ms = present_percentiles[2];
     const double elapsed = milliseconds(recent_.front().start, recent_.back().end);
     result.cadence_fps = elapsed > 0 ? 1000 * count / elapsed : 0;
     return result;
