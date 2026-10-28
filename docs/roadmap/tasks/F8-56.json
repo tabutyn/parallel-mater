@@ -26,13 +26,29 @@
   ],
   "evidence": [],
   "lease": {
-    "token": "e9582cf9-afff-476b-8c7c-4cb68b0aa68d",
+    "token": "440f0786-99ff-4bc0-9a5b-927f8f9efbc9",
     "owner": "codex-macos-gallery-qualification",
     "machine": "Thomass-MacBook-Air",
     "branch": "work/F8-56/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-27T12:27:36Z",
-    "heartbeat_at": "2026-10-27T12:27:36Z",
-    "expires_at": "2026-10-28T12:27:36Z"
+    "claimed_at": "2026-10-28T23:15:48Z",
+    "heartbeat_at": "2026-10-28T23:15:48Z",
+    "expires_at": "2026-10-29T23:15:48Z"
   },
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "e9582cf9-afff-476b-8c7c-4cb68b0aa68d",
+        "owner": "codex-macos-gallery-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-56/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-27T12:27:36Z",
+        "heartbeat_at": "2026-10-27T12:27:36Z",
+        "expires_at": "2026-10-28T12:27:36Z"
+      },
+      "outcome": "reclaimed",
+      "at": "2026-10-28T23:15:48Z",
+      "reason": "Reclaim expired lease to merge completed physical Mac and iPad dispatch qualification",
+      "evidence": []
+    }
+  ]
 }
