@@ -178,11 +178,11 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-49](roadmap/tasks/F8-49.json) | Integrate paint, capture and public outputs with the common tick | done | F8-48 | — |
 | [F8-50](roadmap/tasks/F8-50.json) | Make the fixed-tick runtime the sole public execution path | done | F8-49 | — |
 | [F8-51](roadmap/tasks/F8-51.json) | Make shared Gallery use the sole fixed-tick architecture | done | F8-50 | — |
-| [F8-52](roadmap/tasks/F8-52.json) | Freeze the complete single-path SDK and Gallery candidate | waiting on dependencies | F8-51, F8-54, F8-55, F8-56 | — |
+| [F8-52](roadmap/tasks/F8-52.json) | Freeze the complete single-path SDK and Gallery candidate | ready | F8-51, F8-54, F8-55, F8-56 | — |
 | [F8-53](roadmap/tasks/F8-53.json) | Requalify CPU and public contracts on the sole-path candidate | waiting on dependencies | F8-23, F8-52 | — |
 | [F8-54](roadmap/tasks/F8-54.json) | Batch Metal rigid solver dispatches | done | F8-34, F8-45 | — |
 | [F8-55](roadmap/tasks/F8-55.json) | Use shared BVH candidates and batch coupling work | done | F8-45, F8-46, F8-47 | — |
-| [F8-56](roadmap/tasks/F8-56.json) | Verify Gallery dispatch reductions on Mac and iPad | leased | F8-51, F8-54, F8-55, F8-57 | codex-macos-gallery-qualification / Thomass-MacBook-Air / 2026-10-29T23:15:48Z |
+| [F8-56](roadmap/tasks/F8-56.json) | Verify Gallery dispatch reductions on Mac and iPad | done | F8-51, F8-54, F8-55, F8-57 | — |
 | [F8-57](roadmap/tasks/F8-57.json) | Keep installed macOS Gallery synchronized | done | F8-51 | — |
 | [F8-99](roadmap/tasks/F8-99.json) | Review F8 single-step quality, performance and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32, F8-33, F8-34, F8-35, F8-36, F8-37, F8-38, F8-39, F8-40, F8-41, F8-42, F8-43, F8-44, F8-45, F8-46, F8-47, F8-48, F8-49, F8-50, F8-51, F8-52, F8-53, F8-54, F8-55, F8-56, F8-57 | — |
 
