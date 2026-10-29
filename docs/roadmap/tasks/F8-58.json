@@ -1,7 +1,7 @@
 {
   "id": "F8-58",
   "title": "Validate fixed-tick physical device captures",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-52"
   ],
@@ -19,16 +19,12 @@
     "The exact plain and validation backend observations and all frozen negative controls are required. Legacy variable-timestep evidence cannot be relabeled or unioned into the report.",
     "Portable deterministic tests cover a complete passing capture plus missing scenarios, wrong timestep/substep, hidden retry or changed work budget, missing measurement, failed simulation, identity mismatch, private state, negative-control failure, missing capability, unsupported public case and short or slow workloads. The validator is reusable by CPU, CUDA, Vulkan, D3D12 and Metal qualification tasks."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "69887b62-7445-4649-8968-bb983e000c9e",
-    "owner": "codex-f8-device-suite-validation",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-58/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-29T01:19:39Z",
-    "heartbeat_at": "2026-10-29T01:19:39Z",
-    "expires_at": "2026-10-30T01:19:39Z"
-  },
+  "evidence": [
+    "PASS: 427/427 portable conformance Python tests, including 9 deterministic device-suite validation tests",
+    "PASS: frozen oracle contract; 243 named limits, 49 capability cases, 14 workloads and 5 runtime adapters",
+    "FAIL retained as intended: physical F8-28 capture exposes 45/49 Metal capabilities and 28/30 public cases instead of being accepted as final evidence"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -44,6 +40,25 @@
       "at": "2026-10-29T01:13:06Z",
       "reason": "Initial implementation proved the frozen suite lacks executable scenario fixtures and exposed a 49-vs-45 Metal capability mismatch; tested gate retained on work/F8-58/Thomass-MacBook-Air for bounded replanning",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "69887b62-7445-4649-8968-bb983e000c9e",
+        "owner": "codex-f8-device-suite-validation",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-58/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-29T01:19:39Z",
+        "heartbeat_at": "2026-10-29T01:19:39Z",
+        "expires_at": "2026-10-30T01:19:39Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-29T01:21:10Z",
+      "reason": "Portable validator now rejects incomplete, relabeled, over-budget or private physical captures against the exact frozen fixed-tick contract",
+      "evidence": [
+        "PASS: 427/427 portable conformance Python tests, including 9 deterministic device-suite validation tests",
+        "PASS: frozen oracle contract; 243 named limits, 49 capability cases, 14 workloads and 5 runtime adapters",
+        "FAIL retained as intended: physical F8-28 capture exposes 45/49 Metal capabilities and 28/30 public cases instead of being accepted as final evidence"
+      ]
     }
   ]
 }
