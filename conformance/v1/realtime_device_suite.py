@@ -31,9 +31,29 @@ CAPABILITY_PATH = (
 )
 SUITE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
 FIXTURE_PATH = ROOT / "conformance/v1/realtime/scenario-fixtures-v1.json"
-CANDIDATE_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v4.json"
+ACTIVE_CANDIDATE_PATH = (
+    ROOT / "conformance/v1/qualification/active-realtime-candidate.json"
 )
+
+
+def active_candidate_path() -> Path:
+    routing = json.loads(ACTIVE_CANDIDATE_PATH.read_text(encoding="utf-8"))
+    relative = Path(str(routing["manifest"]))
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError("active candidate manifest must be repository-relative")
+    path = ROOT / relative
+    if not path.is_file():
+        raise ValueError(f"active candidate manifest does not exist: {relative}")
+    digest = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    if digest != routing.get("manifest_sha256"):
+        raise ValueError("active candidate manifest hash does not match routing")
+    candidate = json.loads(path.read_text(encoding="utf-8"))
+    if candidate.get("id") != routing.get("candidate_id"):
+        raise ValueError("active candidate id does not match routing")
+    return path
+
+
+CANDIDATE_PATH = active_candidate_path()
 
 CAPTURE_SCHEMA = "parallel-mater-realtime-device-suite-capture/v1"
 REPORT_SCHEMA = "parallel-mater-realtime-device-suite-report/v1"
