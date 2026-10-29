@@ -1,4 +1,3 @@
-import hashlib
 import importlib.util
 import json
 import pathlib
@@ -21,9 +20,10 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
         cls.inventory = MODULE.load_json(MODULE.INVENTORY_PATH)
         cls.obligations = MODULE.load_json(MODULE.CAPABILITY_PATH)
         cls.suite = MODULE.load_json(MODULE.SUITE_PATH)
+        cls.fixtures = MODULE.load_json(MODULE.FIXTURE_PATH)
+        cls.fixture_sha = MODULE.sha256(MODULE.FIXTURE_PATH)
         cls.candidate = MODULE.load_json(MODULE.CANDIDATE_PATH)
-        cls.candidate_sha = hashlib.sha256(
-            MODULE.CANDIDATE_PATH.read_bytes()).hexdigest()
+        cls.candidate_sha = MODULE.sha256(MODULE.CANDIDATE_PATH)
 
     def candidate_identity(self):
         return {
@@ -32,12 +32,13 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
             "source_revision": self.candidate["source"]["revision"],
         }
 
-    def tick(self):
+    def tick(self, outcome=None):
         profile = self.contract
         iterations = profile["algebraic_iteration_budget"]
-        return {
+        result = {
             "unit": "per-tick",
             "status": "success",
+            "result": "PM_SUCCESS",
             "dispatches": 1,
             "phase_dispatches": {
                 "boundary": 0, "predict": 0, "index": 1,
@@ -59,19 +60,60 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
                 if name.endswith("sweeps") or name.endswith("cycles")
             },
         }
+        if outcome is not None and outcome.get("status") == "failure":
+            result.update({
+                "status": "failure",
+                "result": outcome["result"],
+                "spatial_index_updates": 0,
+                "spatial_index_publications": 0,
+                "time_advances": 0,
+                "state_unchanged": True,
+                "pending_inputs_preserved": True,
+                "hidden_retries": 0,
+                "atomic_failure": {
+                    "committed_state_preserved": True,
+                    "clock_preserved": True,
+                    "pending_inputs_preserved": True,
+                },
+                "retry_substeps": 0,
+                "retry_spatial_updates": 0,
+            })
+        return result
 
     def scenario(self, definition):
+        fixture = next(item for item in self.fixtures["scenarios"]
+                       if item["id"] == definition["id"])
+        overrides = {
+            item["tick"]: item
+            for item in fixture["tick_outcomes"]["overrides"]
+        }
         case = {"kind": "scenario", **definition}
         measurements = {
             spec.assertion: MODULE.ORACLE.passing_value(spec)
             for spec in MODULE.ORACLE.case_limit_specs(case, self.contract)
         }
         count = definition["ticks"]
+        tick_work = [self.tick(overrides.get(index))
+                     for index in range(count)]
+        executions = [{
+            "validation_enabled": mode,
+            "simulation_status": "PM_SUCCESS",
+            "simulation_instance_count": 1,
+            "completed_tick_records": count,
+            "measurements_sha256": MODULE.value_sha256(measurements),
+            "tick_work_sha256": MODULE.value_sha256(tick_work),
+            "final_public_state_sha256": "c" * 64,
+        } for mode in (False, True)]
         return {
             "id": definition["id"],
             "source": "installed-public-api",
             "driver_private_state_used": False,
-            "public_api_calls": self.suite["public_api"]["operation_sequence"],
+            "public_api_calls": self.fixtures["execution"]["public_api_calls"],
+            "runtime_variant": "metal-runtime",
+            "fixture_contract": {
+                "id": self.fixtures["id"], "sha256": self.fixture_sha,
+            },
+            "executions": executions,
             "simulation_recreated_during_ticks": False,
             "candidate": self.candidate_identity(),
             "domains": definition["domains"],
@@ -80,7 +122,7 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
             "steps": [{"timestep_seconds": 1.0 / 60.0, "substeps": 1}
                       for _ in range(count)],
             "measurements": measurements,
-            "tick_work": [self.tick() for _ in range(count)],
+            "tick_work": tick_work,
         }
 
     def backend_observation(self, validation):
@@ -210,6 +252,39 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
         text = json.dumps(report["failures"])
         self.assertIn("queue_submissions", text)
         self.assertIn("spatial_index_publications", text)
+
+    def test_failed_tick_must_be_atomic_and_recovery_succeeds(self):
+        capture = self.capture()
+        scenario = next(item for item in capture["scenarios"]
+                        if item["id"] == "capacity-overflow-atomic-recovery")
+        failed = scenario["tick_work"][1]
+        self.assertEqual(failed["result"], "PM_ERROR_CAPACITY_EXCEEDED")
+        failed["hidden_retries"] = 1
+        failed["spatial_index_publications"] = 1
+        report = self.evaluate(capture)
+        self.assertFalse(report["passed"])
+        text = json.dumps(report["failures"])
+        self.assertIn("hidden_retries", text)
+        self.assertIn("spatial_index_publications", text)
+
+    def test_fixture_identity_and_validation_modes_are_exact(self):
+        capture = self.capture()
+        scenario = capture["scenarios"][0]
+        scenario["fixture_contract"]["sha256"] = "0" * 64
+        scenario["executions"].pop()
+        report = self.evaluate(capture)
+        self.assertFalse(report["passed"])
+        text = json.dumps(report["failures"])
+        self.assertIn("exact shared fixture definition", text)
+        self.assertIn("validation-enabled", text)
+
+    def test_plain_and_validation_public_states_must_match(self):
+        capture = self.capture()
+        capture["scenarios"][0]["executions"][1][
+            "final_public_state_sha256"] = "d" * 64
+        report = self.evaluate(capture)
+        self.assertFalse(report["passed"])
+        self.assertIn("public states differ", json.dumps(report["failures"]))
 
     def test_missing_measurement_and_failed_execution_fail(self):
         capture = self.capture()

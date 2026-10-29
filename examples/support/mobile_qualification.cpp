@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/mobile_qualification.hpp>
+#include <realtime_fixture_contract.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -68,6 +69,7 @@ std::string failure_message(const MobileGallerySession &session,
 } // namespace
 
 std::string MobileGalleryQualificationReport::json() const {
+    namespace fixture = parallel_mater::realtime_fixture_contract;
     std::ostringstream output;
     output.imbue(std::locale::classic());
     output << std::setprecision(17)
@@ -77,6 +79,11 @@ std::string MobileGalleryQualificationReport::json() const {
            << ",\"platform\":" << json_string(platform)
            << ",\"backend\":" << json_string(backend)
            << ",\"execution_contract\":" << json_string(execution_contract)
+           << ",\"realtime_fixture_contract\":{\"id\":"
+           << json_string(fixture::id)
+           << ",\"sha256\":" << json_string(fixture::sha256)
+           << ",\"scenario_count\":" << fixture::scenarios.size()
+           << ",\"measurement_count\":" << fixture::measurement_count << '}'
            << ",\"device\":" << json_string(device)
            << ",\"renderer\":{\"kind\":" << json_string(renderer)
            << ",\"readback\":" << json_string(readback) << '}'

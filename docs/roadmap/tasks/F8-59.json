@@ -1,7 +1,7 @@
 {
   "id": "F8-59",
   "title": "Define executable public fixed-tick scenario fixtures",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-52",
     "F8-58"
@@ -20,15 +20,35 @@
     "Plain and validation backend observations prove the same public execution contract; negative controls demonstrate rejection of wrong timestep, extra substep/publication, hidden retry, missing measurement and changed work budget.",
     "Portable tests run the fixture definitions on the CPU reference path and prove that CUDA, Vulkan, D3D12 and Metal device runners consume the same definitions. Any protected oracle change is reported for F8-61 rather than treated as the existing candidate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "021cd167-4be7-4503-9062-489f5654666d",
-    "owner": "codex-f8-public-scenarios",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-59/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-29T01:39:57Z",
-    "heartbeat_at": "2026-10-29T01:39:57Z",
-    "expires_at": "2026-10-30T01:39:57Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: 438 portable conformance tests, including exact fixture definitions, independent measurements, work-ledger/atomic-recovery validation, plain-versus-validation identity, and negative controls.",
+    "PASS: sdk-ci configured, built, and passed all 73 CTest targets.",
+    "PASS: native CPU fixed-tick runtime/reference/comparator tests and native Apple-GPU Metal realtime runtime test.",
+    "PASS: the generated contract header pins the full fixture SHA, 12 scenarios, 37 measurements, five runtime variants, dt=1/60, and one substep; mobile qualification reports the same identity.",
+    "Protected realtime candidate remains unchanged; F8-61 owns the later refreeze."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "021cd167-4be7-4503-9062-489f5654666d",
+        "owner": "codex-f8-public-scenarios",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-59/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-29T01:39:57Z",
+        "heartbeat_at": "2026-10-29T01:39:57Z",
+        "expires_at": "2026-10-30T01:39:57Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-29T02:09:54Z",
+      "reason": "Defined all twelve public fixed-tick scenarios once and wired their exact contract identity and schedule into the shared CPU, CUDA, Vulkan, D3D12, Metal, Android and Gallery qualification runners without changing the protected candidate.",
+      "evidence": [
+        "PASS: 438 portable conformance tests, including exact fixture definitions, independent measurements, work-ledger/atomic-recovery validation, plain-versus-validation identity, and negative controls.",
+        "PASS: sdk-ci configured, built, and passed all 73 CTest targets.",
+        "PASS: native CPU fixed-tick runtime/reference/comparator tests and native Apple-GPU Metal realtime runtime test.",
+        "PASS: the generated contract header pins the full fixture SHA, 12 scenarios, 37 measurements, five runtime variants, dt=1/60, and one substep; mobile qualification reports the same identity.",
+        "Protected realtime candidate remains unchanged; F8-61 owns the later refreeze."
+      ]
+    }
+  ]
 }

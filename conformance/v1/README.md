@@ -26,6 +26,15 @@ conformance remains required; passing the portable row tests is not sufficient.
   reference backend. Immutable profiles live in `lifecycle/`.
 - `qualification.py` maps each advertised interaction record to revisioned
   evidence obligations in `qualification/capability-obligations-v1.json`.
+- `realtime/scenario-fixtures-v1.json` is the single executable definition of
+  the twelve fixed-tick physical scenarios. It fixes public scene inputs,
+  events, measurements, tick outcomes and diagnostics without selecting a
+  backend. `realtime_scenario_fixtures.py` validates it and emits the identical
+  runner plan for CPU, CUDA, Vulkan, D3D12 or Metal.
+- `realtime_device_suite.py` accepts physical results only when every scenario
+  names the exact shared fixture SHA-256, was run both plain and validation-enabled,
+  used one 1/60-second public step per tick and retained the atomic failed tick
+  in the capacity/recovery fixture.
 - `evidence_index.py` revalidates registered qualification results, retains
   failures and provenance, and checks the generated per-driver documentation.
 - `evidence/index-v1.json` is the published driver/capability matrix. Its source
@@ -78,6 +87,20 @@ those remain explicit review steps. A second refresh must produce no diff.
 Record the selected driver's public identity and exact advertised interaction
 keys with `--provenance` and `--capabilities`. The capability output uses the
 same canonical names and graph-limit representation as qualification results.
+
+Validate the shared realtime scenario definitions, or inspect the exact plan a
+device runner receives, with:
+
+```text
+python3 conformance/v1/realtime_scenario_fixtures.py --check
+python3 conformance/v1/realtime_scenario_fixtures.py \
+  --runtime-variant metal-runtime
+```
+
+The runtime selector is the only backend-specific value in that plan. The
+fixture file remains outside the frozen F8 candidate closure until F8-61
+reviews and refreezes it; its current status must not be presented as candidate
+v4 qualification evidence.
 
 ```text
 PM_DRIVER_FILES=<build>/manifests/slang-metal.json \

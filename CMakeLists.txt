@@ -15,6 +15,34 @@ include(CheckLanguage)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+set(PARALLEL_MATER_REALTIME_FIXTURE_GENERATED_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/realtime-fixtures")
+set(PARALLEL_MATER_REALTIME_FIXTURE_HEADER
+    "${PARALLEL_MATER_REALTIME_FIXTURE_GENERATED_DIR}/realtime_fixture_contract.hpp")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/realtime/scenario-fixtures-v1.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/realtime_scenario_fixtures.py")
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/realtime_scenario_fixtures.py"
+        --emit-cpp "${PARALLEL_MATER_REALTIME_FIXTURE_HEADER}"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    RESULT_VARIABLE PARALLEL_MATER_REALTIME_FIXTURE_RESULT
+    ERROR_VARIABLE PARALLEL_MATER_REALTIME_FIXTURE_ERROR)
+if(NOT PARALLEL_MATER_REALTIME_FIXTURE_RESULT EQUAL 0)
+    message(FATAL_ERROR
+        "Cannot generate shared realtime fixture contract: "
+        "${PARALLEL_MATER_REALTIME_FIXTURE_ERROR}")
+endif()
+add_library(parallel-mater-realtime-fixture-contract INTERFACE)
+target_include_directories(parallel-mater-realtime-fixture-contract INTERFACE
+    "${PARALLEL_MATER_REALTIME_FIXTURE_GENERATED_DIR}")
+
+function(parallel_mater_use_realtime_fixture_contract target)
+    target_link_libraries(${target} PRIVATE
+        parallel-mater-realtime-fixture-contract)
+endfunction()
+
 add_test(NAME parallel-mater-generated-api-check
     COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/reference/build.py"
@@ -480,6 +508,8 @@ if(BUILD_TESTING)
         tests/api/native_realtime_runtime_tests.cpp)
     target_compile_features(parallel-mater-slang-cuda-realtime-tests
         PRIVATE cxx_std_20)
+    parallel_mater_use_realtime_fixture_contract(
+        parallel-mater-slang-cuda-realtime-tests)
     target_link_libraries(parallel-mater-slang-cuda-realtime-tests
         PRIVATE ParallelMater::parallel_mater)
     add_dependencies(parallel-mater-slang-cuda-realtime-tests
@@ -905,7 +935,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_link_libraries(parallel-mater-gallery-session
         PUBLIC parallel-mater-gallery-renderer-contract
                parallel-mater-gallery-frame-timing
-        PRIVATE parallel-mater-gallery-renderer-adapters)
+        PRIVATE parallel-mater-gallery-renderer-adapters
+                parallel-mater-realtime-fixture-contract)
     target_include_directories(parallel-mater-gallery-session PRIVATE
         examples/gallery examples/support
         "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
@@ -1262,6 +1293,8 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             tests/api/native_realtime_runtime_tests.cpp)
         target_compile_features(parallel-mater-slang-d3d12-realtime-tests
             PRIVATE cxx_std_20)
+        parallel_mater_use_realtime_fixture_contract(
+            parallel-mater-slang-d3d12-realtime-tests)
         target_link_libraries(parallel-mater-slang-d3d12-realtime-tests
             PRIVATE ParallelMater::parallel_mater)
         add_dependencies(parallel-mater-slang-d3d12-realtime-tests
