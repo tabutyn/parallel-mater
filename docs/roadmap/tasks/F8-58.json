@@ -1,7 +1,7 @@
 {
   "id": "F8-58",
   "title": "Validate fixed-tick physical device captures",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-52"
   ],
@@ -20,7 +20,15 @@
     "Portable deterministic tests cover a complete passing capture plus missing scenarios, wrong timestep/substep, hidden retry or changed work budget, missing measurement, failed simulation, identity mismatch, private state, negative-control failure, missing capability, unsupported public case and short or slow workloads. The validator is reusable by CPU, CUDA, Vulkan, D3D12 and Metal qualification tasks."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "69887b62-7445-4649-8968-bb983e000c9e",
+    "owner": "codex-f8-device-suite-validation",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-58/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-29T01:19:39Z",
+    "heartbeat_at": "2026-10-29T01:19:39Z",
+    "expires_at": "2026-10-30T01:19:39Z"
+  },
   "history": [
     {
       "lease": {
