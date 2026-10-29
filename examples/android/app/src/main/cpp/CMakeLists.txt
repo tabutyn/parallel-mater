@@ -40,6 +40,8 @@ if(PARALLEL_MATER_ANDROID_QUALIFICATION)
     add_executable(pm-android-async-tests ${PROJECT_SOURCE_DIR}/tests/api/async_submission_tests.cpp)
     add_executable(pm-android-realtime-runtime-tests
         ${PROJECT_SOURCE_DIR}/tests/api/native_realtime_runtime_tests.cpp)
+    parallel_mater_use_realtime_fixture_contract(
+        pm-android-realtime-runtime-tests)
     foreach(target pm-android-command-tests pm-android-async-tests
                    pm-android-realtime-runtime-tests)
         target_compile_features(${target} PRIVATE cxx_std_20)

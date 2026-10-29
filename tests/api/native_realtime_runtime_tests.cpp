@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.h>
+#include <realtime_fixture_contract.hpp>
 
 #include <algorithm>
 #include <array>
@@ -31,6 +32,12 @@ int unsetenv(const char *name) {
     std::abort();                                                           \
 } } while (false)
 
+namespace fixture = parallel_mater::realtime_fixture_contract;
+static_assert(fixture::scenarios.size() == 12U);
+static_assert(fixture::runtime_variants.size() == 5U);
+static_assert(fixture::measurement_count == 37U);
+static_assert(fixture::substeps == 1U);
+
 int main(int argc, char **argv) {
     const bool couplings_only = argc == 2 &&
         std::strcmp(argv[1], "--production-couplings") == 0;
@@ -45,6 +52,12 @@ int main(int argc, char **argv) {
          couplings_only || smoke_couplings_only || lifecycle_only ||
          auxiliary_only);
     CHECK(argc == 1 || production);
+    CHECK(!fixture::id.empty() && fixture::sha256.size() == 64U);
+    for (const auto &scenario : fixture::scenarios) {
+        CHECK(!scenario.id.empty() && !scenario.builder.empty());
+        CHECK(scenario.ticks != 0U && scenario.domain_count != 0U &&
+              scenario.tag_count != 0U);
+    }
     constexpr std::uint32_t body_count = 8U;
     constexpr std::uint32_t constraint_count = 8U;
     PmInstanceCreateInfo instance_info{};
@@ -352,7 +365,8 @@ int main(int argc, char **argv) {
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBuildGeometry(commands, geometry) == PM_SUCCESS);
     execute(PM_SUCCESS);
-    PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, 0U};
+    PmStepInfo step{fixture::timestep_seconds, fixture::substeps,
+                    {0.0F, -9.81F, 0.0F}, 0U};
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
@@ -2070,7 +2084,7 @@ int main(int argc, char **argv) {
             CHECK(std::isfinite(state.position.z));
             CHECK(std::isfinite(state.numberDensity));
             CHECK(std::isfinite(state.pressure));
-            CHECK(state.age == 1.0F / 60.0F);
+            CHECK(state.age == fixture::timestep_seconds);
             CHECK(speed <= particle_smoke_material.maximumSpeed + 1.0e-4F);
         }
 
@@ -2180,7 +2194,7 @@ int main(int argc, char **argv) {
         constraint_count, constraints.data()) == PM_SUCCESS);
     execute(PM_SUCCESS);
 
-    PmStepInfo invalid_step{1.0F / 60.0F, 2U,
+    PmStepInfo invalid_step{fixture::timestep_seconds, 2U,
                             {0.0F, -9.81F, 0.0F}, 0U};
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);

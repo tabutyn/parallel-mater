@@ -74,6 +74,8 @@ if(BUILD_TESTING)
         tests/api/native_realtime_runtime_tests.cpp)
     target_compile_features(parallel-mater-slang-metal-realtime-tests
         PRIVATE cxx_std_20)
+    parallel_mater_use_realtime_fixture_contract(
+        parallel-mater-slang-metal-realtime-tests)
     target_compile_definitions(parallel-mater-slang-metal-realtime-tests
         PRIVATE PM_TEST_METAL_AVBD_BATCHING=1)
     target_link_libraries(parallel-mater-slang-metal-realtime-tests

@@ -126,6 +126,57 @@ def execution_plan(
     }
 
 
+def _cpp_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=True)
+
+
+def write_cpp_header(path: Path, fixtures: Mapping[str, Any]) -> None:
+    """Generate a small compile-time view consumed by every native runner."""
+
+    scenarios = fixtures["scenarios"]
+    variants = fixtures["execution"]["runtime_variants"]
+    measurement_count = sum(
+        len(values) for values in fixtures["measurement_algorithms"].values())
+    lines = [
+        "// Generated from scenario-fixtures-v1.json; do not edit.",
+        "#pragma once",
+        "#include <array>",
+        "#include <cstdint>",
+        "#include <string_view>",
+        "namespace parallel_mater::realtime_fixture_contract {",
+        "struct Scenario {",
+        "    std::string_view id;",
+        "    std::string_view builder;",
+        "    std::uint32_t ticks;",
+        "    std::uint32_t domain_count;",
+        "    std::uint32_t tag_count;",
+        "};",
+        f"inline constexpr std::string_view id = {_cpp_string(str(fixtures['id']))};",
+        f"inline constexpr std::string_view sha256 = {_cpp_string(fixture_sha256())};",
+        "inline constexpr float timestep_seconds = 1.0F / 60.0F;",
+        f"inline constexpr std::uint32_t substeps = {fixtures['execution']['substeps']}U;",
+        f"inline constexpr std::uint32_t measurement_count = {measurement_count}U;",
+        f"inline constexpr std::array<std::string_view, {len(variants)}> runtime_variants{{{{",
+    ]
+    lines.extend(f"    {_cpp_string(value)}," for value in variants)
+    lines.extend([
+        "}};",
+        f"inline constexpr std::array<Scenario, {len(scenarios)}> scenarios{{{{",
+    ])
+    for item in scenarios:
+        lines.append(
+            "    Scenario{" + ", ".join((
+                _cpp_string(item["id"]),
+                _cpp_string(item["fixture"]["builder"]),
+                f"{item['ticks']}U",
+                f"{len(item['domains'])}U",
+                f"{len(item['tags'])}U",
+            )) + "},")
+    lines.extend(["}};", "} // namespace parallel_mater::realtime_fixture_contract", ""])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def validate_contract(
     fixtures: Mapping[str, Any],
     suite: Mapping[str, Any],
@@ -353,6 +404,7 @@ def main(argv: list[str] | None = None) -> int:
         description="Validate or print a shared fixed-tick scenario plan")
     parser.add_argument("--runtime-variant")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--emit-cpp", type=Path)
     arguments = parser.parse_args(argv)
     fixtures = load_json(FIXTURES_PATH)
     issues = validate_contract(
@@ -362,13 +414,15 @@ def main(argv: list[str] | None = None) -> int:
         for issue in issues:
             print(f"FAIL {issue.path}: {issue.message}", file=sys.stderr)
         return 1
-    if arguments.runtime_variant:
+    if arguments.emit_cpp is not None:
+        write_cpp_header(arguments.emit_cpp, fixtures)
+    elif arguments.runtime_variant:
         print(json.dumps(execution_plan(arguments.runtime_variant, fixtures),
                          indent=2, sort_keys=True))
     elif arguments.check:
         print(f"PASS {len(fixtures['scenarios'])} shared scenario fixtures")
     else:
-        parser.error("choose --check or --runtime-variant")
+        parser.error("choose --check, --emit-cpp or --runtime-variant")
     return 0
 
 

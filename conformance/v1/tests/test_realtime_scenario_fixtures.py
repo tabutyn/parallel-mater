@@ -2,6 +2,7 @@ import copy
 import importlib.util
 import pathlib
 import sys
+import tempfile
 import unittest
 
 
@@ -44,6 +45,19 @@ class RealtimeScenarioFixtureTests(unittest.TestCase):
             self.assertIn(runtime_variant, variants)
             self.assertEqual(plan, baseline)
         self.assertEqual(plans[0]["runtime_variant"], "cpu-runtime")
+
+    def test_native_runner_header_comes_from_the_same_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "realtime_fixture_contract.hpp"
+            MODULE.write_cpp_header(path, self.fixtures)
+            header = path.read_text(encoding="utf-8")
+        self.assertIn(self.fixtures["id"], header)
+        self.assertIn(MODULE.fixture_sha256(), header)
+        self.assertIn("std::array<Scenario, 12>", header)
+        for scenario in self.fixtures["scenarios"]:
+            self.assertIn(f'"{scenario["id"]}"', header)
+        for variant in self.fixtures["execution"]["runtime_variants"]:
+            self.assertIn(f'"{variant}"', header)
 
     def test_wrong_timestep_and_extra_substep_are_rejected(self):
         fixtures = copy.deepcopy(self.fixtures)

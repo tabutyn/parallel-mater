@@ -307,6 +307,8 @@ if(BUILD_TESTING)
         tests/api/native_realtime_runtime_tests.cpp)
     target_compile_features(parallel-mater-native-realtime-runtime-tests
         PRIVATE cxx_std_20)
+    parallel_mater_use_realtime_fixture_contract(
+        parallel-mater-native-realtime-runtime-tests)
     target_link_libraries(parallel-mater-native-realtime-runtime-tests
         PRIVATE parallel-mater)
     add_dependencies(parallel-mater-native-realtime-runtime-tests
