@@ -63,8 +63,10 @@ class RealtimeScenarioFixtureTests(unittest.TestCase):
         canonical = MODULE.fixture_sha256()
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / "scenario-fixtures-v1.json"
+            contents = MODULE.FIXTURES_PATH.read_bytes().replace(
+                b"\r\n", b"\n")
             path.write_bytes(
-                MODULE.FIXTURES_PATH.read_bytes().replace(b"\n", b"\r\n"))
+                contents.replace(b"\n", b"\r\n"))
             self.assertEqual(MODULE.fixture_sha256(path), canonical)
 
     def test_wrong_timestep_and_extra_substep_are_rejected(self):
