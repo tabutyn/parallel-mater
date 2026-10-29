@@ -1,7 +1,7 @@
 {
   "id": "F8-58",
   "title": "Connect frozen fixed-tick oracles to public device runners",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-52"
   ],
@@ -20,6 +20,14 @@
     "Portable deterministic tests cover successful observations, missing rows, wrong timestep/substep, extra catch-up steps, changed work budgets, unsupported advertised rows and failed execution; the same runner is usable by CPU, CUDA, Vulkan, D3D12 and Metal qualification tasks."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "ca0b1ef4-8048-4da0-888f-f5f304d1afcb",
+    "owner": "codex-f8-oracle-integration",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-58/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-29T00:59:38Z",
+    "heartbeat_at": "2026-10-29T00:59:38Z",
+    "expires_at": "2026-10-30T00:59:38Z"
+  },
   "history": []
 }
