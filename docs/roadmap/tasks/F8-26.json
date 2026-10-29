@@ -7,7 +7,8 @@
     "F8-36",
     "F8-38",
     "F8-52",
-    "F8-61"
+    "F8-61",
+    "F8-63"
   ],
   "locks": [
     "f8-qualification-windows-cuda"

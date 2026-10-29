@@ -1,0 +1,25 @@
+{
+  "id": "F8-62",
+  "title": "Repair Linux CUDA Gallery candidate failures",
+  "status": "open",
+  "dependencies": [
+    "F8-61"
+  ],
+  "locks": [
+    "f8-linux-cuda-gallery-repair"
+  ],
+  "requires": [
+    "Physical Linux NVIDIA CUDA device and current shared Slang toolchain"
+  ],
+  "scope": "Repair the three required-suite failures exposed by F8-24 on exact candidate realtime-single-step-v1-cfb104b: generated multi-wall support stability at rest, dump-truck bucket travel to 100 degrees relative to the chassis, and headless Gallery validation-layer discovery. Start from the preserved F8-24 artifact, reproduce each failure on physical Linux CUDA, and repair production integration or shared implementation without reducing capability/case coverage, changing the sole schedule, weakening physics assertions, lowering work budgets or loosening quality tolerances. Candidate v5 remains rejected for final qualification and its passing observations cannot be unioned with the repaired source.",
+  "acceptance": [
+    "Reproduce all three F8-24 failures from docs/roadmap/evidence/F8-24-CANDIDATE-V5-LINUX-CUDA-FAILURE.json on the exact frozen source before applying repairs, and retain reviewable before/after observations.",
+    "Generated multi-wall support remains physically stable at rest through normal public simulation creation and the sole fixed-tick schedule; preserve the existing test assertion, scene counts and quality limits.",
+    "The dump-truck bucket physically reaches 100 degrees relative to the chassis under its existing public constraint/profile contract; do not extend the run, lower the angle, bypass the solver or add backend-specific physics equations to manufacture a pass.",
+    "The headless Gallery timing test and installed Linux Gallery/runtime discover the intended driver and validation layer without ambient developer paths; build-tree and relocated/install checks cover the corrected registration.",
+    "A clean Release Linux Slang CUDA build passes the complete registered suite with all physical CUDA tests executed and no required skips, and protected portable CI remains green. Attach exact source/tree, artifact, device, driver and toolchain evidence for F8-63 refreeze."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
