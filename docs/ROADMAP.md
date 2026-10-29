@@ -154,7 +154,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
 | [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
 | [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | ready | F8-22, F8-36, F8-38, P1-59, F8-52 | — |
-| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | leased | F8-22, F8-36, F8-38, F8-52 | codex-f8-macos-metal-qualification / Thomass-MacBook-Air / 2026-10-30T00:37:58Z |
 | [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
 | [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | ready | F8-02, F8-22, F8-36, F8-38, F8-52 | — |
 | [F8-31](roadmap/tasks/F8-31.json) | Ship and document the qualified single-path SDK and Gallery | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-51, F8-52, F8-53, F8-56 | — |
