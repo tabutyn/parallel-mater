@@ -60,8 +60,16 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def portable_text_sha256(path: Path) -> str:
+    """Hash a repository text contract independently of checkout EOLs."""
+
+    return hashlib.sha256(
+        path.read_bytes().replace(b"\r\n", b"\n")
+    ).hexdigest()
+
+
 def fixture_sha256(path: Path = FIXTURES_PATH) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return portable_text_sha256(path)
 
 
 def fixture_identity(fixtures: Mapping[str, Any]) -> dict[str, str]:
@@ -329,11 +337,11 @@ def validate_contract(
                     path + ".fixture.definition", "source definition is absent",
                     source))
             elif (not isinstance(digest, str)
-                  or hashlib.sha256(source_path.read_bytes()).hexdigest() != digest):
+                  or portable_text_sha256(source_path) != digest):
                 issues.append(_issue(
                     path + ".fixture.definition_sha256",
                     "source definition digest changed", digest,
-                    hashlib.sha256(source_path.read_bytes()).hexdigest()))
+                    portable_text_sha256(source_path)))
         for index, event in enumerate(fixture["events"]):
             if (not isinstance(event, dict)
                     or isinstance(event.get("tick"), bool)

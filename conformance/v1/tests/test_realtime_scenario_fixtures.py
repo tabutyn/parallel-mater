@@ -59,6 +59,14 @@ class RealtimeScenarioFixtureTests(unittest.TestCase):
         for variant in self.fixtures["execution"]["runtime_variants"]:
             self.assertIn(f'"{variant}"', header)
 
+    def test_contract_identity_is_independent_of_checkout_line_endings(self):
+        canonical = MODULE.fixture_sha256()
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "scenario-fixtures-v1.json"
+            path.write_bytes(
+                MODULE.FIXTURES_PATH.read_bytes().replace(b"\n", b"\r\n"))
+            self.assertEqual(MODULE.fixture_sha256(path), canonical)
+
     def test_wrong_timestep_and_extra_substep_are_rejected(self):
         fixtures = copy.deepcopy(self.fixtures)
         fixtures["execution"]["timestep_seconds"] = 0.01

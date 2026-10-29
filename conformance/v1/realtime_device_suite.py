@@ -79,7 +79,9 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(
+        path.read_bytes().replace(b"\r\n", b"\n")
+    ).hexdigest()
 
 
 def value_sha256(value: Any) -> str:

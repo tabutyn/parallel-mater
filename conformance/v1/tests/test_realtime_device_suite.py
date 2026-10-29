@@ -1,4 +1,3 @@
-import hashlib
 import importlib.util
 import json
 import pathlib
@@ -22,11 +21,9 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
         cls.obligations = MODULE.load_json(MODULE.CAPABILITY_PATH)
         cls.suite = MODULE.load_json(MODULE.SUITE_PATH)
         cls.fixtures = MODULE.load_json(MODULE.FIXTURE_PATH)
-        cls.fixture_sha = hashlib.sha256(
-            MODULE.FIXTURE_PATH.read_bytes()).hexdigest()
+        cls.fixture_sha = MODULE.sha256(MODULE.FIXTURE_PATH)
         cls.candidate = MODULE.load_json(MODULE.CANDIDATE_PATH)
-        cls.candidate_sha = hashlib.sha256(
-            MODULE.CANDIDATE_PATH.read_bytes()).hexdigest()
+        cls.candidate_sha = MODULE.sha256(MODULE.CANDIDATE_PATH)
 
     def candidate_identity(self):
         return {
