@@ -98,9 +98,11 @@ python3 conformance/v1/realtime_scenario_fixtures.py \
 ```
 
 The runtime selector is the only backend-specific value in that plan. The
-fixture file remains outside the frozen F8 candidate closure until F8-61
-reviews and refreezes it; its current status must not be presented as candidate
-v4 qualification evidence.
+fixture definition and capture validator are part of the F8-61 protected
+candidate closure. The integrity-checked
+`qualification/active-realtime-candidate.json` pointer selects the one manifest
+used by default; changing that pointer never permits evidence from two
+candidates to be combined.
 
 ```text
 PM_DRIVER_FILES=<build>/manifests/slang-metal.json \

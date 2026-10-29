@@ -1,5 +1,10 @@
 # F8-52 complete single-path candidate freeze
 
+> Historical record: F8-61 supersedes this candidate after freezing the
+> executable scenario contract and repaired 49-capability/30-case matrix. See
+> the [F8-61 freeze record](F8-61-CANDIDATE-FREEZE.md). Evidence from this
+> candidate cannot be combined with F8-61 qualification rows.
+
 F8-52 freezes final qualification candidate
 `realtime-single-step-v1-5a811c4` at source revision
 `5a811c4cba0e09fa9f6faaa2ca1a6f9e6cd59855` and tree

@@ -1,0 +1,66 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-5a811c4",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v4.json",
+  "candidate_manifest_sha256": "f0f15a65fed178625b263c6462e7e0d9397fd4880cfc2a3a73582b98584876ae",
+  "status": "superseded-repaired-matrix-refreeze",
+  "superseded_at": "2026-10-29",
+  "supersession_task": "F8-61",
+  "historical_qualification_task": "F8-52",
+  "historical_evidence": "docs/roadmap/evidence/F8-52-INSTALLED-PREFLIGHT.json",
+  "reasons": [
+    "Candidate v4 predates the executable twelve-scenario, 37-measurement fixture contract and capture-validator closure added by F8-59.",
+    "Candidate v4 predates F8-60 reconciliation of the final 49 interaction-capability rows and 30 public cases.",
+    "Candidate v4 preflights remain immutable provenance but cannot qualify the repaired final candidate and cannot be combined with replacement rows."
+  ],
+  "replacement": {
+    "candidate_id": "realtime-single-step-v1-cfb104b",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v5.json",
+    "candidate_manifest_sha256": "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000",
+    "freeze_task": "F8-61"
+  },
+  "evidence_union_allowed": false,
+  "invalidated_physical_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "qualification_owner": "F8-26",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "qualification_owner": "F8-27",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "qualification_owner": "F8-53",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "qualification_owner": "F8-24",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "qualification_owner": "F8-25",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "qualification_owner": "F8-28",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "qualification_owner": "F8-29",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "qualification_owner": "F8-30",
+      "status": "invalidated-requalify-replacement"
+    }
+  ],
+  "qualification_rule": "No final F8 qualification report may name or reuse this superseded candidate. F8-24 through F8-30 and F8-53 must execute only realtime-single-step-v1-cfb104b from F8-61."
+}

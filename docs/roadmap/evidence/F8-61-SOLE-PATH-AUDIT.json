@@ -1,0 +1,62 @@
+{
+  "schema": "parallel-mater-f8-61-sole-path-audit/v1",
+  "task": "F8-61",
+  "status": "passed",
+  "audited_source_revision": "cfb104b1c530f859d9a1c3549d2e67c7de31c289",
+  "audited_source_tree": "e6838f954384363e79a4485f3c2cfb6ff5e0ea79",
+  "public_contract": {
+    "api_version": "0.3",
+    "driver_abi_version": 2,
+    "creation": "ordinary PmSimulationCreateInfo with no execution-profile extension",
+    "step": "ordinary pmCmdStepSimulation fixed to one 1/60-second substep",
+    "production_schedule_count": 1,
+    "retired_selector_symbols_found": 0,
+    "retired_schedule_sources_found": 0
+  },
+  "gallery_paths": {
+    "shared_session": "parallel_mater_gallery::GallerySession",
+    "desktop": "examples/gallery/application.cpp",
+    "macos": "examples/gallery/macos_main.mm",
+    "android": "examples/android/app/src/main/cpp/gallery_jni.cpp",
+    "ipados": "examples/ios/gallery_main.mm",
+    "platform_responsibility": "input, presentation and lifecycle only; scene selection, reset, cadence, fixed stepping and timing remain shared"
+  },
+  "surface": {
+    "domains": ["RIGID_BODY", "FLUID", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE"],
+    "advertised_interaction_modes": ["ATTACHMENT", "CONTACT", "CONTAINMENT", "DRAG", "PHASE", "PRESSURE", "THERMAL", "VISCOSITY"],
+    "interaction_capabilities": 49,
+    "public_cases": 30,
+    "scenario_fixtures": 12,
+    "independent_measurements": 37,
+    "kernel_groups": 32,
+    "canonical_modules": 26,
+    "canonical_entries": 225,
+    "runtime_variants": ["cpu-runtime", "cuda-runtime", "vulkan-runtime", "d3d12-runtime", "metal-runtime"],
+    "physical_target_rows": 8,
+    "capability_reductions": 0
+  },
+  "auxiliary_features": [
+    "paint/contact stamping",
+    "public query/export",
+    "debug capture and diagnostics",
+    "asynchronous submission and recovery",
+    "shared Gallery frame cadence, interpolation and timing"
+  ],
+  "negative_findings": {
+    "selectable_legacy_runtime": false,
+    "blanket_domain_or_interaction_rejection": false,
+    "private_test_only_required_path": false,
+    "runtime_derived_work_budget": false,
+    "compile_only_qualification": false,
+    "missing_executable_scenario_contract": false,
+    "missing_capture_validator_contract": false,
+    "missing_apple_device_run": false
+  },
+  "verification": [
+    "python3 tools/check_realtime_candidate.py",
+    "python3 tests/solver/check_slang_architecture.py",
+    "python3 -m unittest conformance.v1.tests.test_realtime_oracle conformance.v1.tests.test_realtime_device_suite conformance.v1.tests.test_realtime_scenario_fixtures",
+    "GitHub Actions manual protected-source run 40906474584",
+    "installed API 0.3 CPU consumer preflight recorded separately in F8-61-CPU-PREFLIGHT.json"
+  ]
+}

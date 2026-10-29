@@ -15,8 +15,8 @@ jobs:
           python-version: '3.x'
       - name: Select Xcode 26 (required, never skip an older SDK)
         run: |
-          xcodebuild -version | tee xcode-version.txt
-          grep -q '^Xcode 26' xcode-version.txt
+          xcodebuild -version | tee "$RUNNER_TEMP/xcode-version.txt"
+          grep -q '^Xcode 26' "$RUNNER_TEMP/xcode-version.txt"
           xcrun --sdk iphoneos --show-sdk-version
           if ! xcrun --sdk iphoneos metal --version; then
             xcodebuild -downloadComponent MetalToolchain
