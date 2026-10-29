@@ -184,7 +184,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-55](roadmap/tasks/F8-55.json) | Use shared BVH candidates and batch coupling work | done | F8-45, F8-46, F8-47 | — |
 | [F8-56](roadmap/tasks/F8-56.json) | Verify Gallery dispatch reductions on Mac and iPad | done | F8-51, F8-54, F8-55, F8-57 | — |
 | [F8-57](roadmap/tasks/F8-57.json) | Keep installed macOS Gallery synchronized | done | F8-51 | — |
-| [F8-58](roadmap/tasks/F8-58.json) | Validate fixed-tick physical device captures | ready | F8-52 | — |
+| [F8-58](roadmap/tasks/F8-58.json) | Validate fixed-tick physical device captures | leased | F8-52 | codex-f8-device-suite-validation / Thomass-MacBook-Air / 2026-10-30T01:19:39Z |
 | [F8-59](roadmap/tasks/F8-59.json) | Define executable public fixed-tick scenario fixtures | waiting on dependencies | F8-52, F8-58 | — |
 | [F8-60](roadmap/tasks/F8-60.json) | Reconcile the final capability and public-case matrix | waiting on dependencies | F8-52, F8-58 | — |
 | [F8-61](roadmap/tasks/F8-61.json) | Refreeze the repaired single-step candidate | waiting on dependencies | F8-59, F8-60 | — |
