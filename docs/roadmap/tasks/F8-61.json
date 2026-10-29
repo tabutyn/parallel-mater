@@ -1,7 +1,7 @@
 {
   "id": "F8-61",
   "title": "Refreeze the repaired single-step candidate",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-59",
     "F8-60"
@@ -20,15 +20,35 @@
     "A coordination PR writes the new exact candidate identity and required CI run into F8-24 through F8-30 and F8-53 before any device task is claimed complete.",
     "Final device qualification can reproduce the candidate from documented commands without changing physics, capabilities, cases, work budgets, tolerances or schedule. Any subsequent protected change creates another candidate rather than mutating this one."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "6b5353aa-8291-418c-ad42-2d70b959c165",
-    "owner": "codex-f8-candidate-freeze",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-61/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-29T15:35:04Z",
-    "heartbeat_at": "2026-10-29T15:35:04Z",
-    "expires_at": "2026-10-30T15:35:04Z"
-  },
-  "history": []
+  "evidence": [
+    "conformance/v1/qualification/realtime-candidate-v5.json",
+    "docs/roadmap/F8-61-CANDIDATE-FREEZE.md",
+    "docs/roadmap/evidence/F8-61-SOLE-PATH-AUDIT.json",
+    "docs/roadmap/evidence/F8-61-CPU-PREFLIGHT.json",
+    "https://github.com/tabutyn/parallel-mater/actions/runs/40906474584"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "6b5353aa-8291-418c-ad42-2d70b959c165",
+        "owner": "codex-f8-candidate-freeze",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-61/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-29T15:35:04Z",
+        "heartbeat_at": "2026-10-29T15:35:04Z",
+        "expires_at": "2026-10-30T15:35:04Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-29T16:33:45Z",
+      "reason": "Froze candidate v5 at exact source/tree identity, bound protected closures and portable CI artifacts, routed every dependent qualification card, preserved superseded history, and passed installed CPU/F8-58 preflight without claiming physical qualification.",
+      "evidence": [
+        "conformance/v1/qualification/realtime-candidate-v5.json",
+        "docs/roadmap/F8-61-CANDIDATE-FREEZE.md",
+        "docs/roadmap/evidence/F8-61-SOLE-PATH-AUDIT.json",
+        "docs/roadmap/evidence/F8-61-CPU-PREFLIGHT.json",
+        "https://github.com/tabutyn/parallel-mater/actions/runs/40906474584"
+      ]
+    }
+  ]
 }
