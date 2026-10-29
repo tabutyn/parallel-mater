@@ -1,0 +1,26 @@
+{
+  "id": "F8-59",
+  "title": "Define executable public fixed-tick scenario fixtures",
+  "status": "open",
+  "dependencies": [
+    "F8-52",
+    "F8-58"
+  ],
+  "locks": [
+    "f8-fixed-tick-scenario-fixtures"
+  ],
+  "requires": [
+    "Host able to build and execute the public conformance runner"
+  ],
+  "scope": "Turn every scenario row in the frozen fixed-tick oracle into a backend-neutral executable fixture using only public simulation creation, resource configuration, stepping and readback. Define the independent public-output measurement algorithms needed by the F8-58 capture validator. Do not add backend-specific physics, private-state assertions, alternate schedules or hidden catch-up. Changes under the protected realtime oracle closure require a later F8-61 candidate refreeze; this task cannot silently mutate the current frozen candidate.",
+  "acceptance": [
+    "All twelve frozen scenario rows have explicit, portable public fixture configuration, exact domains and tags, deterministic initial state, measurement definitions, tick count and failure diagnostics.",
+    "The runner executes exactly one dt=1/60 step and one spatial publication per tick on the same simulation instance, records the frozen work-budget fields, and emits a capture accepted by the F8-58 validator without reading driver-private state.",
+    "Cold start, sustained execution, impact, rotation, stiff systems, mass ratio, containment, source/removal/replacement, overflow recovery, empty and sparse capacity have independent public-output assertions and named measurements.",
+    "Plain and validation backend observations prove the same public execution contract; negative controls demonstrate rejection of wrong timestep, extra substep/publication, hidden retry, missing measurement and changed work budget.",
+    "Portable tests run the fixture definitions on the CPU reference path and prove that CUDA, Vulkan, D3D12 and Metal device runners consume the same definitions. Any protected oracle change is reported for F8-61 rather than treated as the existing candidate."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

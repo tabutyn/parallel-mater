@@ -1,0 +1,26 @@
+{
+  "id": "F8-60",
+  "title": "Reconcile the final capability and public-case matrix",
+  "status": "open",
+  "dependencies": [
+    "F8-52",
+    "F8-58"
+  ],
+  "locks": [
+    "f8-capability-case-repair"
+  ],
+  "requires": [
+    "Physical Metal device plus hosts able to run affected reference backends"
+  ],
+  "scope": "Repair the candidate-contract mismatch exposed by physical F8-28 qualification. The frozen candidate requires 49 capability rows and 30 public cases, while current Metal reports 45 and executes 28. Qualify or implement the missing shared-Slang equal fluid-fluid contact/pressure/viscosity rows, Metal rope self interaction, cloth-tear case and soft-body-cloth case. Do not advertise a row before it physically passes execution, analytic and lifecycle checks; do not hide a capability reduction or add backend-specific physics equations.",
+  "acceptance": [
+    "Physical Metal executes and passes the equal fluid-fluid contact, pressure and viscosity capability rows through the shared Slang equations, with portable execution, analytic, lifecycle and negative evidence on every affected reference backend.",
+    "Metal rope self interaction passes a new exact physical audit before it is advertised; the prior P1-31 withdrawal and failure evidence remain visible and are not overwritten or relabeled.",
+    "The cloth-tear and soft-body-cloth public cases execute through normal public simulation creation and sole fixed-tick stepping on every applicable production driver, or a planning review explicitly changes the product contract before any candidate refreeze.",
+    "Capability enumeration, public case registration, Gallery behavior and conformance captures agree exactly. Missing production integration is a failure, not a newly unsupported row, and no driver-private state satisfies an assertion.",
+    "Portable tests and physical Metal artifacts prove the repaired 49-row and 30-case matrix without changing fixed work budgets, quality tolerances or the sole public schedule; all protected closure changes are handed to F8-61."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

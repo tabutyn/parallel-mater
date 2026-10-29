@@ -1,0 +1,26 @@
+{
+  "id": "F8-61",
+  "title": "Refreeze the repaired single-step candidate",
+  "status": "open",
+  "dependencies": [
+    "F8-59",
+    "F8-60"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Green protected CI for the complete repaired candidate closure"
+  ],
+  "scope": "Freeze a new immutable sole-path candidate after the executable scenario fixtures and final capability/public-case matrix repairs. Record one exact source commit, tree, manifest hash, protected closure, runtime variants, toolchains and green CI run. Supersede candidate v4 for final device qualification; never union evidence from different candidates or silently rewrite prior manifests.",
+  "acceptance": [
+    "A new immutable candidate manifest records exact source commit, tree, manifest hash, public headers, shared Slang sources, runtime variants, scenario fixtures, capture validator contract, 49 capability rows, 30 public cases, fixed budgets and quality tolerances.",
+    "The closure is mechanically regenerated and independently hash-verified. Every protected file and generated artifact is clean at the frozen source commit, and all required portable CI lanes pass from that exact commit.",
+    "The candidate includes executable observations accepted by F8-58 for the CPU reference path and preserves explicit provenance for candidate v4 and every rejected/interim candidate without combining their evidence.",
+    "A coordination PR writes the new exact candidate identity and required CI run into F8-24 through F8-30 and F8-53 before any device task is claimed complete.",
+    "Final device qualification can reproduce the candidate from documented commands without changing physics, capabilities, cases, work budgets, tolerances or schedule. Any subsequent protected change creates another candidate rather than mutating this one."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
