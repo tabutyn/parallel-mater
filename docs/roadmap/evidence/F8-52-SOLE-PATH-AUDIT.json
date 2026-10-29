@@ -1,0 +1,57 @@
+{
+  "schema": "parallel-mater-f8-52-sole-path-audit/v1",
+  "task": "F8-52",
+  "status": "passed",
+  "audited_source_revision": "5a811c4cba0e09fa9f6faaa2ca1a6f9e6cd59855",
+  "public_contract": {
+    "api_version": "0.3",
+    "driver_abi_version": 2,
+    "creation": "ordinary PmSimulationCreateInfo with no execution-profile extension",
+    "step": "ordinary pmCmdStepSimulation fixed to one 1/60-second substep",
+    "production_schedule_count": 1,
+    "retired_selector_symbols_found": 0,
+    "retired_schedule_sources_found": 0
+  },
+  "gallery_paths": {
+    "shared_session": "parallel_mater_gallery::GallerySession",
+    "desktop": "examples/gallery/application.cpp",
+    "macos": "examples/gallery/macos_main.mm",
+    "android": "examples/android/app/src/main/cpp/gallery_jni.cpp",
+    "ipados": "examples/ios/gallery_main.mm",
+    "platform_responsibility": "input, presentation and lifecycle only; scene selection, reset, cadence, fixed stepping and timing remain shared"
+  },
+  "surface": {
+    "domains": ["RIGID_BODY", "FLUID", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE"],
+    "advertised_interaction_modes": ["ATTACHMENT", "CONTACT", "CONTAINMENT", "DRAG", "PHASE", "PRESSURE", "THERMAL", "VISCOSITY"],
+    "interaction_capabilities": 49,
+    "public_cases": 30,
+    "kernel_groups": 32,
+    "canonical_modules": 26,
+    "canonical_entries": 225,
+    "runtime_variants": ["cpu-runtime", "cuda-runtime", "vulkan-runtime", "d3d12-runtime", "metal-runtime"],
+    "physical_target_rows": 8,
+    "capability_reductions": 0
+  },
+  "auxiliary_features": [
+    "paint/contact stamping",
+    "public query/export",
+    "debug capture and diagnostics",
+    "asynchronous submission and recovery",
+    "shared Gallery frame cadence, interpolation and timing"
+  ],
+  "negative_findings": {
+    "selectable_legacy_runtime": false,
+    "blanket_domain_or_interaction_rejection": false,
+    "private_test_only_required_path": false,
+    "runtime_derived_work_budget": false,
+    "compile_only_qualification": false,
+    "missing_apple_device_run": false
+  },
+  "verification": [
+    "python3 tools/check_realtime_candidate.py",
+    "python3 tests/solver/check_slang_architecture.py",
+    "python3 -m unittest tests.roadmap.test_f8_36_candidate_freeze",
+    "shared Gallery session contract tests in the F8-56 all-platform CI run",
+    "installed API 0.3 C/C++ consumer preflight recorded separately in F8-52-INSTALLED-PREFLIGHT.json"
+  ]
+}

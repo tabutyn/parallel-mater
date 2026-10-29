@@ -150,13 +150,13 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-21](roadmap/tasks/F8-21.json) | Add measured dispatch, GPU phase and synchronization budgets | done | F8-01, F8-02, F8-20 | — |
 | [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | done | F8-01, F8-03, F8-20, F8-21 | — |
 | [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | done | F8-22, F8-36, F8-38 | — |
-| [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
-| [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
-| [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
-| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | waiting on dependencies | F8-22, F8-36, F8-38, P1-59, F8-52 | — |
-| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
-| [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
-| [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | waiting on dependencies | F8-02, F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | ready | F8-22, F8-36, F8-38, P1-59, F8-52 | — |
+| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | ready | F8-02, F8-22, F8-36, F8-38, F8-52 | — |
 | [F8-31](roadmap/tasks/F8-31.json) | Ship and document the qualified single-path SDK and Gallery | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-51, F8-52, F8-53, F8-56 | — |
 | [F8-32](roadmap/tasks/F8-32.json) | Expose the real-time profile through the registry and SDK | done | F8-00 | — |
 | [F8-33](roadmap/tasks/F8-33.json) | Integrate the shared spatial epoch into production runtime | done | F8-22 | — |
@@ -178,8 +178,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-49](roadmap/tasks/F8-49.json) | Integrate paint, capture and public outputs with the common tick | done | F8-48 | — |
 | [F8-50](roadmap/tasks/F8-50.json) | Make the fixed-tick runtime the sole public execution path | done | F8-49 | — |
 | [F8-51](roadmap/tasks/F8-51.json) | Make shared Gallery use the sole fixed-tick architecture | done | F8-50 | — |
-| [F8-52](roadmap/tasks/F8-52.json) | Freeze the complete single-path SDK and Gallery candidate | leased | F8-51, F8-54, F8-55, F8-56 | codex-f8-candidate-freeze / Thomass-MacBook-Air / 2026-10-29T23:52:24Z |
-| [F8-53](roadmap/tasks/F8-53.json) | Requalify CPU and public contracts on the sole-path candidate | waiting on dependencies | F8-23, F8-52 | — |
+| [F8-52](roadmap/tasks/F8-52.json) | Freeze the complete single-path SDK and Gallery candidate | done | F8-51, F8-54, F8-55, F8-56 | — |
+| [F8-53](roadmap/tasks/F8-53.json) | Requalify CPU and public contracts on the sole-path candidate | ready | F8-23, F8-52 | — |
 | [F8-54](roadmap/tasks/F8-54.json) | Batch Metal rigid solver dispatches | done | F8-34, F8-45 | — |
 | [F8-55](roadmap/tasks/F8-55.json) | Use shared BVH candidates and batch coupling work | done | F8-45, F8-46, F8-47 | — |
 | [F8-56](roadmap/tasks/F8-56.json) | Verify Gallery dispatch reductions on Mac and iPad | done | F8-51, F8-54, F8-55, F8-57 | — |

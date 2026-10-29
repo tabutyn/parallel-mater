@@ -192,7 +192,7 @@ def main():
         observations = output / "realtime-observations"
         observations.mkdir()
         candidate_path = (
-            root / "conformance/v1/qualification/realtime-candidate-v3.json")
+            root / "conformance/v1/qualification/realtime-candidate-v4.json")
         candidate_bytes = candidate_path.read_bytes()
         candidate = json.loads(candidate_bytes)
         installed_cpu_manifest = (

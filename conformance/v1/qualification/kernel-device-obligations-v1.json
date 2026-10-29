@@ -4,13 +4,13 @@
   "task": "F8-01",
   "title": "F8 shared-kernel and physical-device obligations",
   "policy": {
-    "profile": "F8 single-step 60 Hz",
+    "profile": "F8 sole fixed-tick 60 Hz execution contract",
     "canonical_kernel_source": "cmake/SlangKernelManifest.cmake",
     "capability_source": "conformance/v1/qualification/capability-obligations-v1.json",
     "spatial_design_source": "docs/roadmap/F8-05-SHARED-SPATIAL-INDEX.md",
-    "qualification_rule": "Compilation is not execution. Legacy-profile evidence is registration history only. Every runtime row remains not-qualified until the exact F8-22 candidate executes its F8 test contract on the named physical tuple.",
+    "qualification_rule": "Compilation is not execution. Historical candidate and legacy-profile evidence remain registration history only. Every runtime row remains not-qualified until the exact F8-52 candidate executes its F8 test contract on the named physical tuple.",
     "unsupported_rule": "Unavailable hardware, an unsupported mode, a skipped test, or a compile-only artifact never becomes passing coverage.",
-    "mode_rule": "This inventory maps only modes already advertised by API 0.2; it does not add a capability."
+    "mode_rule": "This inventory maps only modes retained by the sole-path API 0.3 contract; it does not add or remove a capability."
   },
   "advertised_modes": [
     "ATTACHMENT",
@@ -684,10 +684,10 @@
     },
     {
       "id": "d3d12-runtime",
-      "kind": "runtime-with-current-stubs",
+      "kind": "runtime",
       "build_source": "cmake/SlangKernelManifest.cmake::parallel_mater_compile_slang_dxil",
       "artifacts": ["DXIL and reflection per canonical entrypoint", "embedded reflection-derived dispatch library"],
-      "canonical_coverage": "all-compiled; runtime parity pending P1-59",
+      "canonical_coverage": "all",
       "driver": "slang-d3d12",
       "applicable_targets": ["windows-gtx1080-slang-d3d12"],
       "existing_execution_test": "parallel-mater-conformance --case all (only advertised/runtime-bound scopes count)",
@@ -726,7 +726,7 @@
       "existing_execution_test": "parallel-mater-conformance --case all (unsupported domains remain unsupported)",
       "f8_execution_test": "f8-kernel-entrypoint-execution/cpu",
       "test_contract_owner": "F8-03",
-      "qualification_owners": ["F8-23"]
+      "qualification_owners": ["F8-53"]
     },
     {
       "id": "cuda-source-mirror",
@@ -810,10 +810,10 @@
       "toolchain": "Legacy evidence: MSVC 19.44.35228.0, Slang 2026.18, DXC 1.9.0.5399 (a107ba613); current inventory host: CMake 4.4.2",
       "availability": "available-on-inventory-host-2026-10-21; adapter presence only, not an F8 run",
       "legacy_evidence": ["conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json"],
-      "current_exclusions": ["P1-59 owns rope, soft-body, smoke, paint, and coupling runtime parity", "Compiled DXIL is not proof that a formerly stubbed schedule executes", "No F8 profile/candidate execution"],
+      "current_exclusions": ["P1-59 runtime parity is merged, but compiled DXIL is not final-candidate physical execution", "No F8-52 candidate execution"],
       "f8_execution_test": "f8-kernel-entrypoint-execution/d3d12",
       "qualification_owner": "F8-27",
-      "qualification_status": "blocked-by-P1-59-and-F8-22"
+      "qualification_status": "not-run"
     },
     {
       "id": "linux-thomas-laptop-slang-cpu",
@@ -827,9 +827,9 @@
       "toolchain": "Legacy evidence: GCC 12.2.0, Slang 2026.18",
       "availability": "registered-from-legacy-evidence; current access unverified",
       "legacy_evidence": ["docs/roadmap/evidence/F5-16-linux-driver-evidence.json", "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-evidence.json"],
-      "current_exclusions": ["Only rigid contact/attachment are advertised in legacy evidence", "Experimental liquids are optional and do not imply GPU-mode support", "No F8 profile/candidate execution"],
+      "current_exclusions": ["F8-23 qualifies only the superseded interim candidate", "The CPU subset does not imply unadvertised GPU-mode support", "No F8-52 candidate execution"],
       "f8_execution_test": "f8-kernel-entrypoint-execution/cpu",
-      "qualification_owner": "F8-23",
+      "qualification_owner": "F8-53",
       "qualification_status": "not-run"
     },
     {
@@ -912,19 +912,19 @@
       "toolchain": "Legacy evidence: Android Clang 21.0.0 (r563880c), NDK 29.0.14206865, Slang 2026.18",
       "availability": "registered-from-legacy-evidence; current connected-device access unverified",
       "legacy_evidence": ["docs/roadmap/evidence/F5-15-android-vulkan.json", "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json"],
-      "current_exclusions": ["F8-02 must verify build/install/run provenance", "Legacy APK and results are not an F8 candidate", "No F8 profile/candidate execution"],
+      "current_exclusions": ["F8-02 provenance work is merged, but legacy APK and results are not the F8-52 candidate", "No F8-52 candidate execution"],
       "f8_execution_test": "f8-kernel-entrypoint-execution/vulkan",
       "qualification_owner": "F8-30",
-      "qualification_status": "blocked-by-F8-02-and-F8-22"
+      "qualification_status": "not-run"
     }
   ],
   "device_registration_audit": {
     "basis": ["docs/roadmap/evidence/F5-99-exit-review.json", "conformance/v1/evidence/index-v1.json"],
     "registered_host_count": 5,
     "registered_backend_tuple_count": 8,
-    "covered_qualification_cards": ["F8-23", "F8-24", "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30"],
+    "covered_qualification_cards": ["F8-24", "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30", "F8-53"],
     "additional_device_cards_added": [],
-    "conclusion": "No additional durable physical device/backend tuple exists beyond the eight rows above. If one is discovered, add a bounded leaf that depends on F8-22 and add that leaf to F8-99; never make F8-22 depend on qualification."
+    "conclusion": "No additional durable physical device/backend tuple exists beyond the eight rows above. If one is discovered, add a bounded leaf that depends on F8-52 and add that leaf to F8-99; never make F8-52 depend on qualification."
   },
   "handoffs": [
     {
@@ -935,15 +935,15 @@
     },
     {
       "task": "P1-59",
-      "state_at_inventory": "leased by codex-windows-d3d12-parity on windows-gtx1080 through 2026-10-22T13:38:46Z",
-      "boundary": "P1-59 alone owns D3D12 common-domain parity. F8-01 inventories compiled DXIL and the gap; F8-27 depends on P1-59 and must not duplicate or preempt it.",
+      "state_at_inventory": "done",
+      "boundary": "P1-59 completed D3D12 common-domain parity. F8-27 now owns exact F8-52 candidate execution and qualification on the registered Windows D3D12 tuple, not additional parity implementation.",
       "f8_owners": ["F8-27"]
     },
     {
       "task": "F5-99",
       "state_at_inventory": "done",
-      "boundary": "Its 47-report legacy index records 1/336 qualified capability occurrences and 990 known failures. Preserve it as legacy-profile registration evidence only; new F8 equations require a frozen F8-22 candidate and new device runs.",
-      "f8_owners": ["F8-22", "F8-23", "F8-24", "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30", "F8-99"]
+      "boundary": "Its 47-report legacy index records 1/336 qualified capability occurrences and 990 known failures. Preserve it as legacy-profile registration evidence only; final F8 release requires the frozen F8-52 candidate and new device runs.",
+      "f8_owners": ["F8-23", "F8-24", "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30", "F8-52", "F8-53", "F8-99"]
     }
   ]
 }
