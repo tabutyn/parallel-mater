@@ -1,7 +1,7 @@
 {
   "id": "F8-24",
   "title": "Qualify the candidate on Linux CUDA devices",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -24,14 +24,22 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
   "evidence": [],
-  "lease": {
-    "token": "0304dddb-28d7-495a-9bf4-e25913b0c057",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-24/ThomasLaptop",
-    "claimed_at": "2026-10-29T17:13:39Z",
-    "heartbeat_at": "2026-10-29T17:13:39Z",
-    "expires_at": "2026-10-30T17:13:39Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "0304dddb-28d7-495a-9bf4-e25913b0c057",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-24/ThomasLaptop",
+        "claimed_at": "2026-10-29T17:13:39Z",
+        "heartbeat_at": "2026-10-29T17:13:39Z",
+        "expires_at": "2026-10-30T17:13:39Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-29T17:25:58Z",
+      "reason": "Candidate v5 fails the required physical Linux CUDA suite: 127/130 pass; device-profile multi-wall stability, dump-truck 100-degree reach, and Gallery headless layer discovery fail reproducibly. Preserve evidence on work/F8-24/ThomasLaptop commit ad7afc7; add bounded repair/refreeze leaves before requalification.",
+      "evidence": []
+    }
+  ]
 }
