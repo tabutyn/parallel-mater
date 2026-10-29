@@ -1,0 +1,140 @@
+{
+  "schema": "parallel-mater-f8-capability-case-reconciliation/v1",
+  "task": "F8-60",
+  "status": "passed",
+  "source_revision": "f623bf003a4afc2aa19fbc009392232fce7a507c",
+  "branch": "work/F8-60/Thomass-MacBook-Air",
+  "contract": {
+    "capability_rows": 49,
+    "public_cases": 30,
+    "affected_capabilities": [
+      "fluid-fluid contact",
+      "fluid-fluid pressure",
+      "fluid-fluid viscosity",
+      "rope self contact"
+    ],
+    "affected_public_cases": [
+      "cloth-tear",
+      "soft-body-cloth"
+    ],
+    "implementation": "The production drivers compile the same shared Slang equations. This task adds no backend-specific physics equation or alternate schedule.",
+    "schedule": "The sole public fixed 60 Hz schedule and its fixed work budgets and quality tolerances are unchanged."
+  },
+  "physical_metal": {
+    "machine": "Thomass-MacBook-Air",
+    "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "driver_version": 202618,
+    "host_compiler": "Apple LLVM 21.0.0 (clang-2100.1.1.101)",
+    "provenance_source_revision": "f623bf003a4afc2aa19fbc009392232fce7a507c",
+    "enumeration": {
+      "capability_rows": 49,
+      "public_cases": 30,
+      "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5",
+      "case_registry_sha256": "1d7836176f7074a70c34594ac7be6d55f718516ba74d31d64b02412b42138e10",
+      "provenance_sha256": "625bec19d37be0813536ff34ea3389a00fff253e11a27360d7ce32e4a54cea5d"
+    },
+    "public_case_execution": {
+      "completed": 30,
+      "unsupported": 0,
+      "failed": 0,
+      "artifact_manifest_sha256": "d7d29007c64640d8cdb8df3bbe150faddb571cebcb6068b428a51b1464fcd289"
+    },
+    "equal_fluid_quality": {
+      "profile": "core-conservation-stability-v2",
+      "samples": 6,
+      "failures": 0,
+      "result_sha256": "d825eaa672fa5bc176fdc3be4eaff73dc84550ddaff57d397b3a6cd13ae11c02",
+      "report_sha256": "11d57ee852bce7eb302126fdef8cb5646d9b3d1a7c888aaa1ef86278e3d2cc45"
+    },
+    "rope_self_quality": {
+      "profile": "rope-self-contact-v3",
+      "samples": 9,
+      "failures": 0,
+      "result_sha256": "8d3392cc2c2d2b4cc500a536ba052a56e03ba89bacffc98d265700f936d4d886",
+      "report_sha256": "98be2b80639a4d4670977047aa839337d6f047239b170cc25457be95a1741289"
+    },
+    "full_suite": {
+      "passed": 150,
+      "failed": 0,
+      "f8_labeled": 20,
+      "result": "PASS"
+    }
+  },
+  "physical_cuda_reference": {
+    "machine": "ThomasLaptop",
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "driver_version": 13010,
+    "host_compiler": "12.2.0",
+    "provenance_source_revision": "f623bf003a4afc2aa19fbc009392232fce7a507c",
+    "enumeration": {
+      "capability_rows": 49,
+      "public_cases": 30,
+      "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5",
+      "case_registry_sha256": "1d7836176f7074a70c34594ac7be6d55f718516ba74d31d64b02412b42138e10",
+      "provenance_sha256": "cacfbb0fce1624a83afeda3e9bfb7fd2b7d8e396c7ec83e1011836221cff9cab"
+    },
+    "public_case_execution": {
+      "completed": 30,
+      "unsupported": 0,
+      "failed": 0,
+      "artifact_manifest_sha256": "d90c55fba553832582c8f1efeefbe379d19d471c6481950e8776d2af2a2b5ffa"
+    },
+    "equal_fluid_quality": {
+      "profile": "core-conservation-stability-v2",
+      "samples": 6,
+      "failures": 0,
+      "result_sha256": "e76bfd13c8000d958624e559ca7c16250cbeb54cacfdf5c68ff4470434f14193",
+      "report_sha256": "fa7760c486c5eed2aa6ef3169770fe544dafc6cae22e059dc6bd26dfeb4b59a5"
+    },
+    "rope_self_quality": {
+      "profile": "rope-self-contact-v3",
+      "samples": 9,
+      "failures": 0,
+      "result_sha256": "357aa6caf9ebdb7d9a643d50c05e85ccd327d3c436155d6b8816977deccbd1b0",
+      "report_sha256": "b3a0e1078b9a00325592e175c6ef6b23f7fdf1cb0e75ecbc3b2af570c4d27996"
+    },
+    "full_suite": {
+      "passed": 115,
+      "failed": 0,
+      "cuda_labeled": 37,
+      "f8_labeled": 32,
+      "result": "PASS"
+    }
+  },
+  "lifecycle_and_negative_coverage": {
+    "metal": [
+      "parallel-mater-metal-fluid-pair-graph-lifecycle-tests",
+      "parallel-mater-metal-interaction-graph-lifecycle-tests",
+      "parallel-mater-metal-graph-validation-tests",
+      "parallel-mater-metal-fluid-self-contact-quality-tests",
+      "parallel-mater-metal-fluid-self-pressure-quality-tests",
+      "parallel-mater-metal-fluid-self-viscosity-quality-tests"
+    ],
+    "cuda": [
+      "parallel-mater-cuda-fluid-pair-graph-lifecycle-tests",
+      "parallel-mater-cuda-interaction-graph-lifecycle-tests",
+      "parallel-mater-cuda-graph-validation-tests",
+      "parallel-mater-cuda-fluid-self-contact-quality-tests",
+      "parallel-mater-cuda-fluid-self-pressure-quality-tests",
+      "parallel-mater-cuda-fluid-self-viscosity-quality-tests"
+    ],
+    "result": "PASS"
+  },
+  "regressions_fixed_during_qualification": [
+    "The shared deformable collision shader now checks optional dynamic_contact_flag presence before its atomic exchange; CUDA memcheck identified the absent optional buffer in rope dynamic-rigid contact.",
+    "Direct CUDA kernel fixtures now pass the fixed-tick fracture and rope self-contact arguments used by the production kernels.",
+    "The command API fixture releases a completed command buffer reference before destroying an imported buffer and uses materials inside the sole fixed-tick envelope."
+  ],
+  "commands": [
+    "ctest --test-dir build-macos-metal-preview -j4 --output-on-failure",
+    "ctest --test-dir build-cuda-412 -j4 --output-on-failure",
+    "PM_DRIVER_FILES=<driver-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 parallel-mater-conformance --root . --case all --output <case-directory>",
+    "PM_DRIVER_FILES=<driver-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 parallel-mater-conformance --root . --quality core-conservation-v2 --output <quality-directory>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/core-conservation-v2.json --actual <quality-result> --report <quality-report>",
+    "PM_DRIVER_FILES=<driver-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 parallel-mater-conformance --root . --quality rope-self-contact-v3 --output <quality-directory>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/rope-self-contact-v3.json --actual <quality-result> --report <quality-report>"
+  ],
+  "closure": "The repaired 49-row capability surface and 30-case registry agree on physical Metal and CUDA. Candidate protection and refreeze remain owned by F8-61."
+}
