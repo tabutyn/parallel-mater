@@ -40,6 +40,11 @@ void check_cluster_payload(SceneDefinition &scene, unsigned requested) {
     check(scene.rigid_bodies.size() == requested+11 && dump_payload_count(scene) == requested,
           "P must replace the exact payload count without deleting the truck");
     check(scene.meshes.size() == mesh_count, "count edits must share the exported template mesh");
+    check(std::count_if(scene.meshes.begin(), scene.meshes.end(),
+              [](const auto &mesh) {
+                  return mesh.name.ends_with("-sloped-liner");
+              }) == 1,
+          "count edits must retain one idempotent sloped bucket liner");
     Vec3 minimum{1e9F,1e9F,1e9F}, maximum{-1e9F,-1e9F,-1e9F};
     std::vector<Vec3> positions;
     for (const auto &body : scene.rigid_bodies) {
@@ -124,9 +129,11 @@ int main(int argc, char **argv) try {
     DumpTruckBed bed;
     check(bed.initialize(scene), "initialize dump lift");
 
+    unsigned total_frames{};
     const auto step = [&](unsigned frames) {
         for (unsigned index = 0; index < frames; ++index) {
-            check(bed.advance(simulation, scene, instance, 1.0F / 60.0F,
+            check(bed.advance(simulation, scene, instance, frame,
+                              1.0F / 60.0F,
                               error),
                   error.c_str());
             check(simulation.step(1.0F / 60.0F, 1U,
@@ -134,13 +141,32 @@ int main(int argc, char **argv) try {
                   error.c_str());
             const auto truck = rigid_state(frame.rigid_states[chassis]);
             const auto load = rigid_state(frame.rigid_states[bucket]);
-            check(std::isfinite(length(truck.position)) &&
+            ++total_frames;
+            const bool bounded = std::isfinite(length(truck.position)) &&
                       std::isfinite(length(load.position)) &&
                       length(truck.linear_velocity) < 50.0F &&
-                      length(load.linear_velocity) < 50.0F,
-                  "truck and bucket must stay finite and bounded");
-            check(rotate(truck.orientation, {0.0F, 1.0F, 0.0F}).y > 0.8F,
-                  "truck must remain on its wheels");
+                      length(load.linear_velocity) < 50.0F;
+            if (!bounded)
+                std::cerr << "dump-truck unbounded frame=" << total_frames
+                          << " target-degrees="
+                          << bed.angle() * 180.0F / 3.14159265358979323846F
+                          << " truck-position=(" << truck.position.x << ','
+                          << truck.position.y << ',' << truck.position.z
+                          << ") truck-speed=" << length(truck.linear_velocity)
+                          << " bucket-position=(" << load.position.x << ','
+                          << load.position.y << ',' << load.position.z
+                          << ") bucket-speed=" << length(load.linear_velocity)
+                          << '\n';
+            check(bounded, "truck and bucket must stay finite and bounded");
+            const auto truck_up = rotate(
+                truck.orientation, {0.0F, 1.0F, 0.0F});
+            if (truck_up.y <= 0.8F)
+                std::cerr << "dump-truck tipped frame=" << total_frames
+                          << " target-degrees="
+                          << bed.angle() * 180.0F / 3.14159265358979323846F
+                          << " up=(" << truck_up.x << ',' << truck_up.y
+                          << ',' << truck_up.z << ")\n";
+            check(truck_up.y > 0.8F, "truck must remain on its wheels");
         }
     };
     step(1U);
@@ -205,12 +231,54 @@ int main(int argc, char **argv) try {
     step(480U);
     const float degrees =
         bucket_angle() * 180.0F / 3.14159265358979323846F;
+    if (std::fabs(degrees - 100.0F) >= 1.0F)
+        std::cerr << "dump-truck physical bucket angle=" << degrees
+                  << " commanded="
+                  << bed.angle() * 180.0F / 3.14159265358979323846F
+                  << '\n';
     check(std::fabs(degrees - 100.0F) < 1.0F,
           "bucket must physically reach 100 degrees relative to chassis");
-    check(inside_count() == 0U,
+    const unsigned remaining = inside_count();
+    if (remaining != 0U) {
+        Vec3 minimum{1e9F,1e9F,1e9F}, maximum{-1e9F,-1e9F,-1e9F};
+        float maximum_speed{};
+        const auto box = state(bucket);
+        for (std::size_t index = 0; index < scene.rigid_bodies.size(); ++index) {
+            if (scene.rigid_bodies[index].source_name != "DumpPayload")
+                continue;
+            const auto payload = state(index);
+            const auto local = rotate(conjugate(box.orientation),
+                                      subtract(payload.position, box.position));
+            minimum = {std::min(minimum.x, local.x),
+                       std::min(minimum.y, local.y),
+                       std::min(minimum.z, local.z)};
+            maximum = {std::max(maximum.x, local.x),
+                       std::max(maximum.y, local.y),
+                       std::max(maximum.z, local.z)};
+            maximum_speed = std::max(maximum_speed,
+                                     length(payload.linear_velocity));
+        }
+        const auto local_gravity = rotate(conjugate(box.orientation),
+                                          {0.0F, -9.81F, 0.0F});
+        std::cerr << "dump-truck payload remaining=" << remaining
+                  << " physical bucket angle=" << degrees
+                  << " local-bounds=(" << minimum.x << ',' << minimum.y
+                  << ',' << minimum.z << ")..(" << maximum.x << ','
+                  << maximum.y << ',' << maximum.z << ") local-gravity=("
+                  << local_gravity.x << ',' << local_gravity.y << ','
+                  << local_gravity.z << ") max-speed=" << maximum_speed
+                  << '\n';
+    }
+    check(remaining == 0U,
           "100-degree tip must empty the complete payload through the open top");
     bed.toggle();
     step(240U);
+    if (!(bucket_angle() < 0.02F && bed.angle() == 0.0F))
+        std::cerr << "dump-truck return angle="
+                  << bucket_angle() * 180.0F / 3.14159265358979323846F
+                  << " target="
+                  << bed.angle() * 180.0F / 3.14159265358979323846F
+                  << '\n';
     check(bucket_angle() < 0.02F && bed.angle() == 0.0F,
           "second Space must return bucket upright without resetting the truck");
     std::cout << "Dump truck command-API drive and unload passed\n";

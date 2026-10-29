@@ -353,7 +353,7 @@ bool GalleryRuntime::controlled_step(const GalleryControlInput &source,
 
     if (entry.primary_action == GalleryPrimaryAction::toggle_dump_bed &&
         !dump_bed.advance(simulation, scene, instance,
-                          options.timestep, error)) return false;
+                          frame, options.timestep, error)) return false;
 
     if (entry.moves_kinematic &&
         kinematic_index < instance.rigid_bodies.size()) {
