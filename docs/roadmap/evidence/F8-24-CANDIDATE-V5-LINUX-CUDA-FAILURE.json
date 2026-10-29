@@ -1,0 +1,99 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification-failure/v1",
+  "status": "failed-required-suite",
+  "captured_at": "2026-10-29T17:25:09Z",
+  "task": "F8-24",
+  "candidate": {
+    "id": "realtime-single-step-v1-cfb104b",
+    "source_revision": "cfb104b1c530f859d9a1c3549d2e67c7de31c289",
+    "source_tree": "e6838f954384363e79a4485f3c2cfb6ff5e0ea79",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v5.json",
+    "manifest_sha256": "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000",
+    "target": "linux-rtx3050ti-slang-cuda",
+    "runtime_variant": "cuda-runtime"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01"
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "cuda": "13.1.80",
+    "cuda_architectures": "86",
+    "slang": "2026.18"
+  },
+  "artifacts": {
+    "driver_sha256": "086701d22190c8ceee8f8f5a0123b73d4cf80142f1a13de8cef4bfafa9e351ce",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "gallery_sha256": "8fb9646d0a752f28517cfe02689b921f0261970b0c3cd5bb86f1011f76af392c",
+    "device_profile_test_sha256": "c575715402cbc96a3cf77e7591183c47c716d83b1a759f816a02b4cdfd61601c",
+    "dump_truck_test_sha256": "471b96636937d84b60aa3c2181a137714c7f252deb4a4d6d5067a246a9a9d3ab"
+  },
+  "commands": {
+    "configure": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake -S . -B /tmp/parallel-mater-f8-24-build-412 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_INSTALL_PREFIX=/tmp/parallel-mater-f8-24-install -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON -DPARALLEL_MATER_SLANGC_EXECUTABLE=/home/thomas/Repos/ballroller-2026/parallel-mater/build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc",
+    "build": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --build /tmp/parallel-mater-f8-24-build-412 -j4",
+    "test": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/ctest --test-dir /tmp/parallel-mater-f8-24-build-412 -j1 --output-on-failure",
+    "install": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --install /tmp/parallel-mater-f8-24-build-412"
+  },
+  "results": {
+    "configure": "passed",
+    "build": "passed: 685/685 targets",
+    "install": "passed",
+    "physical_ctest": {
+      "status": "failed",
+      "passed": 127,
+      "failed": 3,
+      "skipped": 0,
+      "total": 130,
+      "elapsed_seconds": 70.18
+    },
+    "passing_cuda_tail": [
+      "CUDA solver tests 93-108",
+      "CUDA lifecycle and contract tests 110-121",
+      "CUDA realtime profile reference test 122",
+      "CUDA host concurrency and descriptor snapshot tests 123-124",
+      "CUDA quality, teardown and recovery tests 125-130"
+    ]
+  },
+  "failures": [
+    {
+      "test": "parallel-mater-device-profile-tests",
+      "labels": [
+        "api",
+        "cuda",
+        "gallery"
+      ],
+      "observation": "generated multi-wall support must remain stable at rest",
+      "reproduced_individually": true
+    },
+    {
+      "test": "parallel-mater-dump-truck-tests",
+      "labels": [
+        "api",
+        "cuda",
+        "gallery"
+      ],
+      "observation": "bucket must physically reach 100 degrees relative to chassis",
+      "reproduced_individually": true
+    },
+    {
+      "test": "parallel-mater-gallery-frame-timing-headless",
+      "labels": [
+        "gallery",
+        "runtime",
+        "timing"
+      ],
+      "observation": "Gallery failed: create Parallel Mater instance: layer not present",
+      "environment_observation": "Unlike the physical CUDA Gallery tests, this CTest registration supplied neither PM_DRIVER_FILES nor PM_LAYER_FILES.",
+      "reproduced_individually": true
+    }
+  ],
+  "qualification_effect": "F8-24 remains incomplete. Candidate v5 cannot pass its required full Linux CUDA suite and must be repaired and refrozen before this physical row is requalified. The passing observations above cannot be unioned with evidence from a replacement candidate. Device-suite scenario capture and performance qualification were not promoted after the required suite failed."
+}
