@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate one physical device against the frozen F8 fixed-tick suite.
 
-This file is deliberately outside the frozen public-oracle closure.  It connects
+This validator is part of the frozen public-oracle closure.  It connects
 device-produced observations to that closure without changing the candidate,
 physics, limits, or historical variable-timestep profiles.
 """
