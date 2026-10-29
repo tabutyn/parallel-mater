@@ -1,7 +1,7 @@
 {
   "id": "F8-59",
   "title": "Define executable public fixed-tick scenario fixtures",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-52",
     "F8-58"
@@ -21,6 +21,14 @@
     "Portable tests run the fixture definitions on the CPU reference path and prove that CUDA, Vulkan, D3D12 and Metal device runners consume the same definitions. Any protected oracle change is reported for F8-61 rather than treated as the existing candidate."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "021cd167-4be7-4503-9062-489f5654666d",
+    "owner": "codex-f8-public-scenarios",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-59/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-29T01:39:57Z",
+    "heartbeat_at": "2026-10-29T01:39:57Z",
+    "expires_at": "2026-10-30T01:39:57Z"
+  },
   "history": []
 }
