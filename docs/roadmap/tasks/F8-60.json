@@ -1,7 +1,7 @@
 {
   "id": "F8-60",
   "title": "Reconcile the final capability and public-case matrix",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-52",
     "F8-58"
@@ -21,6 +21,14 @@
     "Portable tests and physical Metal artifacts prove the repaired 49-row and 30-case matrix without changing fixed work budgets, quality tolerances or the sole public schedule; all protected closure changes are handed to F8-61."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "ff5bea73-1bb6-4d61-9393-487c99b2fff6",
+    "owner": "codex-f8-capability-repair",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-60/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-29T02:45:03Z",
+    "heartbeat_at": "2026-10-29T02:45:03Z",
+    "expires_at": "2026-10-30T02:45:03Z"
+  },
   "history": []
 }
