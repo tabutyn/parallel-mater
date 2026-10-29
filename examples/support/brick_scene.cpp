@@ -52,10 +52,31 @@ TriangleMesh scaled_mesh(const TriangleMesh &source, float scale,
     return result;
 }
 
+TriangleMesh box_collision_mesh(const Bounds &bounds, std::string name) {
+    TriangleMesh result;
+    result.name = std::move(name);
+    result.visible = false;
+    for (const Vec3 position : {
+             Vec3{bounds.minimum.x, bounds.minimum.y, bounds.minimum.z},
+             Vec3{bounds.maximum.x, bounds.minimum.y, bounds.minimum.z},
+             Vec3{bounds.maximum.x, bounds.maximum.y, bounds.minimum.z},
+             Vec3{bounds.minimum.x, bounds.maximum.y, bounds.minimum.z},
+             Vec3{bounds.minimum.x, bounds.minimum.y, bounds.maximum.z},
+             Vec3{bounds.maximum.x, bounds.minimum.y, bounds.maximum.z},
+             Vec3{bounds.maximum.x, bounds.maximum.y, bounds.maximum.z},
+             Vec3{bounds.minimum.x, bounds.maximum.y, bounds.maximum.z}})
+        result.vertices.push_back({position});
+    result.indices = {
+        0U, 2U, 1U, 0U, 3U, 2U, 4U, 5U, 6U, 4U, 6U, 7U,
+        0U, 1U, 5U, 0U, 5U, 4U, 3U, 7U, 6U, 3U, 6U, 2U,
+        0U, 4U, 7U, 0U, 7U, 3U, 1U, 2U, 6U, 1U, 6U, 5U};
+    return result;
+}
+
 std::uint32_t columns_for(std::uint32_t count) {
-    // Brick aspect is 2:1. This produces a physical wall near 4:3.
     return std::max(1U, static_cast<std::uint32_t>(
-        std::ceil(std::sqrt(static_cast<double>(count) * 2.0 / 3.0))));
+        std::ceil((std::sqrt(8.0 * static_cast<double>(count) + 1.0) -
+                   1.0) * 0.5)));
 }
 
 } // namespace
@@ -97,9 +118,14 @@ bool make_brick_scene(const SceneDefinition &authored,
         "ProceduralBrickB"));
 
     const Bounds brick_bounds = mesh_bounds(output.meshes[first_mesh]);
+    const std::uint32_t brick_collision =
+        static_cast<std::uint32_t>(output.collision_meshes.size());
+    output.collision_meshes.push_back(box_collision_mesh(
+        brick_bounds, "ProceduralBrickCollision"));
     const float width = extent(brick_bounds.minimum.x, brick_bounds.maximum.x);
     const float height = extent(brick_bounds.minimum.y, brick_bounds.maximum.y);
     const float depth = extent(brick_bounds.minimum.z, brick_bounds.maximum.z);
+    constexpr float rigid_rest_offset = 0.00102F;
 
     float ball_diameter = 2.0F;
     for (const auto &body : authored.rigid_bodies) {
@@ -125,28 +151,30 @@ bool make_brick_scene(const SceneDefinition &authored,
             (depth + ball_diameter);
         std::uint32_t placed = 0U;
         for (std::uint32_t row = 0U; placed < plane_count; ++row) {
-            // A full-width row alternates with a centered row one brick
-            // shorter. This supplies the half-brick bond without balancing an
-            // outer brick on exactly half of the brick below it.
-            const std::uint32_t capacity = row % 2U == 0U || columns == 1U
-                ? columns : columns - 1U;
+            const std::uint32_t capacity =
+                row < columns ? columns - row : 1U;
             const std::uint32_t row_count =
                 std::min(capacity, plane_count - placed);
-            const float row_width = static_cast<float>(row_count) * width;
+            const float horizontal_pitch = width + rigid_rest_offset;
+            const float row_width =
+                static_cast<float>(row_count) * horizontal_pitch;
             for (std::uint32_t column = 0U; column < row_count; ++column) {
                 RigidBodyDefinition brick = row % 2U == 0U ? *first : *second;
                 brick.name = "Brick_" + std::to_string(serial);
                 brick.source_name = row % 2U == 0U ? "Layer1" : "Layer2";
                 brick.mesh_indices = {row % 2U == 0U ? first_mesh : second_mesh};
-                brick.collision_mesh_indices.clear();
+                brick.collision_mesh_indices = {brick_collision};
                 brick.options.mass *= config.brick_scale * config.brick_scale *
                                       config.brick_scale;
                 brick.options.collision_margin *= config.brick_scale;
+                brick.options.friction = std::max(brick.options.friction, 1.0F);
                 brick.options.inertia_diagonal = {};
                 brick.options.initial_state.position = {
-                    -row_width * 0.5F + width * 0.5F +
-                        static_cast<float>(column) * width,
-                    height * 0.5F + static_cast<float>(row) * height,
+                    -row_width * 0.5F + horizontal_pitch * 0.5F +
+                        static_cast<float>(column) * horizontal_pitch,
+                    height * 0.5F + rigid_rest_offset +
+                        static_cast<float>(row) *
+                            (height + rigid_rest_offset),
                     wall_z};
                 wall_minimum_x = std::min(
                     wall_minimum_x, brick.options.initial_state.position.x - width * 0.5F);
@@ -208,10 +236,15 @@ bool make_brick_scene(const SceneDefinition &authored,
         }
         body.mesh_indices = {
             static_cast<std::uint32_t>(output.meshes.size())};
-        // The enlarged render triangles are also the collision surface. The
-        // authored floor may carry a private collision mesh with the original
-        // bounds, which would leave later walls unsupported.
-        body.collision_mesh_indices.clear();
+        // The exported ground is a zero-thickness render plane. A closed
+        // downward box keeps stacked procedural walls on the same visible
+        // surface without relying on one-sided plane contact under load.
+        Bounds collision_bounds = mesh_bounds(floor);
+        collision_bounds.minimum.y = collision_bounds.maximum.y - 1.0F;
+        body.collision_mesh_indices = {static_cast<std::uint32_t>(
+            output.collision_meshes.size())};
+        output.collision_meshes.push_back(box_collision_mesh(
+            collision_bounds, "ProceduralBrickFloorCollision"));
         output.meshes.push_back(std::move(floor));
         break;
     }

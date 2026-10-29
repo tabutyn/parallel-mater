@@ -1603,12 +1603,26 @@ if(BUILD_TESTING)
     if(TARGET parallel-mater-gallery AND
        (TARGET parallel-mater-driver-slang-cpu OR TARGET parallel-mater-driver-slang-cuda OR
         TARGET parallel-mater-driver-slang-metal))
+        if(TARGET parallel-mater-driver-slang-metal)
+            set(gallery_frame_timing_driver parallel-mater-driver-slang-metal)
+            set(gallery_frame_timing_manifest slang-metal.json)
+        elseif(TARGET parallel-mater-driver-slang-cuda)
+            set(gallery_frame_timing_driver parallel-mater-driver-slang-cuda)
+            set(gallery_frame_timing_manifest slang-cuda.json)
+        else()
+            set(gallery_frame_timing_driver parallel-mater-driver-slang-cpu)
+            set(gallery_frame_timing_manifest slang-cpu.json)
+        endif()
+        add_dependencies(parallel-mater-gallery
+            ${gallery_frame_timing_driver} parallel-mater-layer-validation)
         add_test(NAME parallel-mater-gallery-frame-timing-headless
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/frame_timing_headless.py"
                 $<TARGET_FILE:parallel-mater-gallery>)
         set_tests_properties(parallel-mater-gallery-frame-timing-headless PROPERTIES
-            LABELS "gallery;timing;runtime" TIMEOUT 180)
+            LABELS "gallery;timing;runtime" TIMEOUT 180
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${gallery_frame_timing_manifest};PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
     endif()
     add_executable(parallel-mater-camera-controller-tests
         tests/gallery/camera_controller_tests.cpp)

@@ -160,6 +160,10 @@ int main() {
         check(body.mesh_indices.size() == 1U &&
                   generated.meshes[body.mesh_indices.front()].indices.size() % 3U == 0U,
               "every generated brick must use triangle geometry");
+        check(body.collision_mesh_indices.size() == 1U &&
+                  generated.collision_meshes[
+                      body.collision_mesh_indices.front()].indices.size() == 36U,
+              "every generated brick must use a closed box collision proxy");
     }
     check(bricks == 7U && generated.rigid_bodies.size() == 9U,
           "generator must place exact count and retain ball and floor");
@@ -206,6 +210,15 @@ int main() {
     SceneDefinition physical_scene;
     check(make_brick_scene(authored, {24U, 1.0F, 2U}, physical_scene, error),
           error.empty() ? "generate physics regression scene" : error.c_str());
+    bool closed_floor = false;
+    for (const auto &body : physical_scene.rigid_bodies)
+        if (body.source_name == "Ground" || body.name == "Ground.001") {
+            closed_floor = body.collision_mesh_indices.size() == 1U &&
+                physical_scene.collision_meshes[
+                    body.collision_mesh_indices.front()].indices.size() == 36U;
+        }
+    check(closed_floor,
+          "procedural wall floor must use a closed collision proxy");
     CommandScene physical_simulation;
     CommandSceneInstance physical_instance;
     CommandSceneFrame physical_frame;
@@ -231,6 +244,8 @@ int main() {
             std::size_t ball = physical_scene.rigid_bodies.size();
             float quiet_maximum_displacement = 0.0F;
             float quiet_maximum_speed = 0.0F;
+            std::string quiet_body;
+            parallel_mater::Vec3 quiet_delta{};
             for (std::size_t index = 0U;
                  index < physical_frame.rigid_states.size(); ++index) {
                 const RigidBodyState state =
@@ -243,12 +258,19 @@ int main() {
                 const auto initial = definition.options.initial_state;
                 if (definition.source_name == "Layer1" ||
                     definition.source_name == "Layer2") {
-                    quiet_maximum_displacement = std::max(
-                        quiet_maximum_displacement,
-                        std::hypot(
+                    const parallel_mater::Vec3 delta{
+                        state.position.x - initial.position.x,
+                        state.position.y - initial.position.y,
+                        state.position.z - initial.position.z};
+                    const float displacement = std::hypot(
                             std::hypot(state.position.x - initial.position.x,
                                        state.position.y - initial.position.y),
-                            state.position.z - initial.position.z));
+                            state.position.z - initial.position.z);
+                    if (displacement > quiet_maximum_displacement) {
+                        quiet_maximum_displacement = displacement;
+                        quiet_body = definition.name;
+                        quiet_delta = delta;
+                    }
                     quiet_maximum_speed = std::max(
                         quiet_maximum_speed,
                         std::hypot(std::hypot(state.linear_velocity.x,
@@ -257,6 +279,14 @@ int main() {
                 }
                 if (definition.source_name == "Icosphere") ball = index;
             }
+            if (quiet_maximum_displacement >= 0.03F ||
+                quiet_maximum_speed >= 0.03F)
+                std::cerr << "generated multi-wall quiet displacement="
+                          << quiet_maximum_displacement << " speed="
+                          << quiet_maximum_speed << " body=" << quiet_body
+                          << " delta=(" << quiet_delta.x << ','
+                          << quiet_delta.y << ',' << quiet_delta.z
+                          << ") margin=" << authored_margin << '\n';
             check(quiet_maximum_displacement < 0.03F &&
                       quiet_maximum_speed < 0.03F,
                   "generated multi-wall support must remain stable at rest");
@@ -294,6 +324,9 @@ int main() {
                     state.position.z - body.options.initial_state.position.z) >
                     0.05F;
             }
+            if (displaced < 4U)
+                std::cerr << "generated wall impact displaced=" << displaced
+                          << " peak-speed=" << peak_speed << '\n';
             check(displaced >= 4U,
                   "ball impact must move bricks in the generated walls");
             check(std::isfinite(peak_speed) && peak_speed < 100.0F,
