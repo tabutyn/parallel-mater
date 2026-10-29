@@ -63,13 +63,15 @@ void project_rope_realtime_contacts(
     const void *contact_normals, const float *contact_offsets,
     const std::uint8_t *contact_active, std::uint32_t count,
     std::uint32_t capacity, float node_spacing, float radius,
-    float friction, float timestep, std::uint32_t profile_version,
+    bool self_collision, float friction, float timestep,
+    std::uint32_t profile_version,
     std::uint32_t *status) noexcept {
     (void)metal::launch(stream, "rope_realtime_project_contacts", grid,
         positions, previous_positions, inverse_masses, correction_used,
         anchor_active, contact_normals, contact_offsets, contact_active,
-        count, capacity, node_spacing, radius, friction, timestep,
-        profile_version, status);
+        count, capacity, node_spacing, radius,
+        std::uint32_t{self_collision}, friction, timestep, profile_version,
+        status);
 }
 
 void commit_rope_realtime(

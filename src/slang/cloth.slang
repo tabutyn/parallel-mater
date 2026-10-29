@@ -463,6 +463,40 @@ void cloth_realtime_project_contacts(
     correction_used[vertex] += vector_length(correction);
 }
 
+void cloth_evaluate_bond_break(
+    uint edgeIndex, PMBuffer<Vec3> positions, PMBuffer<ClothBond> bonds,
+    PMByteBuffer active, PMByteBuffer damage, uint count,
+    float break_strain, uint persistence,
+    PMBuffer<FluidBodyImpulse> contact_impulses, float impact_threshold)
+{
+    if (edgeIndex >= count || active[edgeIndex] == 0u) return;
+    ClothBond bond = bonds[edgeIndex];
+    if (impact_threshold > 0.0f && pmBufferPresent(contact_impulses) &&
+        vector_length(contact_impulses[bond.first].linear) +
+        vector_length(contact_impulses[bond.second].linear) > impact_threshold)
+    {
+        active[edgeIndex] = 0u;
+        damage[edgeIndex] = 0u;
+        return;
+    }
+    if (break_strain <= 0.0f) return;
+    float currentLength = vector_length(subtract(
+        positions[bond.first], positions[bond.second]));
+    if (!isfinite(currentLength) ||
+        currentLength <= bond.rest_length * (1.0f + break_strain))
+    {
+        damage[edgeIndex] = 0u;
+        return;
+    }
+    uint next = min(persistence, uint(damage[edgeIndex]) + 1u);
+    damage[edgeIndex] = PMResourceUint8(next);
+    if (next >= persistence)
+    {
+        active[edgeIndex] = 0u;
+        damage[edgeIndex] = 0u;
+    }
+}
+
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void cloth_realtime_commit(
@@ -474,6 +508,11 @@ void cloth_realtime_commit(
     uniform PMBuffer<Vec3> contact_normals,
     uniform PMBuffer<float> contact_offsets,
     uniform PMByteBuffer contact_active,
+    uniform PMBuffer<ClothBond> bonds, uniform PMByteBuffer bond_active,
+    uniform PMByteBuffer bond_damage, uniform uint bond_count,
+    uniform float break_strain, uniform uint fracture_persistence,
+    uniform PMBuffer<FluidBodyImpulse> contact_impulses,
+    uniform float impact_break_threshold,
     uniform uint count, uniform uint capacity, uniform float thickness,
     uniform float friction, uniform float maximum_speed,
     uniform float dt, uniform uint profile_version,
@@ -487,6 +526,9 @@ void cloth_realtime_commit(
             cloth_realtime_record_profile_invalid(profile_version, dt, status);
         return;
     }
+    cloth_evaluate_bond_break(vertex, positions, bonds, bond_active,
+        bond_damage, bond_count, break_strain, fracture_persistence,
+        contact_impulses, impact_break_threshold);
     if (vertex >= capacity || vertex >= count) return;
     if (inverse_masses[vertex] == 0.0f)
     {
@@ -639,32 +681,8 @@ void cloth_break_bonds(
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint edgeIndex = pmThreadIndex();
-    if (edgeIndex >= count || active[edgeIndex] == 0u) return;
-    ClothBond bond = bonds[edgeIndex];
-    if (impact_threshold > 0.0f && pmBufferPresent(contact_impulses) &&
-        vector_length(contact_impulses[bond.first].linear) +
-        vector_length(contact_impulses[bond.second].linear) > impact_threshold)
-    {
-        active[edgeIndex] = 0u;
-        damage[edgeIndex] = 0u;
-        return;
-    }
-    if (break_strain <= 0.0f) return;
-    float currentLength = vector_length(subtract(
-        positions[bond.first], positions[bond.second]));
-    if (!isfinite(currentLength) ||
-        currentLength <= bond.rest_length * (1.0f + break_strain))
-    {
-        damage[edgeIndex] = 0u;
-        return;
-    }
-    uint next = min(persistence, uint(damage[edgeIndex]) + 1u);
-    damage[edgeIndex] = PMResourceUint8(next);
-    if (next >= persistence)
-    {
-        active[edgeIndex] = 0u;
-        damage[edgeIndex] = 0u;
-    }
+    cloth_evaluate_bond_break(edgeIndex, positions, bonds, active, damage,
+        count, break_strain, persistence, contact_impulses, impact_threshold);
 }
 
 [shader("compute")]

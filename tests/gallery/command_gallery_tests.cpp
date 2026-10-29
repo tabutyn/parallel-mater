@@ -610,11 +610,6 @@ int main(int argc, char **argv) {
         const GalleryEntry &entry = gallery_entries[index];
         if (!selected_scene.empty() && selected_scene != entry.asset_file)
             continue;
-        if (!gallery_fixed_tick_supported(entry.context)) {
-            std::cout << entry.name
-                      << ": unavailable: fixed-tick cloth fracture is not implemented\n";
-            continue;
-        }
         SceneDefinition authored;
         if (!load_glb_scene(asset_root / entry.asset_file, authored, error)) {
             std::cerr << entry.name << ": load failed: " << error << '\n';

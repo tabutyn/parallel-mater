@@ -192,6 +192,53 @@ struct RopeAuditFixture {
     return fixture;
 }
 
+[[nodiscard]] RopeAuditFixture free_fixed_tick_audit_fixture() {
+    RopeAuditFixture fixture{};
+    fixture.rope = audit_rope(
+        "free-folded-four-node-fixed-tick",
+        {{0.0F, 0.0F, 0.0F},
+         {0.02F, 0.02F, 0.0F},
+         {0.10F, 0.08F, 0.0F},
+         {0.11F, 0.0F, 0.0F}},
+        0.101F, 0.06F, 0.4F, 1.0F / 60.0F, 0.5F, 3.0F, 8U);
+    fixture.step_count = 144U;
+    fixture.checkpoint_steps = {1U, 18U, 72U, 144U};
+    fixture.excluded_probe_pairs = {{{1U, 3U}}};
+    return fixture;
+}
+
+[[nodiscard]] RopeAuditFixture fixed_endpoint_fixed_tick_audit_fixture() {
+    RopeAuditFixture fixture{};
+    fixture.rope = audit_rope(
+        "fixed-endpoint-folded-six-node-fixed-tick",
+        {{-0.1F, 0.0F, 0.0F},
+         {0.0F, 0.0F, 0.0F},
+         {0.02F, 0.02F, 0.0F},
+         {0.10F, 0.08F, 0.0F},
+         {0.11F, 0.0F, 0.0F},
+         {0.21F, 0.0F, 0.0F}},
+        0.101F, 0.06F, 0.6F, 1.0F / 60.0F, 0.5F, 3.0F, 8U);
+    fixture.step_count = 36U;
+    fixture.checkpoint_steps = {1U, 18U, 36U};
+    fixture.excluded_probe_pairs = {{{2U, 4U}}};
+    fixture.fixed_endpoint_indices = {0U, 5U};
+    return fixture;
+}
+
+[[nodiscard]] RopeAuditFixture capacity_fixed_tick_audit_fixture() {
+    RopeAuditFixture fixture{};
+    std::vector<Vec3> centerline;
+    centerline.reserve(256U);
+    for (std::uint32_t index = 0U; index < 256U; ++index)
+        centerline.push_back({0.02F * static_cast<float>(index), 0.0F, 0.0F});
+    fixture.rope = audit_rope(
+        "exact-capacity-256-node-fixed-tick", std::move(centerline),
+        0.0200001F, 0.011F, 2.56F, 1.0F / 60.0F, 0.2F, 0.6F, 8U);
+    fixture.step_count = 2U;
+    fixture.checkpoint_steps = {1U, 2U};
+    return fixture;
+}
+
 [[nodiscard]] TriangleMesh anchor_mesh() {
     TriangleMesh mesh{};
     mesh.name = "fixed-anchor-collision";
@@ -460,6 +507,33 @@ std::string conformance_rope_self_contact_audit_quality(
     result["execution_status"] = "completed";
     result["driver"] = std::move(driver);
     result["claim"] = "sampled-nodes-only";
+    result["fixtures"] = std::move(fixtures);
+    return result.serialize();
+}
+
+std::string conformance_rope_self_contact_fixed_tick_audit_quality(
+    const std::filesystem::path &root) {
+    constexpr const char *profile_id = "rope-self-contact-v3";
+    Json driver = Json::object();
+    bool driver_written = false;
+    Json fixtures = Json::array();
+    fixtures.push_back(run_audit_fixture(
+        free_fixed_tick_audit_fixture(), driver, driver_written));
+    fixtures.push_back(run_audit_fixture(
+        fixed_endpoint_fixed_tick_audit_fixture(), driver, driver_written));
+    fixtures.push_back(run_audit_fixture(
+        capacity_fixed_tick_audit_fixture(), driver, driver_written));
+
+    Json result = Json::object();
+    result["schema"] = "parallel-mater-conformance-quality-result/v1";
+    result["profile_id"] = profile_id;
+    result["profile_sha256"] = sha256_contract_file(
+        root / "conformance/v1/quality" /
+        (std::string(profile_id) + ".json"));
+    result["execution_status"] = "completed";
+    result["driver"] = std::move(driver);
+    result["claim"] = "sampled-nodes-only";
+    result["schedule"] = "realtime-single-step-v1";
     result["fixtures"] = std::move(fixtures);
     return result.serialize();
 }

@@ -53,7 +53,7 @@ std::string conformance_fluid_pair_quality(
     const int status = parallel_mater_fluid_pair_quality_fixture(5, arguments);
     if (status == 0) return read_file(temporary_output);
     return fluid_quality_failure(
-        "core-conservation-stability-v1", PM_QUALITY_PROFILE_SHA256, status);
+        "core-conservation-stability-v2", PM_QUALITY_PROFILE_SHA256, status);
 }
 
 std::string conformance_fluid_self_quality(

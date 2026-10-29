@@ -34,7 +34,7 @@ int main() {
     CHECK(supported.particleLiquids && supported.liquidRigidCoupling);
     CHECK(supported.cloth && supported.softBodies && supported.domainCouplings);
     CHECK(supported.rope && supported.smoke && supported.paint);
-    CHECK(!supported.liquidLiquidCoupling);
+    CHECK(supported.liquidLiquidCoupling);
 #endif
     float priority = 1.0F;
     PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};

@@ -44,13 +44,9 @@ enum class GalleryContext : std::uint8_t {
     smoke_rope,
 };
 
-// Fracture requires a topology mutation pass that is not implemented by the
-// sole fixed-tick runtime. Keep these authored scenes visible in the catalog,
-// but never claim that ordinary cloth capability makes them executable.
 [[nodiscard]] constexpr bool gallery_fixed_tick_supported(
-    GalleryContext context) noexcept {
-    return context != GalleryContext::cloth_tear &&
-        context != GalleryContext::soft_body_cloth;
+    GalleryContext) noexcept {
+    return true;
 }
 
 enum class GalleryControlPolicy : std::uint8_t {

@@ -100,25 +100,31 @@ void fluid_pair_pressure_contact(device::DispatchSize grid,
     device::DispatchSize block, device::ExecutionQueue stream,
     const void *first_positions, const void *first_velocities,
     const std::uint32_t *first_count, std::uint32_t first_capacity,
-    void *first_forces, const void *second_positions,
+    std::uint32_t first_maximum_neighbors, void *first_forces,
+    const void *second_positions,
     const void *second_velocities, const std::uint32_t *second_count,
-    std::uint32_t second_capacity, void *second_forces,
+    std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
+    void *second_forces,
     const std::uint64_t *keys, const std::uint32_t *identities,
     std::uint32_t total_capacity,
-    const FluidDispatchConstants &values) noexcept {
+    const FluidDispatchConstants &values, std::uint32_t *neighbor_overflow,
+    std::uint32_t *maximum_neighbor_count, bool count_neighbors) noexcept {
     fluid_apply_pair_pressure_contact<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(first_velocities)),
         const_cast<std::uint32_t *>(first_count), first_capacity,
+        first_maximum_neighbors,
         as<Vec3_0>(first_forces),
         const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(second_velocities)),
         const_cast<std::uint32_t *>(second_count), second_capacity,
+        second_maximum_neighbors,
         as<Vec3_0>(second_forces),
         reinterpret_cast<unsigned long long *>(
             const_cast<std::uint64_t *>(keys)),
         const_cast<std::uint32_t *>(identities), total_capacity,
-        constants(values));
+        constants(values), neighbor_overflow, maximum_neighbor_count,
+        static_cast<std::uint32_t>(count_neighbors));
 }
 
 void fluid_pair_viscosity(device::DispatchSize grid,

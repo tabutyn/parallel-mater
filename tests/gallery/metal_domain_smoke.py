@@ -14,18 +14,17 @@ def main():
     cases = [
         ("fluid", ("fluid",)), ("fluid-rigid", ("fluid", "rigid")),
         ("peg-paint", ("fluid",)),
-        ("cloth", ("cloth",)), ("cloth-paint", ("cloth",)),
+        ("cloth", ("cloth",)), ("cloth-tear", ("cloth",)),
+        ("cloth-paint", ("cloth",)),
         ("water-cloth", ("fluid", "cloth")), ("soft-body", ("soft_body",)),
         ("soft-body-rigid", ("soft_body", "rigid")),
+        ("soft-body-cloth", ("soft_body", "cloth")),
         ("soft-body-fluid", ("soft_body", "fluid")), ("rope", ("rope",)),
         ("rope-fluid", ("rope", "fluid")), ("rope-soft-body", ("rope", "soft_body")),
         ("rope-cloth", ("rope", "cloth")), ("smoke", ("smoke",)),
         ("smoke-water", ("smoke", "fluid")), ("smoke-softbody", ("smoke", "soft_body")),
         ("smoke-cloth", ("smoke", "cloth")), ("smoke-rope", ("smoke", "rope")),
     ]
-    # The sole fixed-tick profile explicitly rejects cloth fracture. The
-    # fixed-tick scene contract test owns cloth-tear and soft-body-cloth's
-    # required unavailable result; this GPU smoke runs supported scenes only.
     with tempfile.TemporaryDirectory(prefix="pm-metal-domains-") as temporary:
         directory = Path(temporary)
         for name, domains in cases:

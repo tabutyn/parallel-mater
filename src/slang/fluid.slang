@@ -1579,13 +1579,18 @@ void fluid_apply_pair_pressure_contact(
     uniform PMBuffer<Vec3> first_positions,
     uniform PMBuffer<Vec3> first_velocities,
     uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform uint first_maximum_neighbors,
     uniform PMBuffer<Vec3> first_forces,
     uniform PMBuffer<Vec3> second_positions,
     uniform PMBuffer<Vec3> second_velocities,
     uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform uint second_maximum_neighbors,
     uniform PMBuffer<Vec3> second_forces,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
-    uniform uint total_capacity, uniform FluidOptions options
+    uniform uint total_capacity, uniform FluidOptions options,
+    uniform PMBuffer<uint> neighbor_overflow,
+    uniform PMBuffer<uint> maximum_neighbor_count,
+    uniform uint count_neighbors
     PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -1606,6 +1611,7 @@ void fluid_apply_pair_pressure_contact(
     int cz = int(floor(position.z * inverseRadius));
     float supportSquared = options.support_radius * options.support_radius;
     Vec3 acceleration = {};
+    uint neighbors = 0u;
     for (int dz = -1; dz <= 1; ++dz)
     {
         for (int dy = -1; dy <= 1; ++dy)
@@ -1621,15 +1627,17 @@ void fluid_apply_pair_pressure_contact(
                      sorted < total_capacity && keys[sorted] == key; ++sorted)
                 {
                     uint otherIdentity = identities[sorted];
+                    if (otherIdentity == selfIdentity) continue;
                     bool otherSecond =
                         (otherIdentity & kFluidSecondPopulation) != 0u;
-                    if (otherSecond == second) continue;
                     uint other = otherIdentity & kFluidLocalIndexMask;
                     Vec3 otherPosition = otherSecond
                         ? second_positions[other] : first_positions[other];
                     Vec3 delta = subtract(position, otherPosition);
                     float squared = length_squared(delta);
                     if (squared >= supportSquared) continue;
+                    if (otherSecond == second) continue;
+                    ++neighbors;
                     float distance = sqrt(max(squared, 1.0e-12f));
                     Vec3 negativeX = {-1.0f, 0.0f, 0.0f};
                     Vec3 positiveX = {1.0f, 0.0f, 0.0f};
@@ -1648,6 +1656,13 @@ void fluid_apply_pair_pressure_contact(
                 }
             }
         }
+    }
+    if (count_neighbors != 0u)
+    {
+        pmAtomicMax(maximum_neighbor_count, neighbors);
+        uint limit = second
+            ? second_maximum_neighbors : first_maximum_neighbors;
+        if (neighbors > limit) pmAtomicAdd(neighbor_overflow, 1u);
     }
     if (second)
         second_forces[local] = add(second_forces[local], acceleration);

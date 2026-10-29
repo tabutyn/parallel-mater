@@ -27,10 +27,12 @@ int main() {
     PM_CHECK(pmBindSimulationMemory(context.device, simulation, &binding) == PM_SUCCESS);
     PmLiquidMaterialState fluid{};
     fluid.restDensity = 1000; fluid.particleRadius = 0.025F; fluid.supportRadius = 0.1F;
-    fluid.maximumSpeed = 100; fluid.densityIterations = 1;
+    fluid.restParticleVolume = 0.000125F;
+    fluid.maximumSpeed = 2.9F; fluid.densityIterations = 1;
     PmRopeMaterialState rope_material{};
     rope_material.nodeSpacing = 0.01F; rope_material.radius = 0.01F; rope_material.mass = 1;
-    rope_material.maximumSubstepTimestep = 1.0F / 60; rope_material.maximumSpeed = 100;
+    rope_material.maximumSubstepTimestep = 1.0F / 60;
+    rope_material.maximumSpeed = 0.25F;
     rope_material.solverIterations = 8;
     PmCouplingState edge{};
     edge.type = PM_COUPLING_LIQUID_ROPE;

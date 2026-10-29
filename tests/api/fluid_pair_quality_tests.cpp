@@ -70,11 +70,11 @@ struct RunResult {
     // migration to one 1/60-second tick.
     result.pressureStiffness = fixture == Fixture::self_contact
         ? 120.0F : fixture == Fixture::self_pressure
-            ? 96.0F : is_viscosity_fixture(fixture) ? 0.0F : 40.0F;
+            ? 96.0F : is_viscosity_fixture(fixture) ? 0.0F : 3.1F;
     result.kinematicViscosity = fixture == Fixture::self_viscosity
-        ? 6.0F : fixture == Fixture::viscosity ? 2.0F : 0.0F;
+        ? 6.0F : fixture == Fixture::viscosity ? 1.0F : 0.0F;
     result.normalDamping = fixture == Fixture::pressure_contact ? 2.0F : 0.0F;
-    result.maximumSpeed = is_self_fixture(fixture) ? 10.0F : 100.0F;
+    result.maximumSpeed = 10.0F;
     result.maximumPairAcceleration = 1000.0F;
     result.densityIterations = 1U;
     return result;
@@ -94,7 +94,8 @@ struct RunResult {
         particle.position[0] =
             is_self_fixture(fixture)
                 ? 0.05F
-                : 0.15F + (fixture == Fixture::viscosity
+                : (fixture == Fixture::pressure_contact ? 0.25F : 0.15F) +
+                      (fixture == Fixture::viscosity
                                ? 0.1F * static_cast<float>(index)
                                : 0.0F);
         particle.position[1] =
@@ -220,7 +221,13 @@ struct RunResult {
     const PmResult submitted = context.submit();
     if (submitted != PM_SUCCESS)
         throw std::runtime_error("physical fluid-pair submission failed: " +
-                                 std::to_string(submitted));
+                                 std::to_string(submitted) +
+                                 " fixture=" +
+                                 std::to_string(static_cast<unsigned>(fixture)) +
+                                 " timestep=" + std::to_string(timestep) +
+                                 " ratio=" + std::to_string(ratio) +
+                                 " split=" + std::to_string(split) +
+                                 " coupled=" + std::to_string(coupled));
 
     RunResult result;
     context.invalidate(output);
@@ -559,7 +566,7 @@ int main(int argc, char **argv) {
                      std::pair{Fixture::viscosity,
                                "equal-material-viscosity"}}) {
                 Json samples = Json::array();
-                for (double timestep : {0.001, 0.01, 0.05})
+                for (double timestep : {1.0 / 60.0})
                     for (std::uint32_t ratio : {1U, 2U, 4U})
                         samples.push_back(
                             sample(context, fixture, timestep, ratio));
@@ -582,7 +589,7 @@ int main(int argc, char **argv) {
             ? "fluid-self-contact-v1"
             : (self_pressure ? "fluid-self-pressure-v1"
                 : (self_viscosity ? "fluid-self-viscosity-v1"
-                                  : "core-conservation-stability-v1"));
+                                  : "core-conservation-stability-v2"));
         result["profile_sha256"] = self_contact
             ? PM_FLUID_SELF_CONTACT_PROFILE_SHA256
             : (self_pressure ? PM_FLUID_SELF_PRESSURE_PROFILE_SHA256
@@ -611,7 +618,7 @@ int main(int argc, char **argv) {
                                  ? "PASS: public-API fluid self-pressure sample on "
                                  : (self_viscosity
                                         ? "PASS: public-API fluid self-viscosity sample on "
-                                        : "PASS: 18 public-API equal-fluid quality samples on ")))
+                                        : "PASS: 6 public-API fixed-tick equal-fluid quality samples on ")))
                   << properties.deviceName << '\n';
         return 0;
     } catch (const std::exception &error) {

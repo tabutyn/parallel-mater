@@ -933,7 +933,8 @@ void copy_particle_state(const std::vector<State> &states,
         std::string error;
         require(runtime.command_scene.step(static_cast<float>(definition.timestep),
                     definition.substeps, gravity, runtime.frame, error, true),
-                "step command scene", error);
+                "step command scene frame " + std::to_string(frame + 1U),
+                error);
         const std::uint32_t completed = frame + 1U;
         if (every_frame || std::find(definition.checkpoints.begin(),
                                      definition.checkpoints.end(), completed) !=
@@ -1085,9 +1086,10 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 55U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 57U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
+            {"quality profile", "conformance/v1/quality/core-conservation-v2.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-brick-penetration-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-kinematic-sweep-v1.json"},
@@ -1098,6 +1100,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/cloth-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/rope-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/rope-rigid-attachment-v1.json"},
+            {"quality profile", "conformance/v1/quality/rope-self-contact-v3.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-containment-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-rigid-contact-v1.json"},
@@ -1521,6 +1524,8 @@ int conformance_command_main(int argc, char **argv) {
                 "rope-self-contact-v1";
             const bool rope_self_contact_audit = arguments.quality_id ==
                 "rope-self-contact-v2";
+            const bool rope_self_contact_fixed_tick_audit =
+                arguments.quality_id == "rope-self-contact-v3";
             const bool fluid_cloth_containment = arguments.quality_id ==
                 "fluid-cloth-containment-v1";
             const bool fluid_soft_contact = arguments.quality_id ==
@@ -1585,6 +1590,7 @@ int conformance_command_main(int argc, char **argv) {
                 "externally-heated-fluid-v1";
             if (!brick && !attachment && !rope_self_contact &&
                 !rope_self_contact_audit &&
+                !rope_self_contact_fixed_tick_audit &&
                 !fluid_cloth_containment &&
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
@@ -1620,6 +1626,10 @@ int conformance_command_main(int argc, char **argv) {
                     result = conformance_rope_self_contact_quality(root);
                 } else if (rope_self_contact_audit) {
                     result = conformance_rope_self_contact_audit_quality(root);
+                } else if (rope_self_contact_fixed_tick_audit) {
+                    result =
+                        conformance_rope_self_contact_fixed_tick_audit_quality(
+                            root);
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
                 } else if (fluid_self) {
                     ExecutionStatus status{};

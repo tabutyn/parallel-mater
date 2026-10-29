@@ -23,7 +23,7 @@ int main() {
     PmPhysicalDeviceFeatures features{};
     pmGetPhysicalDeviceFeatures(physical, &features);
     CHECK(features.particleLiquids && features.liquidRigidCoupling);
-    CHECK(!features.liquidLiquidCoupling);
+    CHECK(features.liquidLiquidCoupling);
     const float priority = 1;
     const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
     PmDeviceCreateInfo device_info{};

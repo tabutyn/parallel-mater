@@ -340,8 +340,10 @@ between nodes, high-speed continuous detection or self-friction. The current
 capability record must be qualified against this exact sampled-node behavior or
 withdrawn; it cannot be cited as evidence for the stronger profile below.
 CUDA, D3D12 and Vulkan advertise this record after passing the expanded
-`rope-self-contact-v2` audit. Metal retains general rope support but does not
-advertise this record until equivalent current device evidence exists.
+`rope-self-contact-v2` audit. Metal advertises the same narrow sampled-node
+record after passing the fixed-tick `rope-self-contact-v3` audit on Apple M4.
+The v3 result does not expand the record to continuous segment collision or
+self-friction.
 
 Complete rope contact uses the reserved `rope-capsule` material profile. Each
 centreline edge from node `i` to `i + 1` is a swept capsule with the endpoint

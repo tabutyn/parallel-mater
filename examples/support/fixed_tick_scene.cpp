@@ -92,12 +92,6 @@ bool apply_gallery_fixed_tick_material_contract(
     SceneDefinition &scene, std::string &error) {
     error.clear();
 
-    for (const ClothDefinition &cloth : scene.cloths)
-        if (cloth.break_strain > 0.0F || cloth.impact_break_impulse > 0.0F) {
-            error = "fixed-tick-60hz-v1 does not implement cloth fracture";
-            return false;
-        }
-
     if (scene.fluid_options.capacity != 0U) {
         if (scene.fluid_options.rest_particle_volume <= 0.0F) {
             const float diameter = 2.0F * scene.fluid_options.particle_radius;

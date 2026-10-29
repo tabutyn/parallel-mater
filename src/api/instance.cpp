@@ -76,19 +76,6 @@ bool requirements_supported(std::uint32_t requirements,
 
 bool driver_supports_interaction(
     const PmInteractionCapabilityKey &key) noexcept {
-#if defined(PARALLEL_MATER_METAL_DRIVER)
-    if (key.firstFamily == PM_INTERACTION_FAMILY_ROPE &&
-        key.secondFamily == PM_INTERACTION_FAMILY_ROPE &&
-        key.scope == PM_INTERACTION_SCOPE_SELF &&
-        key.mode == PM_INTERACTION_MODE_CONTACT &&
-        key.direction == PM_INTERACTION_DIRECTION_BIDIRECTIONAL &&
-        key.materialProfile == PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE) {
-        // P1-31 requires the expanded sampled-node audit on every advertising
-        // driver. Metal retains rope support but withdraws this record until a
-        // current rope-self-contact-v2 device capture passes.
-        return false;
-    }
-#endif
     if (key.materialProfile == PM_INTERACTION_MATERIAL_MISCIBLE) {
 #if defined(PARALLEL_MATER_TEST_RESOURCE_DRIVER) || \
     defined(PARALLEL_MATER_QUALIFIED_MISCIBLE_FLUID)

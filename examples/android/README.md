@@ -56,9 +56,9 @@ UI schedules one worker frame from display callbacks; it does not implement a
 second target-FPS clock.
 
 The shared scene configuration bounds authored material values for this one
-fixed tick before public resource creation. Cloth Tear and Soft Body Cloth stay
-in the picker but report that fixed-tick cloth fracture is unavailable; Gallery
-does not silently disable tearing or retry them on another physics path.
+fixed tick before public resource creation. Cloth Tear and Soft Body Cloth both
+use the shared fixed-tick deformable topology lifecycle. Gallery does not
+silently disable tearing or retry either scene on another physics path.
 
 ## Build and install
 
