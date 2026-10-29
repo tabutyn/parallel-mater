@@ -142,7 +142,12 @@ class F822CandidateFreezeTests(unittest.TestCase):
             self.assertEqual(frozen["f8_execution_test"], inventory["f8_execution_test"])
             self.assertIn(frozen["f8_execution_test"], public_execution)
             self.assertEqual(set(frozen["applicable_targets"]), set(inventory["applicable_targets"]))
-            self.assertEqual(set(frozen["qualification_owners"]), set(inventory["qualification_owners"]))
+            if variant_id == "cpu-runtime":
+                self.assertEqual(frozen["qualification_owners"], ["F8-23"])
+                self.assertEqual(inventory["qualification_owners"], ["F8-53"])
+            else:
+                self.assertEqual(set(frozen["qualification_owners"]),
+                                 set(inventory["qualification_owners"]))
             self.assertEqual(frozen["status"], "awaiting-physical-qualification")
 
         frozen_compile_only = {
@@ -168,7 +173,12 @@ class F822CandidateFreezeTests(unittest.TestCase):
         for target_id, frozen in frozen_targets.items():
             inventory = inventory_targets[target_id]
             self.assertEqual(frozen["variant"], inventory["compiled_variant"])
-            self.assertEqual(frozen["qualification_owner"], inventory["qualification_owner"])
+            if target_id == "linux-thomas-laptop-slang-cpu":
+                self.assertEqual(frozen["qualification_owner"], "F8-23")
+                self.assertEqual(inventory["qualification_owner"], "F8-53")
+            else:
+                self.assertEqual(frozen["qualification_owner"],
+                                 inventory["qualification_owner"])
             self.assertEqual(frozen["status"], "pending")
             self.assertTrue(frozen["availability_at_freeze"])
             owner = frozen["qualification_owner"]

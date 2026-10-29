@@ -10,18 +10,19 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from check_realtime_candidate import (  # noqa: E402
     ACTIVE_ID,
+    ACTIVE_SOURCE_REVISION,
     CANDIDATE_PATH,
     REQUIRED_CLOSURES,
     validate_candidate,
 )
 
 
-class F836CandidateFreezeTests(unittest.TestCase):
+class F852CandidateFreezeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
-    def test_repaired_candidate_is_frozen_without_drift(self):
+    def test_final_candidate_is_frozen_without_drift(self):
         self.assertEqual(validate_candidate(), [])
 
     def test_every_required_protected_drift_is_rejected(self):
@@ -48,7 +49,7 @@ class F836CandidateFreezeTests(unittest.TestCase):
         self.assertIn("active source revision drift", errors)
         self.assertIn("active source tree drift", errors)
 
-    def test_only_replacement_can_receive_qualification_evidence(self):
+    def test_only_final_candidate_can_receive_qualification_evidence(self):
         routing = self.candidate["qualification_routing"]
         self.assertEqual(routing["accepted_candidate"], ACTIVE_ID)
         self.assertFalse(routing["evidence_union_allowed"])
@@ -57,10 +58,10 @@ class F836CandidateFreezeTests(unittest.TestCase):
                 (ROOT / "docs/roadmap/tasks" / f"{task_id}.json")
                 .read_text(encoding="utf-8")
             )
+            self.assertIn("F8-52", task["dependencies"])
             self.assertIn(ACTIVE_ID, task["scope"])
-            self.assertIn("F8-36", task["dependencies"])
-            self.assertIn("F8-38", task["dependencies"])
-            self.assertIn("rejected for qualification", task["scope"])
+            self.assertIn(ACTIVE_SOURCE_REVISION, task["scope"])
+            self.assertIn("cannot be unioned", task["scope"])
 
 
 if __name__ == "__main__":

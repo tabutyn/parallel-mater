@@ -227,7 +227,8 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
         exit_dependencies = set(load_json(TASK_DIR / "F8-99.json")["dependencies"])
         for card_id in cards:
             card = load_json(TASK_DIR / f"{card_id}.json")
-            self.assertIn("F8-22", card["dependencies"], card_id)
+            prerequisite = "F8-52" if card_id == "F8-53" else "F8-22"
+            self.assertIn(prerequisite, card["dependencies"], card_id)
             self.assertIn(card_id, exit_dependencies)
         self.assertNotIn("F8-99", load_json(TASK_DIR / "F8-22.json")["dependencies"])
 
@@ -243,7 +244,7 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
         handoffs = {item["task"]: item for item in self.inventory["handoffs"]}
         self.assertEqual(set(handoffs), {"P3-02", "P1-59", "F5-99"})
         self.assertIn("deferred", handoffs["P3-02"]["state_at_inventory"])
-        self.assertIn("leased", handoffs["P1-59"]["state_at_inventory"])
+        self.assertEqual(handoffs["P1-59"]["state_at_inventory"], "done")
         self.assertEqual(handoffs["F5-99"]["state_at_inventory"], "done")
         for handoff in handoffs.values():
             self.assertTrue(handoff["boundary"])

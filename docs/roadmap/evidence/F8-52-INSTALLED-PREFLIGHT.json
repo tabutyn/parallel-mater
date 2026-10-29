@@ -1,0 +1,43 @@
+{
+  "schema": "parallel-mater-f8-installed-preflight/v1",
+  "task": "F8-52",
+  "status": "passed",
+  "candidate": {
+    "id": "realtime-single-step-v1-5a811c4",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v4.json",
+    "manifest_sha256": "f0f15a65fed178625b263c6462e7e0d9397fd4880cfc2a3a73582b98584876ae",
+    "source_revision": "5a811c4cba0e09fa9f6faaa2ca1a6f9e6cd59855",
+    "source_tree": "ce80fdeb6bcff12c418165795bb6a7a42d4de000"
+  },
+  "installed_consumer_preflight": {
+    "runtime_variant": "cpu-runtime",
+    "status": "passed",
+    "source_revision": "4e9522aab88ff52c2b92d8c3d80814389ce0a7cd",
+    "source_dirty": false,
+    "host": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "compiler": {
+      "path": "/usr/bin/c++",
+      "id": "AppleClang",
+      "version": "21.0.0.21000101",
+      "architecture": "arm64"
+    },
+    "check_count": 14,
+    "checks_passed": 14,
+    "report_sha256": "a905ebb71296db229302e7e33c9436bf8085a12ef2d2658cefc424462a732061",
+    "driver_sha256": "1be55fa5885fc5127da8f7d0d0a50ffe032419de69132780f7880812c47cc416",
+    "plain_observation_sha256": "c75b0345824e86ba75c5c9f9acbdefa4d7a9a30c7e809a68cb4c124793d7b4c7",
+    "validation_observation_sha256": "2d3775af5a8ce8f90fd2c1ef74e230baaf1d2c54caa10602522a1f32544fdd42",
+    "capacity_regression_sha256": "cb1c99b3a867efa5facad8ea2886724c85b360f2c6e67b406f01c9b5ef9f2531",
+    "capacity_workload": {
+      "tier": "cpu-reference-v1",
+      "id": "rigid-brick-oracle",
+      "rigid_bodies_live": 8,
+      "rigid_bodies_capacity": 8,
+      "constraints_live": 8,
+      "constraints_capacity": 8,
+      "contact_capacity": 2048
+    },
+    "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /private/tmp/f8-52-sdk-preflight --require-realtime-driver"
+  },
+  "claim": "Installed public API packaging and execution preflight only; final physical target qualification remains owned by F8-24 through F8-30 and F8-53."
+}

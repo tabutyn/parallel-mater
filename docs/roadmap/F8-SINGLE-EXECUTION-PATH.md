@@ -95,12 +95,14 @@ rewriting their history or treating unsupported results as passes.
    required results.
 
 F8-38 completed the narrowly scoped rigid-path refreeze. F8-23 completed its
-interim qualification; its history and evidence remain intact.
-That candidate cannot satisfy the final single-path release. The unleased
-GPU qualification tasks now also depend on F8-52, and new F8-53 requalifies the
-CPU/public-contract row after the final freeze. Historical candidate references
-remain provenance until F8-52 records the replacement identity; no evidence from
-different candidates may be combined into a pass.
+interim qualification; its history and evidence remain intact. That candidate
+cannot satisfy the final single-path release. F8-52 freezes its replacement as
+`realtime-single-step-v1-5a811c4`, manifest SHA-256
+`f0f15a65fed178625b263c6462e7e0d9397fd4880cfc2a3a73582b98584876ae`.
+F8-24 through F8-30 and F8-53 depend on F8-52 and accept only that exact
+candidate. Historical candidate references remain provenance; evidence from
+different candidates may not be combined into a pass. See the
+[F8-52 freeze record](F8-52-CANDIDATE-FREEZE.md).
 
 The frozen `realtime-profile-v1.json` and earlier candidate records remain
 unchanged historical inputs during this planning correction. F8-50 updates the

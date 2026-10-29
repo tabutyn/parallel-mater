@@ -109,8 +109,8 @@
     "conformance/v1/qualification/capability-obligations-v1.json": "e12d34f255498c528baa75429f654c4e0a117be14be4e7c0cd8338af1db3e6ca"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "c974acc8929019679748b0ca665c802c5bb12dc003d70d6c2ebe8cd5eb50bd3d",
-    "conformance/v1/evidence/index-v1.json": "cb95092d5c504bc2e3b46cb49874206e54c7f0b5beb41dc22ca30878c8a7eed4"
+    "conformance/v1/evidence/evidence-sources-v1.json": "c48112ad21544aa7312bc65c15bcf2ef691cafa27a2e1cbd973b23ffd3abdcc3",
+    "conformance/v1/evidence/index-v1.json": "562d19a5f6121e20f77828fa1322837c8e7f8faaa8e8aa86305b03526bc58a8f"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",
