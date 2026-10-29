@@ -155,7 +155,7 @@ struct Fixture {
                     correction_used, anchor_active,
                     reinterpret_cast<Vec3_0 *>(contact_normals),
                     contact_offsets, contact_active, count, capacity,
-                    node_spacing, radius, friction, dt, profile, status);
+                    node_spacing, radius, 0U, friction, dt, profile, status);
         }
         rope_realtime_commit<<<blocks, threads>>>(
             reinterpret_cast<Vec3_0 *>(positions),

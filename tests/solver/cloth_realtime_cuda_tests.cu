@@ -232,7 +232,8 @@ struct Fixture {
             reinterpret_cast<Vec3_0 *>(velocities), inverse_masses,
             characteristic_lengths,
             reinterpret_cast<Vec3_0 *>(contact_normals), contact_offsets,
-            contact_active, count, capacity, thickness, friction,
+            contact_active, nullptr, nullptr, nullptr, 0U, 0.0F, 1U,
+            nullptr, 0.0F, count, capacity, thickness, friction,
             maximum_speed, dt, profile, status);
         const unsigned triangle_blocks =
             std::max(1U, (triangle_count + threads - 1U) / threads);
