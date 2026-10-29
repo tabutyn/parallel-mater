@@ -1,23 +1,23 @@
 {
   "id": "F8-58",
-  "title": "Connect frozen fixed-tick oracles to public device runners",
+  "title": "Validate fixed-tick physical device captures",
   "status": "open",
   "dependencies": [
     "F8-52"
   ],
   "locks": [
-    "f8-fixed-tick-oracle-integration"
+    "f8-device-capture-validation"
   ],
   "requires": [
-    "Host able to build and execute the public conformance runner"
+    "Host able to run the portable Python conformance tests"
   ],
-  "scope": "Repair the final F8 qualification harness exposed by F8-28: execute the already-frozen realtime-single-step-v1 oracle suite through normal public API creation and stepping on each selected production driver. Do not change physics, fixed work budgets, advertised capabilities, tolerances, realtime-candidate-v4, or the legacy variable-timestep profiles. This is qualification integration only; driver-private state cannot satisfy an assertion.",
+  "scope": "Implement the backend-neutral validator for physical fixed-tick qualification captures. It consumes public observation artifacts and the frozen realtime-single-step-v1 oracle contract, rejects incomplete or relabeled evidence, and reports exact candidate/device identity. It does not produce device captures or change physics, scenario fixtures, fixed work budgets, advertised capabilities, tolerances, candidate manifests, or legacy variable-timestep profiles.",
   "acceptance": [
-    "A backend-neutral public runner executes every applicable frozen runtime adapter, domain, coupling, lifecycle, negative-control and scenario row with exactly one dt=1/60 step, one spatial publication and the fixed dispatch/iteration/synchronization budget per tick.",
-    "Independent public-output assertions cover all twelve frozen scenario fixtures, including cold start, sustained execution, impact, rotation, stiff systems, mass ratio, containment, source/removal/replacement, overflow recovery, empty and sparse capacity.",
-    "The runner emits reviewable observation artifacts accepted by realtime_oracle.py and identifies the exact candidate manifest, runtime variant, binary, device and toolchain without reading driver-private state.",
-    "Legacy variable-timestep quality profiles and their historical evidence remain unchanged. The qualification report explicitly distinguishes those historical profiles from the sole fixed-tick oracle instead of submitting invalid pre-F8 steps or relabeling measurements.",
-    "Portable deterministic tests cover successful observations, missing rows, wrong timestep/substep, extra catch-up steps, changed work budgets, unsupported advertised rows and failed execution; the same runner is usable by CPU, CUDA, Vulkan, D3D12 and Metal qualification tasks."
+    "The validator requires exact candidate manifest, runtime target, binary, device and toolchain identity; every one of the 49 frozen capability rows must pass execution, analytic and lifecycle checks, and all 30 public cases must complete without driver-private state.",
+    "The validator requires each target workload's exact sample count, 600 warm-up ticks, 7200 measured ticks, at least 0.99 simulated/wall-time ratio, and finite monotonic CPU, GPU, physics and frame p50/p95/p99/max distributions within the frozen p95 contracts.",
+    "All twelve scenario observations require their exact domains, tags and tick count, dt=1/60, one substep, one spatial publication, normal public trace, the same simulation instance, no private state, complete named measurements and the frozen submission/advance/readback work budgets.",
+    "The exact plain and validation backend observations and all frozen negative controls are required. Legacy variable-timestep evidence cannot be relabeled or unioned into the report.",
+    "Portable deterministic tests cover a complete passing capture plus missing scenarios, wrong timestep/substep, hidden retry or changed work budget, missing measurement, failed simulation, identity mismatch, private state, negative-control failure, missing capability, unsupported public case and short or slow workloads. The validator is reusable by CPU, CUDA, Vulkan, D3D12 and Metal qualification tasks."
   ],
   "evidence": [],
   "lease": null,

@@ -4,7 +4,8 @@
   "status": "open",
   "dependencies": [
     "F8-23",
-    "F8-52"
+    "F8-52",
+    "F8-61"
   ],
   "locks": [
     "f8-qualification-cpu"
