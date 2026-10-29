@@ -105,11 +105,14 @@ endif()
 set(corpus_install_root "${CMAKE_INSTALL_DATADIR}/parallel-mater")
 install(DIRECTORY conformance/v1/cases conformance/v1/lifecycle
     conformance/v1/quality conformance/v1/qualification conformance/v1/evidence
+    conformance/v1/realtime
     DESTINATION "${corpus_install_root}/conformance/v1"
     COMPONENT conformance)
 install(FILES conformance/v1/manifest.json conformance/v1/compare.py
     conformance/v1/lifecycle.py conformance/v1/quality.py
     conformance/v1/qualification.py
+    conformance/v1/realtime_device_suite.py
+    conformance/v1/realtime_scenario_fixtures.py
     conformance/v1/README.md conformance/v1/SCHEMA.md
     DESTINATION "${corpus_install_root}/conformance/v1"
     COMPONENT conformance)

@@ -30,6 +30,7 @@ CAPABILITY_PATH = (
     ROOT / "conformance/v1/qualification/capability-obligations-v1.json"
 )
 SUITE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
+FIXTURE_PATH = ROOT / "conformance/v1/realtime/scenario-fixtures-v1.json"
 CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v4.json"
 )
@@ -81,6 +82,14 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def value_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value, ensure_ascii=True, allow_nan=False, sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _candidate_identity(candidate: Mapping[str, Any], digest: str) -> dict[str, Any]:
     return {
         "id": candidate.get("id"),
@@ -129,6 +138,7 @@ def _validate_tick_work(
     expected_count: int,
     path: str,
     contract: Mapping[str, Any],
+    fixture: Mapping[str, Any],
     failures: list[Failure],
 ) -> None:
     if not isinstance(ticks, list) or len(ticks) != expected_count:
@@ -136,23 +146,50 @@ def _validate_tick_work(
             path, "one public work record is required for every scenario tick",
             len(ticks) if isinstance(ticks, list) else ticks, expected_count))
         return
+    outcomes = fixture.get("tick_outcomes", {})
+    overrides = {
+        item.get("tick"): item
+        for item in outcomes.get("overrides", [])
+        if isinstance(item, dict)
+    }
     for index, tick in enumerate(ticks):
         if not isinstance(tick, dict):
             failures.append(_failure(
                 f"{path}[{index}]", "tick work must be an object", tick))
             continue
-        exact_counters = {
+        expected = {
+            "status": outcomes.get("default", "success"),
+            "result": "PM_SUCCESS",
             "queue_submissions": 1,
             "spatial_index_publications": 1,
             "time_advances": 1,
             "intra_tick_host_readbacks": 0,
         }
-        for name, expected in exact_counters.items():
-            if tick.get(name) != expected:
+        expected.update(overrides.get(index, {}))
+        expected.pop("tick", None)
+        for name in (
+            "status", "result", "queue_submissions",
+            "spatial_index_publications", "time_advances",
+            "intra_tick_host_readbacks",
+        ):
+            expected_value = expected.get(name)
+            if tick.get(name) != expected_value:
                 failures.append(_failure(
                     f"{path}[{index}].{name}",
                     "fixed-tick accounting is not exact",
-                    tick.get(name), expected))
+                    tick.get(name), expected_value))
+        if expected.get("status") == "failure":
+            for name, expected_value in {
+                "spatial_index_updates": 0,
+                "state_unchanged": True,
+                "pending_inputs_preserved": True,
+                "hidden_retries": 0,
+            }.items():
+                if tick.get(name) != expected_value:
+                    failures.append(_failure(
+                        f"{path}[{index}].{name}",
+                        "failed tick was not atomic",
+                        tick.get(name), expected_value))
         for issue in ORACLE.evaluate_tick_work(tick, contract):
             failures.append(_failure(
                 f"{path}[{index}].{issue.assertion}", issue.message,
@@ -162,8 +199,11 @@ def _validate_tick_work(
 def _validate_scenario(
     observation: Any,
     definition: Mapping[str, Any],
+    fixture: Mapping[str, Any],
     contract: Mapping[str, Any],
     expected_candidate: Mapping[str, Any],
+    runtime_variant: Any,
+    fixture_identity: Mapping[str, Any],
     failures: list[Failure],
 ) -> None:
     identity = definition["id"]
@@ -185,18 +225,28 @@ def _validate_scenario(
             "driver-private state cannot satisfy an assertion",
             observation.get("driver_private_state_used"), False))
     calls = observation.get("public_api_calls")
-    required_calls = {
-        "pmCreateSimulation", "pmCmdStepSimulation", "pmQueueSubmit",
-        "pmWaitForFences", "pmGetSimulationStatus",
-    }
-    if (not isinstance(calls, list) or
-            not all(isinstance(item, str) and item.startswith("pm") for item in calls) or
-            not required_calls <= set(calls) or
-            not any(item.startswith("pmCmdCopy") for item in calls)):
+    required_calls = fixture_identity["public_api_calls"]
+    if calls != required_calls:
         failures.append(_failure(
             path + ".public_api_calls",
-            "scenario needs a complete public create/step/submit/wait/status/copy trace",
-            calls, sorted(required_calls)))
+            "scenario public call trace is not the shared fixture trace",
+            calls, required_calls))
+    if observation.get("runtime_variant") != runtime_variant:
+        failures.append(_failure(
+            path + ".runtime_variant",
+            "scenario used a different runtime variant",
+            observation.get("runtime_variant"), runtime_variant))
+    if observation.get("fixture_contract") != fixture_identity["identity"]:
+        failures.append(_failure(
+            path + ".fixture_contract",
+            "scenario did not consume the exact shared fixture definition",
+            observation.get("fixture_contract"), fixture_identity["identity"]))
+    executions = observation.get("executions")
+    if not isinstance(executions, list) or len(executions) != 2:
+        failures.append(_failure(
+            path + ".executions",
+            "plain and validation-enabled executions are both required",
+            executions))
     if observation.get("simulation_recreated_during_ticks") is not False:
         failures.append(_failure(
             path + ".simulation_recreated_during_ticks",
@@ -242,7 +292,46 @@ def _validate_scenario(
                 issue.message, issue.actual, issue.expected))
     _validate_tick_work(
         observation.get("tick_work"), expected_ticks,
-        path + ".tick_work", contract, failures)
+        path + ".tick_work", contract, fixture, failures)
+    if isinstance(executions, list) and len(executions) == 2:
+        expected_digests = {
+            "measurements_sha256": value_sha256(measurements),
+            "tick_work_sha256": value_sha256(observation.get("tick_work")),
+        }
+        state_hashes: list[Any] = []
+        for index, execution in enumerate(executions):
+            execution_path = f"{path}.executions[{index}]"
+            if not isinstance(execution, dict):
+                failures.append(_failure(
+                    execution_path, "execution proof must be an object",
+                    execution))
+                continue
+            expected_mode = index == 1
+            exact = {
+                "validation_enabled": expected_mode,
+                "simulation_status": "PM_SUCCESS",
+                "simulation_instance_count": 1,
+                "completed_tick_records": expected_ticks,
+                **expected_digests,
+            }
+            for name, expected_value in exact.items():
+                if execution.get(name) != expected_value:
+                    failures.append(_failure(
+                        f"{execution_path}.{name}",
+                        "plain/validation execution proof is not exact",
+                        execution.get(name), expected_value))
+            state_hash = execution.get("final_public_state_sha256")
+            if (not isinstance(state_hash, str)
+                    or re.fullmatch(r"[0-9a-f]{64}", state_hash) is None):
+                failures.append(_failure(
+                    execution_path + ".final_public_state_sha256",
+                    "canonical public-state SHA-256 is required", state_hash))
+            state_hashes.append(state_hash)
+        if len(state_hashes) == 2 and state_hashes[0] != state_hashes[1]:
+            failures.append(_failure(
+                path + ".executions.final_public_state_sha256",
+                "plain and validation-enabled public states differ",
+                state_hashes[1], state_hashes[0]))
 
 
 def _capability_key(value: Mapping[str, Any]) -> tuple[Any, ...]:
@@ -526,6 +615,24 @@ def evaluate(
 
     scenarios = capture.get("scenarios")
     definitions = {item["id"]: item for item in suite["scenario_fixtures"]}
+    fixture_contract = load_json(FIXTURE_PATH)
+    fixture_definitions = {
+        item["id"]: item for item in fixture_contract.get("scenarios", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    if set(fixture_definitions) != set(definitions):
+        failures.append(_failure(
+            "$.fixture_contract.scenarios",
+            "shared executable fixture set differs from the frozen suite",
+            sorted(fixture_definitions), sorted(definitions)))
+    fixture_context = {
+        "identity": {
+            "id": fixture_contract.get("id"),
+            "sha256": sha256(FIXTURE_PATH),
+        },
+        "public_api_calls": fixture_contract.get(
+            "execution", {}).get("public_api_calls"),
+    }
     observed = {
         item.get("id"): item for item in scenarios
         if isinstance(item, dict) and isinstance(item.get("id"), str)
@@ -536,8 +643,9 @@ def evaluate(
             sorted(definitions)))
     for identity, definition in definitions.items():
         _validate_scenario(
-            observed.get(identity), definition, contract,
-            expected_candidate, failures)
+            observed.get(identity), definition,
+            fixture_definitions.get(identity, {}), contract,
+            expected_candidate, runtime_variant, fixture_context, failures)
 
     controls = capture.get("negative_controls")
     indexed_controls = {

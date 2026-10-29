@@ -51,6 +51,29 @@ Report v1 adds per-case `status` and `reason`, an `unsupported` total, and
 unsupported cases. `failed` excludes unsupported cases; qualification callers
 must require both totals to be zero.
 
+## Realtime scenario fixtures: `parallel-mater-realtime-scenario-fixtures/v1`
+
+This backend-neutral contract mirrors the frozen twelve scenario rows without
+modifying them. Each definition fixes its deterministic public scene builder,
+source hash where applicable, initial state, events, domains, tags, tick count,
+measurement sets, expected tick outcomes and public failure diagnostics. The
+global measurement table maps every domain-quality assertion to public output
+fields and a deterministic reduction algorithm.
+
+Every successful tick is one 1/60-second step, one substep, one queue submit,
+one spatial publication and one time advance on the same simulation. An
+explicit failed tick is still one submitted attempt but publishes and advances
+zero times, preserves public state, clock and pending inputs, and contains no
+retry work. Post-completion readback is not intra-tick work.
+
+An execution plan adds exactly one `runtime_variant`; the fixture definitions
+are otherwise byte-for-byte identical for CPU, CUDA, Vulkan, D3D12 and Metal.
+A device observation records the fixture ID and SHA-256 plus plain and
+validation-enabled execution proofs. Each proof pins the completed tick count,
+measurement digest, work-ledger digest and final public-state digest; the two
+public-state digests must match. A changed fixture is a different candidate
+input and requires the F8-61 refreeze before it can qualify a release.
+
 ## Quality profile: `parallel-mater-conformance-quality-profile/v1`
 
 The quality profile is an immutable, hashed contract independent of trajectory
