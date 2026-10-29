@@ -19,7 +19,10 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v4.json"
+    ROOT / "conformance/v1/qualification/realtime-candidate-v5.json"
+)
+ACTIVE_POINTER_PATH = (
+    ROOT / "conformance/v1/qualification/active-realtime-candidate.json"
 )
 V1_REJECTION_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v1-rejection.json"
@@ -30,6 +33,9 @@ V2_REJECTION_PATH = (
 V3_REJECTION_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v3-rejection.json"
 )
+V4_REJECTION_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v4-rejection.json"
+)
 V1_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v1.json"
 )
@@ -38,6 +44,9 @@ V2_CANDIDATE_PATH = (
 )
 V3_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v3.json"
+)
+V4_CANDIDATE_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v4.json"
 )
 INVENTORY_PATH = (
     ROOT / "conformance/v1/qualification/kernel-device-obligations-v1.json"
@@ -50,12 +59,14 @@ ORACLE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
 MANIFEST_PATH = ROOT / "cmake/SlangKernelManifest.cmake"
 TASK_DIR = ROOT / "docs/roadmap/tasks"
 
-ACTIVE_ID = "realtime-single-step-v1-5a811c4"
-ACTIVE_SOURCE_REVISION = "5a811c4cba0e09fa9f6faaa2ca1a6f9e6cd59855"
-ACTIVE_SOURCE_TREE = "ce80fdeb6bcff12c418165795bb6a7a42d4de000"
+ACTIVE_ID = "realtime-single-step-v1-cfb104b"
+ACTIVE_SOURCE_REVISION = "cfb104b1c530f859d9a1c3549d2e67c7de31c289"
+ACTIVE_SOURCE_TREE = "e6838f954384363e79a4485f3c2cfb6ff5e0ea79"
+ACTIVE_CI_RUN_ID = 40906474584
 V1_REJECTED_ID = "realtime-single-step-v1-dea47c1"
 V2_REJECTED_ID = "realtime-single-step-v1-fd78fa8"
 V3_REJECTED_ID = "realtime-single-step-v1-3671f18"
+V4_REJECTED_ID = "realtime-single-step-v1-5a811c4"
 V1_MANIFEST_SHA256 = (
     "c25c010be3a0e908537e3c6542c1759b28b10cfb4a4169b51bb2834233411d43"
 )
@@ -64,6 +75,9 @@ V2_MANIFEST_SHA256 = (
 )
 V3_MANIFEST_SHA256 = (
     "d6d84f85a87af71fcdb0ee5c335f6c3979a741a151b3fbb4151096dd588d4a04"
+)
+V4_MANIFEST_SHA256 = (
+    "f0f15a65fed178625b263c6462e7e0d9397fd4880cfc2a3a73582b98584876ae"
 )
 REQUIRED_CLOSURES = {
     "api_abi",
@@ -83,6 +97,7 @@ PREREQUISITE_EVIDENCE = {
     "F8-54": "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
     "F8-55": "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
     "F8-56": "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+    "F8-60": "docs/roadmap/evidence/F8-60-capability-case-reconciliation.json",
 }
 
 
@@ -147,17 +162,6 @@ def revision_closure_identities(
         }
 
 
-def candidate_freeze_revision(root: Path) -> str:
-    relative = CANDIDATE_PATH.relative_to(ROOT).as_posix()
-    return subprocess.run(
-        ["git", "log", "-1", "--format=%H", "--", relative],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-
 def _expect(errors: list[str], condition: bool, message: str) -> None:
     if not condition:
         errors.append(message)
@@ -173,9 +177,11 @@ def validate_candidate(
     v1_rejection_path = root / V1_REJECTION_PATH.relative_to(ROOT)
     v2_rejection_path = root / V2_REJECTION_PATH.relative_to(ROOT)
     v3_rejection_path = root / V3_REJECTION_PATH.relative_to(ROOT)
+    v4_rejection_path = root / V4_REJECTION_PATH.relative_to(ROOT)
     v1_candidate_path = root / V1_CANDIDATE_PATH.relative_to(ROOT)
     v2_candidate_path = root / V2_CANDIDATE_PATH.relative_to(ROOT)
     v3_candidate_path = root / V3_CANDIDATE_PATH.relative_to(ROOT)
+    v4_candidate_path = root / V4_CANDIDATE_PATH.relative_to(ROOT)
     inventory = load_json(root / INVENTORY_PATH.relative_to(ROOT))
     profile = load_json(root / PROFILE_PATH.relative_to(ROOT))
     oracle = load_json(root / ORACLE_PATH.relative_to(ROOT))
@@ -183,16 +189,32 @@ def validate_candidate(
     v2_rejection = load_json(v2_rejection_path)
     v3_rejection = (load_json(v3_rejection_path)
                     if v3_rejection_path.is_file() else {})
+    v4_rejection = (load_json(v4_rejection_path)
+                    if v4_rejection_path.is_file() else {})
     if candidate is None:
         candidate = load_json(candidate_path)
 
     errors: list[str] = []
+    active_pointer = load_json(root / ACTIVE_POINTER_PATH.relative_to(ROOT))
+    _expect(errors,
+            active_pointer.get("schema") ==
+            "parallel-mater-active-realtime-candidate/v1",
+            "active candidate pointer schema drift")
+    _expect(errors, active_pointer.get("candidate_id") == ACTIVE_ID,
+            "active candidate pointer names the wrong candidate")
+    _expect(errors,
+            active_pointer.get("manifest") ==
+            CANDIDATE_PATH.relative_to(ROOT).as_posix(),
+            "active candidate pointer names the wrong manifest")
+    _expect(errors,
+            active_pointer.get("manifest_sha256") == file_sha256(candidate_path),
+            "active candidate pointer manifest hash drift")
     _expect(errors, candidate.get("schema") == "parallel-mater-realtime-candidate/v3",
             "candidate schema is not v3")
     _expect(errors, candidate.get("id") == ACTIVE_ID,
             "active candidate id changed")
-    _expect(errors, candidate.get("task") == "F8-52",
-            "candidate freeze task is not F8-52")
+    _expect(errors, candidate.get("task") == "F8-61",
+            "candidate freeze task is not F8-61")
     _expect(errors, candidate.get("status") == "frozen-awaiting-physical-qualification",
             "candidate status is not frozen")
     source = candidate.get("source", {})
@@ -219,7 +241,7 @@ def validate_candidate(
     frozen_identities: dict[str, tuple[int, str]] = {}
     try:
         frozen_identities = revision_closure_identities(
-            str(root.resolve()), candidate_freeze_revision(root), requested)
+            str(root.resolve()), ACTIVE_SOURCE_REVISION, requested)
     except (OSError, subprocess.CalledProcessError, tarfile.TarError):
         errors.append("active source tree is unavailable for closure validation")
     for category in sorted(REQUIRED_CLOSURES & set(closures)):
@@ -263,6 +285,36 @@ def validate_candidate(
             "candidate interaction-capability surface drift")
     _expect(errors, load_json(root / CAPABILITY_PATH.relative_to(ROOT)).get(
         "api_version") == "0.3", "capability obligations are not API 0.3")
+
+    inputs = candidate.get("contract_inputs", {})
+    fixture = inputs.get("scenario_fixtures", {})
+    fixture_path = root / str(fixture.get("path", ""))
+    _expect(errors, fixture_path.is_file(), "scenario fixture contract is missing")
+    _expect(errors, fixture_path.is_file() and
+            fixture.get("sha256") == file_sha256(fixture_path),
+            "scenario fixture contract hash drift")
+    _expect(errors, fixture.get("scenario_count") == 12 and
+            fixture.get("measurement_count") == 37,
+            "scenario fixture surface drift")
+    capture_validator = inputs.get("capture_validator", {})
+    capture_validator_path = root / str(capture_validator.get("path", ""))
+    _expect(errors, capture_validator_path.is_file(),
+            "capture validator contract is missing")
+    _expect(errors, capture_validator_path.is_file() and
+            capture_validator.get("sha256") ==
+            file_sha256(capture_validator_path),
+            "capture validator contract hash drift")
+    _expect(errors,
+            capture_validator.get("schema") ==
+            "parallel-mater-realtime-device-suite-capture/v1",
+            "capture validator schema drift")
+    _expect(errors, inputs.get("capability_rows") == 49 and
+            inputs.get("public_cases") == 30,
+            "candidate contract matrix drift")
+    _expect(errors,
+            inputs.get("budgets_and_tolerances") ==
+            PROFILE_PATH.relative_to(ROOT).as_posix(),
+            "candidate budget and tolerance contract drift")
 
     audit = candidate.get("sole_path_audit", {})
     _expect(errors, audit.get("public_creation") == "ordinary-api-0.3",
@@ -407,6 +459,12 @@ def validate_candidate(
     actions = evidence.get("github_actions", {})
     _expect(errors, actions.get("result") == "success",
             "cross-platform GitHub Actions evidence did not pass")
+    _expect(errors, actions.get("head_revision") == ACTIVE_SOURCE_REVISION,
+            "GitHub Actions did not run from the frozen source revision")
+    _expect(errors, actions.get("event") == "workflow_dispatch",
+            "GitHub Actions source run was not the immutable manual run")
+    _expect(errors, actions.get("run_id") == ACTIVE_CI_RUN_ID,
+            "GitHub Actions run identity drift")
     artifact_text = " ".join(item.get("name", "")
                              for item in actions.get("artifacts", [])).lower()
     for platform in ("ubuntu", "windows", "macos", "android", "ipad"):
@@ -418,6 +476,22 @@ def validate_candidate(
                                               str(artifact.get(key, "")))),
                     f"artifact {artifact.get('name')} lacks {key}")
 
+    source_clean = evidence.get("source_clean_evidence", {})
+    for platform in ("linux", "macos", "windows"):
+        report = source_clean.get(f"{platform}_sdk_report", {})
+        _expect(errors,
+                report.get("source_revision") == ACTIVE_SOURCE_REVISION and
+                report.get("source_dirty") is False,
+                f"{platform} SDK evidence did not use a clean frozen source")
+
+    toolchain_scopes = {
+        item.get("scope") for item in candidate.get("toolchains", [])
+    }
+    _expect(errors, {
+        "portable-sdk-linux", "portable-sdk-macos", "portable-sdk-windows",
+        "shared-physics-shaders", "android-gallery", "ipados-gallery",
+    } <= toolchain_scopes, "candidate toolchain coverage is incomplete")
+
     applications = candidate.get("application_artifacts", [])
     application_platforms = {item.get("platform") for item in applications}
     _expect(errors, {"macos", "ipados", "android"} <= application_platforms,
@@ -426,6 +500,23 @@ def validate_candidate(
         _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
                                           str(artifact.get("sha256", "")))),
                 f"application artifact {artifact.get('id')} lacks SHA-256")
+        _expect(errors, artifact.get("qualification_claim") is False,
+                f"application artifact {artifact.get('id')} claims qualification")
+    ipad_gallery = next(
+        (item for item in applications if item.get("id") == "ci-ipados-gallery"),
+        {},
+    )
+    embedded = ipad_gallery.get("embedded_build_info", {})
+    _expect(errors, embedded.get("revision") == ACTIVE_SOURCE_REVISION,
+            "iPad compile artifact embeds the wrong source revision")
+    _expect(errors, embedded.get("dirty") is True and bool(embedded.get("reason")),
+            "historical iPad CI scratch dirtiness is not explicitly bounded")
+    mobile_workflow = (
+        root / ".github/workflows/mobile-gallery.yml"
+    ).read_text(encoding="utf-8")
+    _expect(errors, '$RUNNER_TEMP/xcode-version.txt' in mobile_workflow and
+            "tee xcode-version.txt" not in mobile_workflow,
+            "iPad CI still dirties the source checkout before build identity")
 
     prerequisite_records = {
         item.get("task"): item
@@ -467,17 +558,31 @@ def validate_candidate(
         _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
                                           str(installed.get(key, "")))),
                 f"installed consumer preflight lacks {key}")
+    validator = execution.get("f8_58_validator", {})
+    _expect(errors, validator.get("status") == "passed" and
+            validator.get("runtime_variant") == "cpu-runtime" and
+            validator.get("scenario_count") == 12 and
+            validator.get("qualification_claim") is False,
+            "F8-58 CPU contract preflight is incomplete")
+    for key in ("capture_sha256", "report_sha256"):
+        _expect(errors, bool(re.fullmatch(
+            r"[0-9a-f]{64}", str(validator.get(key, "")))),
+            f"F8-58 CPU contract preflight lacks {key}")
+    _expect(errors, execution.get("physical_qualification_claim") is False,
+            "candidate preflight claims final physical qualification")
 
     supersedes = candidate.get("supersedes", {})
-    _expect(errors, supersedes.get("candidate_id") == V3_REJECTED_ID and
-            supersedes.get("manifest_sha256") == V3_MANIFEST_SHA256,
-            "candidate does not supersede exact v3 identity")
+    _expect(errors, supersedes.get("candidate_id") == V4_REJECTED_ID and
+            supersedes.get("manifest_sha256") == V4_MANIFEST_SHA256,
+            "candidate does not supersede exact v4 identity")
     _expect(errors, file_sha256(v1_candidate_path) == V1_MANIFEST_SHA256,
             "rejected v1 candidate manifest changed")
     _expect(errors, file_sha256(v2_candidate_path) == V2_MANIFEST_SHA256,
             "rejected v2 candidate manifest changed")
     _expect(errors, file_sha256(v3_candidate_path) == V3_MANIFEST_SHA256,
             "superseded v3 candidate manifest changed")
+    _expect(errors, file_sha256(v4_candidate_path) == V4_MANIFEST_SHA256,
+            "superseded v4 candidate manifest changed")
     _expect(errors, v1_rejection.get("candidate_id") == V1_REJECTED_ID and
             v1_rejection.get("candidate_manifest_sha256") == V1_MANIFEST_SHA256,
             "v1 rejection record lost its candidate identity")
@@ -505,12 +610,25 @@ def validate_candidate(
             v3_rejection.get("status") == "superseded-incomplete-single-path",
             "v3 candidate is not durably superseded")
     v3_replacement = v3_rejection.get("replacement", {})
-    _expect(errors, v3_replacement.get("candidate_id") == ACTIVE_ID and
+    _expect(errors, v3_replacement.get("candidate_id") == V4_REJECTED_ID and
             v3_replacement.get("candidate_manifest_sha256") ==
+            V4_MANIFEST_SHA256,
+            "v3 supersession history no longer routes to exact v4")
+    _expect(errors, v4_rejection.get("candidate_id") == V4_REJECTED_ID and
+            v4_rejection.get("candidate_manifest_sha256") ==
+            V4_MANIFEST_SHA256,
+            "v4 supersession record lost its candidate identity")
+    _expect(errors,
+            v4_rejection.get("status") ==
+            "superseded-repaired-matrix-refreeze",
+            "v4 candidate is not durably superseded")
+    v4_replacement = v4_rejection.get("replacement", {})
+    _expect(errors, v4_replacement.get("candidate_id") == ACTIVE_ID and
+            v4_replacement.get("candidate_manifest_sha256") ==
             file_sha256(candidate_path),
-            "v3 supersession record routes to the wrong replacement")
+            "v4 supersession record routes to the wrong replacement")
     for label, rejection in (("v1", v1_rejection), ("v2", v2_rejection),
-                             ("v3", v3_rejection)):
+                             ("v3", v3_rejection), ("v4", v4_rejection)):
         _expect(errors, rejection.get("evidence_union_allowed") is False,
                 f"{label} rejection record permits evidence union")
         invalidated = {
@@ -534,8 +652,8 @@ def validate_candidate(
     candidate_sha256 = file_sha256(candidate_path)
     for task_id in sorted(QUALIFICATION_TASKS):
         task = load_json(root / TASK_DIR.relative_to(ROOT) / f"{task_id}.json")
-        _expect(errors, "F8-52" in task.get("dependencies", []),
-                f"{task_id} does not depend on F8-52")
+        _expect(errors, "F8-61" in task.get("dependencies", []),
+                f"{task_id} does not depend on F8-61")
         scope = task.get("scope", "")
         _expect(errors, ACTIVE_ID in scope,
                 f"{task_id} does not route to the exact replacement")
@@ -544,15 +662,15 @@ def validate_candidate(
                 f"{task_id} does not bind exact source identity")
         _expect(errors, candidate_sha256 in scope,
                 f"{task_id} does not bind exact candidate manifest")
-        _expect(errors, V3_REJECTED_ID in scope and "interim" in scope and
-                "cannot be unioned" in scope,
-                f"{task_id} does not preserve v3 interim provenance")
+        _expect(errors, V4_REJECTED_ID in scope and V3_REJECTED_ID in scope and
+                "interim" in scope and "cannot be unioned" in scope,
+                f"{task_id} does not preserve candidate history")
     exit_dependencies = set(load_json(
         root / TASK_DIR.relative_to(ROOT) / "F8-99.json"
     ).get("dependencies", []))
     _expect(errors, QUALIFICATION_TASKS |
             {"F8-33", "F8-34", "F8-35", "F8-36", "F8-37", "F8-38",
-             "F8-52"}
+             "F8-52", "F8-61"}
             <= exit_dependencies,
             "F8-99 lacks a repair, refreeze or qualification dependency")
     return errors

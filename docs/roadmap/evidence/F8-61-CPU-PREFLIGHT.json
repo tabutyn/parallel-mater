@@ -1,0 +1,47 @@
+{
+  "schema": "parallel-mater-f8-61-cpu-preflight/v1",
+  "task": "F8-61",
+  "status": "passed",
+  "candidate": {
+    "id": "realtime-single-step-v1-cfb104b",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v5.json",
+    "manifest_sha256": "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000",
+    "source_revision": "cfb104b1c530f859d9a1c3549d2e67c7de31c289",
+    "source_tree": "e6838f954384363e79a4485f3c2cfb6ff5e0ea79"
+  },
+  "installed_consumer_preflight": {
+    "runtime_variant": "cpu-runtime",
+    "status": "passed",
+    "source_revision": "f3f774eef474397ae943be3e48a8bf1642463dc8",
+    "source_dirty": false,
+    "host": "ThomasLaptop; Debian GNU/Linux; Linux 6.1.0-54-amd64 x86_64; Intel Core i7-11370H",
+    "compiler": "GNU 12.2.0",
+    "check_count": 14,
+    "checks_passed": 14,
+    "report_sha256": "95e07431cf59354a6ddfb2b2f10a0e3dd1af637c0f217bab96fb3075531fcc63",
+    "driver_sha256": "034a304a72d7448de4008d5e05a6827430b0825f4b79db57b15d988d8881324e",
+    "driver_manifest_sha256": "627449185d2ed0a61ddc71d596ab2240fe9b16f33c27ece6ca1f27cc92035d1c",
+    "plain_observation_sha256": "71970c73818b51257226d289e0e59a221481e7278d3ade3460148a3d4809feb5",
+    "validation_observation_sha256": "f89e88931ae9c211ecbb5320ac9a4327df8e91e076e007e308a23fa4f6e99afc",
+    "capacity_regression_sha256": "9acf79349b3be807f1332d6c75bbbd7003aa6009a52ae672fad213128cc404d4",
+    "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /tmp/f8-61-sdk-preflight --require-realtime-driver"
+  },
+  "f8_58_validator": {
+    "runtime_variant": "cpu-runtime",
+    "status": "passed",
+    "scenario_count": 12,
+    "negative_control_count": 5,
+    "capture_sha256": "3b13ce70b19dc6de71d0c2dabd1d03fc49808eec8e0c2fd431cfe75e93ecb953",
+    "report_sha256": "33ea0acda451b4b7a3789bc4fef99f6749b4c786981c4b76cee47d2ae5b8cd73",
+    "qualification_claim": false
+  },
+  "ctest": {
+    "command": "ctest --test-dir build-sdk-cpu -j 6 --output-on-failure",
+    "total": 103,
+    "passed": 103,
+    "failed": 0,
+    "unsupported_feature_skips": 14
+  },
+  "physical_qualification_claim": false,
+  "claim": "The frozen candidate is reproducible and executable through the installed public CPU API, including plain and validation-enabled observations, the shared 12-scenario F8-58 contract, all five negative controls, and the full CPU test suite. This preflight does not replace F8-53 physical CPU qualification or any GPU target qualification."
+}

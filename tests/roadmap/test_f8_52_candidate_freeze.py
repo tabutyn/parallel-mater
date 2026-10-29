@@ -17,13 +17,14 @@ from check_realtime_candidate import (  # noqa: E402
 )
 
 
-class F852CandidateFreezeTests(unittest.TestCase):
+class F861CandidateFreezeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
     def test_final_candidate_is_frozen_without_drift(self):
         self.assertEqual(validate_candidate(), [])
+        self.assertEqual(self.candidate["task"], "F8-61")
 
     def test_every_required_protected_drift_is_rejected(self):
         closures = {
@@ -49,16 +50,35 @@ class F852CandidateFreezeTests(unittest.TestCase):
         self.assertIn("active source revision drift", errors)
         self.assertIn("active source tree drift", errors)
 
+    def test_scenario_and_capture_contract_drift_is_rejected(self):
+        tampered = copy.deepcopy(self.candidate)
+        tampered["contract_inputs"]["scenario_fixtures"]["sha256"] = "0" * 64
+        tampered["contract_inputs"]["capture_validator"]["sha256"] = "0" * 64
+        errors = validate_candidate(tampered)
+        self.assertIn("scenario fixture contract hash drift", errors)
+        self.assertIn("capture validator contract hash drift", errors)
+
+    def test_ipad_ci_does_not_dirty_the_source_checkout(self):
+        workflow = (ROOT / ".github/workflows/mobile-gallery.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('$RUNNER_TEMP/xcode-version.txt', workflow)
+        self.assertNotIn("tee xcode-version.txt", workflow)
+
     def test_only_final_candidate_can_receive_qualification_evidence(self):
         routing = self.candidate["qualification_routing"]
         self.assertEqual(routing["accepted_candidate"], ACTIVE_ID)
         self.assertFalse(routing["evidence_union_allowed"])
+        self.assertEqual(
+            self.candidate["supersedes"]["candidate_id"],
+            "realtime-single-step-v1-5a811c4",
+        )
         for task_id in routing["tasks"]:
             task = json.loads(
                 (ROOT / "docs/roadmap/tasks" / f"{task_id}.json")
                 .read_text(encoding="utf-8")
             )
-            self.assertIn("F8-52", task["dependencies"])
+            self.assertIn("F8-61", task["dependencies"])
             self.assertIn(ACTIVE_ID, task["scope"])
             self.assertIn(ACTIVE_SOURCE_REVISION, task["scope"])
             self.assertIn("cannot be unioned", task["scope"])

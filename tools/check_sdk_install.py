@@ -191,10 +191,23 @@ def main():
         build = output / "external-build"
         observations = output / "realtime-observations"
         observations.mkdir()
-        candidate_path = (
-            root / "conformance/v1/qualification/realtime-candidate-v4.json")
+        active_candidate_path = (
+            root / "conformance/v1/qualification/active-realtime-candidate.json")
+        active_candidate = json.loads(
+            active_candidate_path.read_text(encoding="utf-8"))
+        candidate_relative = Path(str(active_candidate["manifest"]))
+        if candidate_relative.is_absolute() or ".." in candidate_relative.parts:
+            raise RuntimeError(
+                "active realtime candidate manifest must be repository-relative")
+        candidate_path = root / candidate_relative
         candidate_bytes = candidate_path.read_bytes()
         candidate = json.loads(candidate_bytes)
+        candidate_sha256 = hashlib.sha256(
+            candidate_bytes.replace(b"\r\n", b"\n")).hexdigest()
+        if candidate_sha256 != active_candidate.get("manifest_sha256"):
+            raise RuntimeError("active realtime candidate manifest hash drift")
+        if candidate.get("id") != active_candidate.get("candidate_id"):
+            raise RuntimeError("active realtime candidate id drift")
         installed_cpu_manifest = (
             sdk / "share/parallel-mater/drivers.d/parallel_mater_slang_cpu.json")
         realtime_available = installed_cpu_manifest.is_file()
@@ -214,7 +227,7 @@ def main():
             f"-DPM_REALTIME_OBSERVATION_DIR={observations}",
             f"-DPM_REALTIME_CANDIDATE_ID={candidate['id']}",
             "-DPM_REALTIME_CANDIDATE_SHA256=" +
-                hashlib.sha256(candidate_bytes).hexdigest(),
+                candidate_sha256,
             "-DPM_REALTIME_CANDIDATE_REVISION=" +
                 candidate["source"]["revision"]])
         run("consumer-build", ["cmake", "--build", build, "--config", args.config,
