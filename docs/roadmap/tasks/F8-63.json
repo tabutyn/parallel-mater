@@ -1,0 +1,25 @@
+{
+  "id": "F8-63",
+  "title": "Refreeze candidate after Linux CUDA repairs",
+  "status": "open",
+  "dependencies": [
+    "F8-62"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Green protected CI for the complete repaired candidate closure"
+  ],
+  "scope": "Freeze a new immutable sole-path candidate after F8-62 repairs the physical Linux CUDA Gallery failures. Record one exact source commit, tree, manifest hash, protected closure, runtime variants, toolchains and green CI run. Preserve candidate v5 and its F8-24 failure as rejected historical provenance, never union its partial passing observations with the replacement, and route every unfinished physical qualification row to the new identity before it can resume.",
+  "acceptance": [
+    "A new immutable candidate manifest records the exact repaired source commit and tree, public headers, shared Slang sources, runtime variants, scenario fixtures, capture validator contract, 49 capability rows, 30 public cases, fixed budgets and unchanged quality tolerances.",
+    "The protected closure is mechanically regenerated and independently hash-verified. Every required portable CI lane and the complete physical Linux CUDA regression used by F8-62 pass from the exact frozen source.",
+    "Candidate v5, its exact manifest and docs/roadmap/evidence/F8-24-CANDIDATE-V5-LINUX-CUDA-FAILURE.json remain immutable rejected history; no old passing result is relabeled or combined with replacement evidence.",
+    "A coordination change writes the replacement candidate identity, manifest hash, source/tree and required CI run into F8-24 through F8-30 and F8-53 before any of those qualification tasks becomes ready.",
+    "Final device qualification can reproduce the replacement from documented commands without changing physics, capabilities, public cases, work budgets, tolerances or schedule. Any later protected change creates another candidate instead of mutating this freeze."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

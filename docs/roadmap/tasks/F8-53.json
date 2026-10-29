@@ -5,7 +5,8 @@
   "dependencies": [
     "F8-23",
     "F8-52",
-    "F8-61"
+    "F8-61",
+    "F8-63"
   ],
   "locks": [
     "f8-qualification-cpu"
