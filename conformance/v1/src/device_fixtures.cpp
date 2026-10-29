@@ -41,7 +41,8 @@ std::string fluid_quality_failure(const char *profile_id,
 } // namespace
 
 std::string conformance_fluid_pair_quality(
-    const std::filesystem::path &temporary_output) {
+    const std::filesystem::path &temporary_output,
+    ExecutionStatus *execution_status) {
     std::filesystem::create_directories(temporary_output.parent_path());
     std::string output = temporary_output.string();
     char program[] = "mobile-quality";
@@ -51,9 +52,13 @@ std::string conformance_fluid_pair_quality(
     char *arguments[]{program, output_option, output.data(), driver_option,
                       driver_name};
     const int status = parallel_mater_fluid_pair_quality_fixture(5, arguments);
+    if (execution_status != nullptr)
+        *execution_status = status == 0 ? ExecutionStatus::completed
+            : status == 77 ? ExecutionStatus::unsupported
+                           : ExecutionStatus::failed;
     if (status == 0) return read_file(temporary_output);
     return fluid_quality_failure(
-        "core-conservation-stability-v1", PM_QUALITY_PROFILE_SHA256, status);
+        "core-conservation-stability-v2", PM_QUALITY_PROFILE_SHA256, status);
 }
 
 std::string conformance_fluid_self_quality(

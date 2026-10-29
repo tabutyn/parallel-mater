@@ -40,9 +40,10 @@ allocation, capacity growth, intra-tick host readback or global device wait.
 Material and geometry inputs are checked against the existing F8-13 envelope
 before device work. The maximum speed is rounded conservatively below the
 half-characteristic-length boundary so valid meshes cannot fail from a
-floating-point boundary product. Fracture remains unsupported in this profile
-until F8-48 owns its topology lifecycle; ordinary whole-cloth replacement is
-accepted only at a tick boundary and receives a new generation/revision.
+floating-point boundary product. At this historical F8-41 boundary fracture
+remained unsupported until its topology lifecycle was implemented. F8-60 now
+integrates that lifecycle into the shared fixed-tick commit, including normal
+public execution of the Cloth Tear and Soft Body Cloth Gallery cases.
 
 Exact-limit preflight failure occurs before staging can publish. The public
 failure fixture lowers the workgroup limit by one, observes
@@ -66,9 +67,10 @@ and zero final kinetic energy. The complete host suite, CUDA adapter build,
 Vulkan device build and Metal binding syntax also pass.
 
 F8-41 binds cloth self-dynamics and its frozen contact consumer. Rigid/cloth
-contact generation and bidirectional response belong to F8-45, other domain
-couplings retain their later leaves, and fracture/topology mutation belongs to
-F8-48. No unavailable interaction mode is advertised.
+contact generation and bidirectional response belonged to F8-45, other domain
+couplings retained their later leaves, and fracture/topology mutation was
+assigned to F8-48. F8-60 closes the remaining production integration without
+changing this historical task's evidence.
 
 Exact commands, device identities and artifact hashes are recorded in
 [`evidence/F8-41-cloth-production-ticks.json`](evidence/F8-41-cloth-production-ticks.json).

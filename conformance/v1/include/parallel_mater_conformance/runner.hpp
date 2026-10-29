@@ -31,6 +31,8 @@ struct CaseExecution {
     const std::filesystem::path &root);
 [[nodiscard]] std::string conformance_rope_self_contact_audit_quality(
     const std::filesystem::path &root);
+[[nodiscard]] std::string conformance_rope_self_contact_fixed_tick_audit_quality(
+    const std::filesystem::path &root);
 [[nodiscard]] std::string conformance_fluid_cloth_containment_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
@@ -112,7 +114,8 @@ struct CaseExecution {
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_pair_quality(
-    const std::filesystem::path &temporary_output);
+    const std::filesystem::path &temporary_output,
+    ExecutionStatus *execution_status = nullptr);
 [[nodiscard]] std::string conformance_fluid_self_quality(
     const std::filesystem::path &temporary_output,
     const std::string &profile_id,

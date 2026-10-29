@@ -126,7 +126,11 @@ void commit_cloth_realtime(
     const void *previous_positions, void *velocities,
     const float *inverse_masses, const float *characteristic_lengths,
     const void *contact_normals, const float *contact_offsets,
-    const std::uint8_t *contact_active, std::uint32_t count,
+    const std::uint8_t *contact_active, const void *bonds,
+    std::uint8_t *bond_active, std::uint8_t *bond_damage,
+    std::uint32_t bond_count, float break_strain,
+    std::uint32_t fracture_persistence, const void *contact_impulses,
+    float impact_break_threshold, std::uint32_t count,
     std::uint32_t capacity, float thickness, float friction,
     float maximum_speed, float timestep, std::uint32_t profile_version,
     std::uint32_t *status) noexcept {
@@ -139,9 +143,13 @@ void commit_cloth_realtime(
         const_cast<float *>(characteristic_lengths),
         const_cast<Vec3_0 *>(as<Vec3_0>(contact_normals)),
         const_cast<float *>(contact_offsets),
-        const_cast<unsigned char *>(contact_active), count, capacity,
-        thickness, friction, maximum_speed, timestep, profile_version,
-        status);
+        const_cast<unsigned char *>(contact_active),
+        const_cast<ClothBond_0 *>(as<ClothBond_0>(bonds)), bond_active,
+        bond_damage, bond_count, break_strain, fracture_persistence,
+        const_cast<FluidBodyImpulse_0 *>(
+            as<FluidBodyImpulse_0>(contact_impulses)),
+        impact_break_threshold, count, capacity, thickness, friction,
+        maximum_speed, timestep, profile_version, status);
 }
 
 void project_cloth_volume(

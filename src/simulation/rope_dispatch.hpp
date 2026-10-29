@@ -83,7 +83,8 @@ void project_rope_realtime_contacts(
     const void *contact_normals, const float *contact_offsets,
     const std::uint8_t *contact_active, std::uint32_t count,
     std::uint32_t capacity, float node_spacing, float radius,
-    float friction, float timestep, std::uint32_t profile_version,
+    bool self_collision, float friction, float timestep,
+    std::uint32_t profile_version,
     std::uint32_t *status) noexcept;
 
 void commit_rope_realtime(

@@ -52,9 +52,9 @@ int main() {
     policy.pSoftBodyMaterials = &soft_material; policy.pSmokeMaterials = &smoke_material;
     PmPhysicsPipeline pipeline{};
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &pipeline) == PM_SUCCESS);
-    // Alternate grid/particle smoke layouts within the declared slot. Cloth
-    // fracture remains a record-time capacity contract; the fixed runtime does
-    // not execute fracture until its topology lifecycle is implemented.
+    // Alternate grid/particle smoke layouts within the declared slot. The
+    // fracture pipeline below also checks its stricter record-time capacity;
+    // physical topology execution is covered by deformable_command_api_tests.
     PmPhysicsPipeline compact_pipeline{};
     smoke_material.gridResolution = 0;
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &compact_pipeline) == PM_SUCCESS);

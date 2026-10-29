@@ -1,7 +1,7 @@
 {
   "id": "F8-60",
   "title": "Reconcile the final capability and public-case matrix",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-52",
     "F8-58"
@@ -20,15 +20,27 @@
     "Capability enumeration, public case registration, Gallery behavior and conformance captures agree exactly. Missing production integration is a failure, not a newly unsupported row, and no driver-private state satisfies an assertion.",
     "Portable tests and physical Metal artifacts prove the repaired 49-row and 30-case matrix without changing fixed work budgets, quality tolerances or the sole public schedule; all protected closure changes are handed to F8-61."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "ff5bea73-1bb6-4d61-9393-487c99b2fff6",
-    "owner": "codex-f8-capability-repair",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-60/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-29T02:45:03Z",
-    "heartbeat_at": "2026-10-29T02:45:03Z",
-    "expires_at": "2026-10-30T02:45:03Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-60-capability-case-reconciliation.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "ff5bea73-1bb6-4d61-9393-487c99b2fff6",
+        "owner": "codex-f8-capability-repair",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-60/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-29T02:45:03Z",
+        "heartbeat_at": "2026-10-29T02:45:03Z",
+        "expires_at": "2026-10-30T02:45:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-29T15:11:06Z",
+      "reason": "Physical Metal and CUDA both enumerate 49 capabilities, complete all 30 public cases, pass equal-fluid and rope-self analytic profiles, and pass their full exact-revision suites.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-60-capability-case-reconciliation.json"
+      ]
+    }
+  ]
 }

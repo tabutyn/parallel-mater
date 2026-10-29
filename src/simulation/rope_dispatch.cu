@@ -223,7 +223,8 @@ void project_rope_realtime_contacts(
     const void *contact_normals, const float *contact_offsets,
     const std::uint8_t *contact_active, std::uint32_t count,
     std::uint32_t capacity, float node_spacing, float radius,
-    float friction, float timestep, std::uint32_t profile_version,
+    bool self_collision, float friction, float timestep,
+    std::uint32_t profile_version,
     std::uint32_t *status) noexcept {
     rope_realtime_project_contacts<<<dim3(grid.x, grid.y, grid.z),
         dim3(block.x, block.y, block.z), 0U,
@@ -235,7 +236,8 @@ void project_rope_realtime_contacts(
         const_cast<Vec3_0 *>(as<Vec3_0>(contact_normals)),
         const_cast<float *>(contact_offsets),
         const_cast<unsigned char *>(contact_active), count, capacity,
-        node_spacing, radius, friction, timestep, profile_version, status);
+        node_spacing, radius, static_cast<std::uint32_t>(self_collision),
+        friction, timestep, profile_version, status);
 }
 
 void commit_rope_realtime(

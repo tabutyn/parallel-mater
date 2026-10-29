@@ -23,7 +23,8 @@ add_library(parallel-mater-driver-slang-metal SHARED
     src/simulation/metal_exports.cpp src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-driver-slang-metal PRIVATE cxx_std_20)
 target_compile_definitions(parallel-mater-driver-slang-metal PRIVATE
-    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 PARALLEL_MATER_METAL_DRIVER=1)
+    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 PARALLEL_MATER_METAL_DRIVER=1
+    PARALLEL_MATER_QUALIFIED_EQUAL_FLUID=1)
 target_include_directories(parallel-mater-driver-slang-metal PRIVATE
     src/device/metal_compat src include "${PARALLEL_MATER_API_GENERATED_DIR}")
 target_compile_options(parallel-mater-driver-slang-metal PRIVATE

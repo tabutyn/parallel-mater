@@ -89,15 +89,21 @@ void commit_cloth_realtime(
     const void *previous_positions, void *velocities,
     const float *inverse_masses, const float *characteristic_lengths,
     const void *contact_normals, const float *contact_offsets,
-    const std::uint8_t *contact_active, std::uint32_t count,
+    const std::uint8_t *contact_active, const void *bonds,
+    std::uint8_t *bond_active, std::uint8_t *bond_damage,
+    std::uint32_t bond_count, float break_strain,
+    std::uint32_t fracture_persistence, const void *contact_impulses,
+    float impact_break_threshold, std::uint32_t count,
     std::uint32_t capacity, float thickness, float friction,
     float maximum_speed, float timestep, std::uint32_t profile_version,
     std::uint32_t *status) noexcept {
     (void)metal::launch(stream, "cloth_realtime_commit", grid,
         positions, previous_positions, velocities, inverse_masses,
         characteristic_lengths, contact_normals, contact_offsets,
-        contact_active, count, capacity, thickness, friction, maximum_speed,
-        timestep, profile_version, status);
+        contact_active, bonds, bond_active, bond_damage, bond_count,
+        break_strain, fracture_persistence, contact_impulses,
+        impact_break_threshold, count, capacity, thickness, friction,
+        maximum_speed, timestep, profile_version, status);
 }
 
 void project_cloth_volume(

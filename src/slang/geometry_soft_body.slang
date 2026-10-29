@@ -263,7 +263,8 @@ void deformable_collide(
     }
     BodyParameters body = parameters[bestBody];
     RigidBodyState state = states[bestBody];
-    if (couple_dynamic && body.motion == MotionType.dynamic)
+    if (couple_dynamic && body.motion == MotionType.dynamic &&
+        pmBufferPresent(dynamic_contact_flag))
         pmAtomicExchange(dynamic_contact_flag, 1u);
     if (pmBufferPresent(contact_normals)) contact_normals[vertex] = bestNormal;
     if (pmBufferPresent(accumulated_normal_delta))

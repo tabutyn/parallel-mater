@@ -57,7 +57,6 @@ int main() {
     using namespace parallel_mater::gallery;
     const std::filesystem::path assets{PARALLEL_MATER_GALLERY_ASSET_DIR};
     std::size_t supported{};
-    std::size_t unavailable{};
 
     for (const GalleryEntry &entry : gallery_entries) {
         SceneDefinition scene;
@@ -66,13 +65,6 @@ int main() {
                 std::string(entry.name) + ": " + error);
         const bool applied =
             apply_gallery_fixed_tick_material_contract(scene, error);
-        if (!gallery_fixed_tick_supported(entry.context)) {
-            require(!applied && error.find("cloth fracture") != std::string::npos,
-                    std::string(entry.name) +
-                        ": unsupported fracture was not explicit");
-            ++unavailable;
-            continue;
-        }
         require(applied, std::string(entry.name) + ": " + error);
         ++supported;
 
@@ -114,8 +106,8 @@ int main() {
                         ": smoke pressure-cycle envelope");
     }
 
-    require(supported == 26U && unavailable == 2U,
+    require(supported == 28U,
             "fixed-tick Gallery availability count changed");
-    std::cout << "PASS: 26 Gallery scenes migrated; 2 fracture scenes explicit\n";
+    std::cout << "PASS: all 28 Gallery scenes use the fixed-tick material contract\n";
     return 0;
 }

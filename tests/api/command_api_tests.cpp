@@ -317,6 +317,7 @@ int main() {
     CHECK(pmGetNativeBuffer(device, imported, &borrowed_round_trip) == PM_SUCCESS);
     CHECK(borrowed_round_trip.owningQueueFamilyIndex ==
           PM_QUEUE_FAMILY_EXTERNAL);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     pmDestroyBuffer(device, imported);
     CHECK(pmGetDeviceMemoryBudget(device, &borrowed_budget) == PM_SUCCESS);
     CHECK(borrowed_budget.borrowedBufferBytes == 0U);
@@ -413,13 +414,13 @@ int main() {
         .kinematicViscosity = 0.02F,
         .normalDamping = 0.0F,
         .velocityDamping = 0.2F,
-        .maximumSpeed = 8.0F,
+        .maximumSpeed = 2.9F,
         .maximumPairAcceleration = 0.0F,
         .densityIterations = 4U};
     pipeline_info.fluidMaterialCount = 1U;
     pipeline_info.pFluidMaterials = &liquid_material;
     const PmClothMaterialState cloth_material{
-        0.02F, 0.025F, 1.0e-6F, 0.1F, 5.0F, 0.4F,
+        0.02F, 0.025F, 0.0F, 0.01F, 5.0F, 0.4F,
         8U, 0.0F, 4U, 0.0F, PM_FALSE, 0.0F, 1.0e-7F};
     pipeline_info.clothMaterialCount = 1U;
     pipeline_info.pClothMaterials = &cloth_material;

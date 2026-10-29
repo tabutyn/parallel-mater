@@ -933,7 +933,8 @@ void copy_particle_state(const std::vector<State> &states,
         std::string error;
         require(runtime.command_scene.step(static_cast<float>(definition.timestep),
                     definition.substeps, gravity, runtime.frame, error, true),
-                "step command scene", error);
+                "step command scene frame " + std::to_string(frame + 1U),
+                error);
         const std::uint32_t completed = frame + 1U;
         if (every_frame || std::find(definition.checkpoints.begin(),
                                      definition.checkpoints.end(), completed) !=
@@ -1085,9 +1086,10 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 55U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 57U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
+            {"quality profile", "conformance/v1/quality/core-conservation-v2.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-brick-penetration-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-kinematic-sweep-v1.json"},
@@ -1098,6 +1100,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/cloth-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/rope-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/rope-rigid-attachment-v1.json"},
+            {"quality profile", "conformance/v1/quality/rope-self-contact-v3.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-containment-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-rigid-contact-v1.json"},
@@ -1521,6 +1524,8 @@ int conformance_command_main(int argc, char **argv) {
                 "rope-self-contact-v1";
             const bool rope_self_contact_audit = arguments.quality_id ==
                 "rope-self-contact-v2";
+            const bool rope_self_contact_fixed_tick_audit =
+                arguments.quality_id == "rope-self-contact-v3";
             const bool fluid_cloth_containment = arguments.quality_id ==
                 "fluid-cloth-containment-v1";
             const bool fluid_soft_contact = arguments.quality_id ==
@@ -1562,11 +1567,14 @@ int conformance_command_main(int argc, char **argv) {
             const bool smoke_self_viscosity = arguments.quality_id ==
                 "smoke-self-viscosity-v1";
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
+            const bool fluid_pair = arguments.quality_id ==
+                "core-conservation-v2";
             const bool fluid_self = arguments.quality_id ==
                     "fluid-self-contact-v1" ||
                 arguments.quality_id == "fluid-self-pressure-v1" ||
                 arguments.quality_id == "fluid-self-viscosity-v1";
 #else
+            constexpr bool fluid_pair = false;
             constexpr bool fluid_self = false;
 #endif
             const bool smoke_fluid_drag = arguments.quality_id ==
@@ -1585,6 +1593,7 @@ int conformance_command_main(int argc, char **argv) {
                 "externally-heated-fluid-v1";
             if (!brick && !attachment && !rope_self_contact &&
                 !rope_self_contact_audit &&
+                !rope_self_contact_fixed_tick_audit &&
                 !fluid_cloth_containment &&
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
@@ -1602,7 +1611,7 @@ int conformance_command_main(int argc, char **argv) {
                 !smoke_self_pressure && !fluid_cloth_contact &&
                 !cloth_smoke_contact && !soft_smoke_contact &&
                 !rope_smoke_contact &&
-                !smoke_self_viscosity && !fluid_self &&
+                !smoke_self_viscosity && !fluid_pair && !fluid_self &&
                 !smoke_fluid_drag && !smoke_cloth_drag && !smoke_soft_drag &&
                 !smoke_rope_drag && !smoke_rigid_drag &&
                 !fluid_smoke_phase &&
@@ -1620,7 +1629,26 @@ int conformance_command_main(int argc, char **argv) {
                     result = conformance_rope_self_contact_quality(root);
                 } else if (rope_self_contact_audit) {
                     result = conformance_rope_self_contact_audit_quality(root);
+                } else if (rope_self_contact_fixed_tick_audit) {
+                    result =
+                        conformance_rope_self_contact_fixed_tick_audit_quality(
+                            root);
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
+                } else if (fluid_pair) {
+                    ExecutionStatus status{};
+                    const auto temporary = arguments.output /
+                        (arguments.quality_id + ".temporary");
+                    result = conformance_fluid_pair_quality(
+                        temporary, &status);
+                    std::filesystem::remove(temporary);
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
                 } else if (fluid_self) {
                     ExecutionStatus status{};
                     const auto temporary = arguments.output /

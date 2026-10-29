@@ -54,7 +54,7 @@ int main() {
     CHECK(pmBindBufferMemory(device, output, output_memory, 0) == PM_SUCCESS);
     void *mapped{};
     CHECK(pmMapMemory(device, output_memory, 0, buffer_info.size, &mapped) == PM_SUCCESS);
-    const PmClothCapacity cloth_capacity{3, 3, 3};
+    const PmClothCapacity cloth_capacity{10, 6, 6};
     // Nine nodes crosses two native SIMD workgroups and leaves a partial tail.
     const PmSoftBodyCapacity soft_capacity{9, 36, 9, 12};
     PmSimulationCreateInfo simulation_info{};
@@ -69,11 +69,19 @@ int main() {
     const PmSimulationMemoryBinding binding{
         allocate(requirements.persistent.size), 0, allocate(requirements.scratch.size), 0};
     CHECK(pmBindSimulationMemory(device, simulation, &binding) == PM_SUCCESS);
-    PmClothMaterialState cloth_material{};
+    std::array<PmClothMaterialState, 2> cloth_materials{};
+    auto &cloth_material = cloth_materials[0];
     cloth_material.vertexMass = 1;
     cloth_material.thickness = 0.01F;
     cloth_material.solverIterations = 4;
     cloth_material.fracturePersistenceSubsteps = 1;
+    auto &fracture_material = cloth_materials[1];
+    fracture_material.vertexMass = 1;
+    fracture_material.thickness = 0.01F;
+    fracture_material.stretchCompliance = 0.005F;
+    fracture_material.solverIterations = 4;
+    fracture_material.breakStrain = 0.0001F;
+    fracture_material.fracturePersistenceSubsteps = 1;
     PmSoftBodyMaterialState soft_material{};
     soft_material.nodeMass = 1;
     soft_material.nodeRadius = 0.01F;
@@ -85,8 +93,9 @@ int main() {
     soft_material.solverIterations = 4;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
-    pipeline_info.clothMaterialCount = pipeline_info.softBodyMaterialCount = 1;
-    pipeline_info.pClothMaterials = &cloth_material;
+    pipeline_info.clothMaterialCount = 2;
+    pipeline_info.softBodyMaterialCount = 1;
+    pipeline_info.pClothMaterials = cloth_materials.data();
     pipeline_info.pSoftBodyMaterials = &soft_material;
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) == PM_SUCCESS);
@@ -185,6 +194,44 @@ int main() {
             CHECK(std::abs(length - bond.restLength) < 0.02F);
         }
     }
+    // A public-API fracture run must split the shared vertices of two
+    // triangles and publish the rebuilt topology before the next submission.
+    const PmFloat3 fracture_vertices[4]{{-1, 2, 0}, {-1, 0, 0},
+        {1, 2, 0}, {1, 0, 0}};
+    const std::uint32_t fracture_indices[6]{0, 1, 2, 2, 1, 3};
+    const float fracture_masses[4]{0, 1, 0, 1};
+    const PmClothInfo fracture_cloth{PM_TRUE, 1, 4, fracture_vertices, 6,
+        fracture_indices, fracture_masses};
+    CHECK(pmResetFences(device, 1, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdWriteCloths(commands, simulation, 0, 1, &fracture_cloth) ==
+        PM_SUCCESS);
+    const PmStepInfo fracture_step{1.0F / 60.0F, 1, {0, -9.81F, 0}, 0};
+    for (int frame = 0; frame < 20; ++frame)
+        CHECK(pmCmdStepSimulation(commands, simulation, &fracture_step) ==
+            PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1, &fence, PM_TRUE, PM_TIMEOUT_INFINITE) ==
+        PM_SUCCESS);
+
+    CHECK(pmResetFences(device, 1, &fence) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    const PmBufferRange fracture_output{output, 0, 4096};
+    CHECK(pmCmdCopyClothState(commands, simulation, 0, &fracture_output) ==
+        PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1, &fence, PM_TRUE, PM_TIMEOUT_INFINITE) ==
+        PM_SUCCESS);
+    const auto *fracture_header =
+        static_cast<const PmDomainOutputHeader *>(mapped);
+    CHECK(fracture_header->activeCount == 6);
+    CHECK(fracture_header->capacity == cloth_capacity.vertexCapacity);
+    CHECK(fracture_header->revision > 1);
     CHECK(pmDeviceWaitIdle(device) == PM_SUCCESS);
     pmDestroyFence(device, fence);
     pmFreeCommandBuffers(device, pool, 1, &commands);
@@ -195,5 +242,6 @@ int main() {
     for (auto memory : allocations) pmFreeMemory(device, memory);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: cloth/soft-body analytic translation, pinned nodes, surface exports and replacement");
+    std::puts("PASS: cloth/soft-body analytic translation, pinned nodes, "
+        "surface exports, replacement and cloth fracture topology");
 }

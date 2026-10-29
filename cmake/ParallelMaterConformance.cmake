@@ -51,23 +51,27 @@ target_compile_definitions(parallel-mater-conformance-runner PRIVATE
     PM_CONFORMANCE_EMBEDDED=1
     PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
     PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
+if(PARALLEL_MATER_BUILD_CONFORMANCE OR
+   PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
    PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
     target_sources(parallel-mater-conformance-runner PRIVATE
         conformance/v1/src/device_fixtures.cpp
         tests/api/fluid_pair_quality_tests.cpp)
     target_compile_definitions(parallel-mater-conformance-runner PRIVATE
         PM_CONFORMANCE_DEVICE_FIXTURES=1
-        PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
+        PM_QUALITY_PROFILE_SHA256="bbde06a7321e9cd0cdb9f3e547fccdb96caa3cd479e0781c40bc81c0426698c2"
         PM_FLUID_SELF_CONTACT_PROFILE_SHA256="28b9bb8f1dbe1a9696418f93108549b65a369dd4b81f69bf714312251b8e3af2"
         PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="42825a5db3568c7d204f88958718f0a2b512880de865e036f8d82ecae0da93be"
         PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256="a41f204deac0b08a1e4741542533e17922b1af1dce38220ab05f63bfcba2e5d5")
     if(PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
         target_compile_definitions(parallel-mater-conformance-runner PRIVATE
             PM_CONFORMANCE_DRIVER_NAME="slang-vulkan")
-    else()
+    elseif(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
         target_compile_definitions(parallel-mater-conformance-runner PRIVATE
             PM_CONFORMANCE_DRIVER_NAME="slang-metal")
+    else()
+        target_compile_definitions(parallel-mater-conformance-runner PRIVATE
+            PM_CONFORMANCE_DRIVER_NAME="selected-loadable-driver")
     endif()
 endif()
 parallel_mater_enable_warnings(parallel-mater-conformance-runner)

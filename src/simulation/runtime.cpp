@@ -795,18 +795,37 @@ static Status rebuild_cloth_topology(ClothStorage &cloth, device::ExecutionQueue
             cloth.previous[node] = cloth.previous[old];
             cloth.scratch[node] = cloth.positions[old];
             cloth.velocities[node] = cloth.velocities[old];
+            cloth.realtime_positions[node] = cloth.positions[old];
+            cloth.realtime_velocities[node] = cloth.velocities[old];
             cloth.vertex_sources[node] = cloth.vertex_sources[old];
+            cloth.body_impulses[node] = {};
             cloth.rigid_contact_forces[node] = {};
             cloth.soft_body_forces[node] = {};
             if (cloth.fluid_forces) cloth.fluid_forces[node] = {};
+            if (cloth.rope_forces) cloth.rope_forces[node] = {};
+            if (cloth.smoke_forces) cloth.smoke_forces[node] = {};
+            cloth.realtime_correction_used[node] = 0.0F;
+            cloth.realtime_contact_normals[node] = {};
+            cloth.realtime_contact_offsets[node] = 0.0F;
+            cloth.realtime_contact_active[node] = 0U;
             status = write_host_objects(queue, cloth.positions + node,
                 cloth.previous + node, cloth.scratch + node, cloth.velocities + node,
-                cloth.rigid_contact_forces + node, cloth.soft_body_forces + node);
+                cloth.realtime_positions + node,
+                cloth.realtime_velocities + node,
+                cloth.body_impulses + node,
+                cloth.rigid_contact_forces + node,
+                cloth.soft_body_forces + node,
+                cloth.realtime_correction_used + node,
+                cloth.realtime_contact_normals + node,
+                cloth.realtime_contact_offsets + node,
+                cloth.realtime_contact_active + node);
             if (!status) return status;
-            if (cloth.fluid_forces) {
-                status = write_host_objects(queue, cloth.fluid_forces + node);
-                if (!status) return status;
-            }
+            for (auto *forces : {cloth.fluid_forces, cloth.rope_forces,
+                                 cloth.smoke_forces})
+                if (forces != nullptr) {
+                    status = write_host_objects(queue, forces + node);
+                    if (!status) return status;
+                }
         }
         std::copy(indices.begin(), indices.end(), cloth.indices);
         std::copy(bonds.begin(), bonds.end(), cloth.bonds);
@@ -819,14 +838,53 @@ static Status rebuild_cloth_topology(ClothStorage &cloth, device::ExecutionQueue
                 cloth.source_inverse_masses[source] *
                 static_cast<float>(cloth.source_degrees[source]) / degrees[node];
             cloth.offsets[node] = offset;
-            for (const auto &neighbor : adjacency[node]) cloth.neighbors[offset++] = neighbor;
+            float characteristic = std::numeric_limits<float>::infinity();
+            for (const auto &neighbor : adjacency[node]) {
+                cloth.neighbors[offset++] = neighbor;
+                characteristic = std::min(
+                    characteristic, neighbor.rest_length);
+            }
+            cloth.realtime_characteristic_lengths[node] = characteristic;
         }
         cloth.offsets[count] = offset;
         cloth.neighbor_count = offset;
         cloth.vertex_count = count;
         *cloth.count = count;
         cloth.topology_active.swap(active);
-        const auto status = write_host_span(queue, cloth.bond_active, cloth.bond_count);
+        if (!initial) {
+            cloth.realtime_topology_revision =
+                cloth.realtime_topology_revision ==
+                    std::numeric_limits<std::uint64_t>::max()
+                ? 1U : cloth.realtime_topology_revision + 1U;
+            for (std::uint32_t triangle = 0U;
+                 triangle < cloth.index_count / 3U; ++triangle) {
+                auto &generation =
+                    cloth.realtime_triangle_generations[triangle];
+                generation = generation ==
+                    std::numeric_limits<std::uint32_t>::max()
+                    ? 1U : generation + 1U;
+            }
+        }
+        Status status = write_host_span(
+            queue, cloth.bond_active, cloth.bond_count);
+        if (status) status = write_host_span(
+            queue, cloth.indices, cloth.index_count);
+        if (status) status = write_host_span(
+            queue, cloth.bonds, cloth.bond_count);
+        if (status) status = write_host_span(
+            queue, cloth.offsets, std::size_t{count} + 1U);
+        if (status) status = write_host_span(
+            queue, cloth.neighbors, cloth.neighbor_count);
+        if (status) status = write_host_span(
+            queue, cloth.inverse_masses, count);
+        if (status) status = write_host_span(
+            queue, cloth.free_triangle_nodes, count);
+        if (status) status = write_host_span(
+            queue, cloth.realtime_characteristic_lengths, count);
+        if (status) status = write_host_span(
+            queue, cloth.realtime_triangle_generations,
+            cloth.index_count / 3U);
+        if (status) status = write_host_span(queue, cloth.count, 1U);
         if (!status) return status;
     } catch (...) {
         return failure(StatusCode::out_of_memory, "failed to split cloth topology");
@@ -1753,6 +1811,12 @@ struct SimulationRuntime::Impl {
     }
 
     [[nodiscard]] Status finalize_realtime_lifecycle() noexcept {
+        for (auto &owner : cloths) {
+            if (!owner || !owner->alive || owner->source_indices == nullptr)
+                continue;
+            auto status = rebuild_cloth_topology(*owner, execution);
+            if (!status) return status;
+        }
         for (auto &source : particle_sources) {
             if (!source.alive || !source.data ||
                 source.realtime_proposal_count == 0U)

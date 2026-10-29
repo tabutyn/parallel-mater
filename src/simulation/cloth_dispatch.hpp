@@ -63,7 +63,11 @@ void commit_cloth_realtime(
     const void *previous_positions, void *velocities,
     const float *inverse_masses, const float *characteristic_lengths,
     const void *contact_normals, const float *contact_offsets,
-    const std::uint8_t *contact_active, std::uint32_t count,
+    const std::uint8_t *contact_active, const void *bonds,
+    std::uint8_t *bond_active, std::uint8_t *bond_damage,
+    std::uint32_t bond_count, float break_strain,
+    std::uint32_t fracture_persistence, const void *contact_impulses,
+    float impact_break_threshold, std::uint32_t count,
     std::uint32_t capacity, float thickness, float friction,
     float maximum_speed, float timestep, std::uint32_t profile_version,
     std::uint32_t *status) noexcept;

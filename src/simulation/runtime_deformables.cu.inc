@@ -767,9 +767,6 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
     cloth->volume_compliance = options.volume_compliance;
     cloth->orientation = initial_signed_volume < 0.0F ? -1.0F : 1.0F;
     if (impl_->options.realtime_spatial_enabled) {
-        if (fracture_enabled)
-            return failure(StatusCode::not_supported,
-                "realtime cloth fracture awaits topology lifecycle binding");
         float shortest = std::numeric_limits<float>::infinity();
         for (std::uint32_t vertex = 0U; vertex < count; ++vertex) {
             const float characteristic = realtime_characteristic_lengths[vertex];
@@ -848,6 +845,7 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
         cloth->realtime_contact_normals[index] = {};
         cloth->realtime_contact_offsets[index] = 0.0F;
         cloth->realtime_contact_active[index] = 0U;
+        cloth->body_impulses[index] = {};
         cloth->rigid_contact_forces[index] = {};
         cloth->soft_body_forces[index] = {};
         if (cloth->rope_forces != nullptr) cloth->rope_forces[index] = {};

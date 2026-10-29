@@ -77,17 +77,22 @@ void fluid_pair_pressure_contact(device::DispatchSize grid,
     device::DispatchSize, device::ExecutionQueue stream,
     const void *first_positions, const void *first_velocities,
     const std::uint32_t *first_count, std::uint32_t first_capacity,
-    void *first_forces, const void *second_positions,
+    std::uint32_t first_maximum_neighbors, void *first_forces,
+    const void *second_positions,
     const void *second_velocities, const std::uint32_t *second_count,
-    std::uint32_t second_capacity, void *second_forces,
+    std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
+    void *second_forces,
     const std::uint64_t *keys, const std::uint32_t *identities,
     std::uint32_t total_capacity,
-    const FluidDispatchConstants &values) noexcept {
+    const FluidDispatchConstants &values, std::uint32_t *neighbor_overflow,
+    std::uint32_t *maximum_neighbor_count, bool count_neighbors) noexcept {
     (void)metal::launch(stream, "fluid_apply_pair_pressure_contact", grid,
         first_positions, first_velocities, first_count, first_capacity,
-        first_forces, second_positions, second_velocities, second_count,
-        second_capacity, second_forces, keys, identities, total_capacity,
-        options(values));
+        first_maximum_neighbors, first_forces, second_positions,
+        second_velocities, second_count, second_capacity,
+        second_maximum_neighbors, second_forces, keys, identities,
+        total_capacity, options(values), neighbor_overflow,
+        maximum_neighbor_count, std::uint32_t{count_neighbors});
 }
 void fluid_pair_viscosity(device::DispatchSize grid,
     device::DispatchSize, device::ExecutionQueue stream,
