@@ -1,0 +1,25 @@
+{
+  "id": "F8-58",
+  "title": "Connect frozen fixed-tick oracles to public device runners",
+  "status": "open",
+  "dependencies": [
+    "F8-52"
+  ],
+  "locks": [
+    "f8-fixed-tick-oracle-integration"
+  ],
+  "requires": [
+    "Host able to build and execute the public conformance runner"
+  ],
+  "scope": "Repair the final F8 qualification harness exposed by F8-28: execute the already-frozen realtime-single-step-v1 oracle suite through normal public API creation and stepping on each selected production driver. Do not change physics, fixed work budgets, advertised capabilities, tolerances, realtime-candidate-v4, or the legacy variable-timestep profiles. This is qualification integration only; driver-private state cannot satisfy an assertion.",
+  "acceptance": [
+    "A backend-neutral public runner executes every applicable frozen runtime adapter, domain, coupling, lifecycle, negative-control and scenario row with exactly one dt=1/60 step, one spatial publication and the fixed dispatch/iteration/synchronization budget per tick.",
+    "Independent public-output assertions cover all twelve frozen scenario fixtures, including cold start, sustained execution, impact, rotation, stiff systems, mass ratio, containment, source/removal/replacement, overflow recovery, empty and sparse capacity.",
+    "The runner emits reviewable observation artifacts accepted by realtime_oracle.py and identifies the exact candidate manifest, runtime variant, binary, device and toolchain without reading driver-private state.",
+    "Legacy variable-timestep quality profiles and their historical evidence remain unchanged. The qualification report explicitly distinguishes those historical profiles from the sole fixed-tick oracle instead of submitting invalid pre-F8 steps or relabeling measurements.",
+    "Portable deterministic tests cover successful observations, missing rows, wrong timestep/substep, extra catch-up steps, changed work budgets, unsupported advertised rows and failed execution; the same runner is usable by CPU, CUDA, Vulkan, D3D12 and Metal qualification tasks."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
