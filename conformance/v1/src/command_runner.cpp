@@ -1567,11 +1567,14 @@ int conformance_command_main(int argc, char **argv) {
             const bool smoke_self_viscosity = arguments.quality_id ==
                 "smoke-self-viscosity-v1";
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
+            const bool fluid_pair = arguments.quality_id ==
+                "core-conservation-v2";
             const bool fluid_self = arguments.quality_id ==
                     "fluid-self-contact-v1" ||
                 arguments.quality_id == "fluid-self-pressure-v1" ||
                 arguments.quality_id == "fluid-self-viscosity-v1";
 #else
+            constexpr bool fluid_pair = false;
             constexpr bool fluid_self = false;
 #endif
             const bool smoke_fluid_drag = arguments.quality_id ==
@@ -1608,7 +1611,7 @@ int conformance_command_main(int argc, char **argv) {
                 !smoke_self_pressure && !fluid_cloth_contact &&
                 !cloth_smoke_contact && !soft_smoke_contact &&
                 !rope_smoke_contact &&
-                !smoke_self_viscosity && !fluid_self &&
+                !smoke_self_viscosity && !fluid_pair && !fluid_self &&
                 !smoke_fluid_drag && !smoke_cloth_drag && !smoke_soft_drag &&
                 !smoke_rope_drag && !smoke_rigid_drag &&
                 !fluid_smoke_phase &&
@@ -1631,6 +1634,21 @@ int conformance_command_main(int argc, char **argv) {
                         conformance_rope_self_contact_fixed_tick_audit_quality(
                             root);
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
+                } else if (fluid_pair) {
+                    ExecutionStatus status{};
+                    const auto temporary = arguments.output /
+                        (arguments.quality_id + ".temporary");
+                    result = conformance_fluid_pair_quality(
+                        temporary, &status);
+                    std::filesystem::remove(temporary);
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
                 } else if (fluid_self) {
                     ExecutionStatus status{};
                     const auto temporary = arguments.output /

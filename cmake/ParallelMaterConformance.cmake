@@ -51,7 +51,8 @@ target_compile_definitions(parallel-mater-conformance-runner PRIVATE
     PM_CONFORMANCE_EMBEDDED=1
     PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
     PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
+if(PARALLEL_MATER_BUILD_CONFORMANCE OR
+   PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
    PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
     target_sources(parallel-mater-conformance-runner PRIVATE
         conformance/v1/src/device_fixtures.cpp
@@ -65,9 +66,12 @@ if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
     if(PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
         target_compile_definitions(parallel-mater-conformance-runner PRIVATE
             PM_CONFORMANCE_DRIVER_NAME="slang-vulkan")
-    else()
+    elseif(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
         target_compile_definitions(parallel-mater-conformance-runner PRIVATE
             PM_CONFORMANCE_DRIVER_NAME="slang-metal")
+    else()
+        target_compile_definitions(parallel-mater-conformance-runner PRIVATE
+            PM_CONFORMANCE_DRIVER_NAME="selected-loadable-driver")
     endif()
 endif()
 parallel_mater_enable_warnings(parallel-mater-conformance-runner)

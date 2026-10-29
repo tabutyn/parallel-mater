@@ -114,7 +114,8 @@ struct CaseExecution {
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_pair_quality(
-    const std::filesystem::path &temporary_output);
+    const std::filesystem::path &temporary_output,
+    ExecutionStatus *execution_status = nullptr);
 [[nodiscard]] std::string conformance_fluid_self_quality(
     const std::filesystem::path &temporary_output,
     const std::string &profile_id,
