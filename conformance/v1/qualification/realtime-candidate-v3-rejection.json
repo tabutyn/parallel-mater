@@ -1,0 +1,34 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-3671f18",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v3.json",
+  "candidate_manifest_sha256": "d6d84f85a87af71fcdb0ee5c335f6c3979a741a151b3fbb4151096dd588d4a04",
+  "status": "superseded-incomplete-single-path",
+  "superseded_at": "2026-10-28",
+  "supersession_task": "F8-52",
+  "historical_qualification_task": "F8-23",
+  "historical_evidence": "docs/roadmap/evidence/F8-23-linux-cpu-qualification.json",
+  "reasons": [
+    "Candidate v3 predates the sole API 0.3 execution contract and complete all-supported-domain runtime/Gallery integration from F8-39 through F8-51.",
+    "Candidate v3 does not freeze the independent Metal batching, shared-BVH coupling batching or installed Mac/iPad Gallery reduction evidence from F8-54 through F8-56.",
+    "F8-23 remains valid interim CPU evidence for v3, but it cannot qualify the final SDK/Gallery candidate and cannot be combined with replacement rows."
+  ],
+  "replacement": {
+    "candidate_id": "realtime-single-step-v1-5a811c4",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v4.json",
+    "candidate_manifest_sha256": "f0f15a65fed178625b263c6462e7e0d9397fd4880cfc2a3a73582b98584876ae",
+    "freeze_task": "F8-52"
+  },
+  "evidence_union_allowed": false,
+  "invalidated_physical_rows": [
+    {"target": "windows-gtx1080-slang-cuda", "qualification_owner": "F8-26", "status": "invalidated-requalify-replacement"},
+    {"target": "windows-gtx1080-slang-d3d12", "qualification_owner": "F8-27", "status": "invalidated-requalify-replacement"},
+    {"target": "linux-thomas-laptop-slang-cpu", "qualification_owner": "F8-53", "status": "invalidated-requalify-replacement"},
+    {"target": "linux-rtx3050ti-slang-cuda", "qualification_owner": "F8-24", "status": "invalidated-requalify-replacement"},
+    {"target": "linux-rtx3050ti-slang-vulkan", "qualification_owner": "F8-25", "status": "invalidated-requalify-replacement"},
+    {"target": "macos-m4-slang-metal", "qualification_owner": "F8-28", "status": "invalidated-requalify-replacement"},
+    {"target": "ipados-m1-slang-metal", "qualification_owner": "F8-29", "status": "invalidated-requalify-replacement"},
+    {"target": "android-pixel7-slang-vulkan", "qualification_owner": "F8-30", "status": "invalidated-requalify-replacement"}
+  ],
+  "qualification_rule": "No final F8 qualification report may name or reuse this superseded candidate. F8-24 through F8-30 and F8-53 must execute only realtime-single-step-v1-5a811c4 from F8-52."
+}

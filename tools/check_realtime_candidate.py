@@ -19,7 +19,7 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v3.json"
+    ROOT / "conformance/v1/qualification/realtime-candidate-v4.json"
 )
 V1_REJECTION_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v1-rejection.json"
@@ -27,42 +27,63 @@ V1_REJECTION_PATH = (
 V2_REJECTION_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v2-rejection.json"
 )
+V3_REJECTION_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v3-rejection.json"
+)
 V1_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v1.json"
 )
 V2_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v2.json"
 )
+V3_CANDIDATE_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v3.json"
+)
 INVENTORY_PATH = (
     ROOT / "conformance/v1/qualification/kernel-device-obligations-v1.json"
+)
+CAPABILITY_PATH = (
+    ROOT / "conformance/v1/qualification/capability-obligations-v1.json"
 )
 PROFILE_PATH = ROOT / "conformance/v1/qualification/realtime-profile-v1.json"
 ORACLE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
 MANIFEST_PATH = ROOT / "cmake/SlangKernelManifest.cmake"
 TASK_DIR = ROOT / "docs/roadmap/tasks"
 
-ACTIVE_ID = "realtime-single-step-v1-3671f18"
-ACTIVE_SOURCE_REVISION = "3671f180ed951d8a62cb34e5ec4ce1dab52cd560"
-ACTIVE_SOURCE_TREE = "785513efa475e8b3b1010a79cb2142e33463089a"
+ACTIVE_ID = "realtime-single-step-v1-5a811c4"
+ACTIVE_SOURCE_REVISION = "5a811c4cba0e09fa9f6faaa2ca1a6f9e6cd59855"
+ACTIVE_SOURCE_TREE = "ce80fdeb6bcff12c418165795bb6a7a42d4de000"
 V1_REJECTED_ID = "realtime-single-step-v1-dea47c1"
 V2_REJECTED_ID = "realtime-single-step-v1-fd78fa8"
+V3_REJECTED_ID = "realtime-single-step-v1-3671f18"
 V1_MANIFEST_SHA256 = (
     "c25c010be3a0e908537e3c6542c1759b28b10cfb4a4169b51bb2834233411d43"
 )
 V2_MANIFEST_SHA256 = (
     "f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af"
 )
+V3_MANIFEST_SHA256 = (
+    "d6d84f85a87af71fcdb0ee5c335f6c3979a741a151b3fbb4151096dd588d4a04"
+)
 REQUIRED_CLOSURES = {
+    "api_abi",
     "kernel",
-    "runtime",
     "adapter_binding",
-    "dispatch",
-    "schedule",
-    "telemetry",
-    "profile",
+    "runtime",
+    "schedule_telemetry",
+    "contract",
     "public_oracle",
+    "work_budget",
+    "gallery",
 }
-QUALIFICATION_TASKS = {f"F8-{number}" for number in range(23, 31)}
+QUALIFICATION_TASKS = {f"F8-{number}" for number in range(24, 31)} | {"F8-53"}
+PREREQUISITE_EVIDENCE = {
+    "F8-50": "docs/roadmap/evidence/F8-50-single-execution-path.json",
+    "F8-51": "docs/roadmap/evidence/F8-51-gallery-fixed-tick.json",
+    "F8-54": "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+    "F8-55": "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+    "F8-56": "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -151,23 +172,27 @@ def validate_candidate(
     candidate_path = root / CANDIDATE_PATH.relative_to(ROOT)
     v1_rejection_path = root / V1_REJECTION_PATH.relative_to(ROOT)
     v2_rejection_path = root / V2_REJECTION_PATH.relative_to(ROOT)
+    v3_rejection_path = root / V3_REJECTION_PATH.relative_to(ROOT)
     v1_candidate_path = root / V1_CANDIDATE_PATH.relative_to(ROOT)
     v2_candidate_path = root / V2_CANDIDATE_PATH.relative_to(ROOT)
+    v3_candidate_path = root / V3_CANDIDATE_PATH.relative_to(ROOT)
     inventory = load_json(root / INVENTORY_PATH.relative_to(ROOT))
     profile = load_json(root / PROFILE_PATH.relative_to(ROOT))
     oracle = load_json(root / ORACLE_PATH.relative_to(ROOT))
     v1_rejection = load_json(v1_rejection_path)
     v2_rejection = load_json(v2_rejection_path)
+    v3_rejection = (load_json(v3_rejection_path)
+                    if v3_rejection_path.is_file() else {})
     if candidate is None:
         candidate = load_json(candidate_path)
 
     errors: list[str] = []
-    _expect(errors, candidate.get("schema") == "parallel-mater-realtime-candidate/v2",
-            "candidate schema is not v2")
+    _expect(errors, candidate.get("schema") == "parallel-mater-realtime-candidate/v3",
+            "candidate schema is not v3")
     _expect(errors, candidate.get("id") == ACTIVE_ID,
             "active candidate id changed")
-    _expect(errors, candidate.get("task") == "F8-38",
-            "candidate freeze task is not F8-38")
+    _expect(errors, candidate.get("task") == "F8-52",
+            "candidate freeze task is not F8-52")
     _expect(errors, candidate.get("status") == "frozen-awaiting-physical-qualification",
             "candidate status is not frozen")
     source = candidate.get("source", {})
@@ -218,6 +243,64 @@ def validate_candidate(
             "profile version drift")
     _expect(errors, frozen_profile.get("timestep") == "1/60",
             "profile timestep drift")
+
+    surface = candidate.get("capability_surface", {})
+    _expect(errors, surface.get("api_version") == "0.3",
+            "candidate API version is not 0.3")
+    _expect(errors, surface.get("public_domains") == [
+        "RIGID_BODY", "FLUID", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE"
+    ], "candidate public-domain surface drift")
+    _expect(errors, set(surface.get("advertised_modes", [])) ==
+            set(inventory.get("advertised_modes", [])),
+            "candidate advertised-mode surface drift")
+    _expect(errors, surface.get("public_case_count") ==
+            len(inventory.get("public_case_sets", {}).get("all", [])),
+            "candidate public-case surface drift")
+    _expect(errors, surface.get("physical_target_count") ==
+            len(inventory.get("physical_targets", [])),
+            "candidate physical-target surface drift")
+    _expect(errors, surface.get("interaction_capability_count") == 49,
+            "candidate interaction-capability surface drift")
+    _expect(errors, load_json(root / CAPABILITY_PATH.relative_to(ROOT)).get(
+        "api_version") == "0.3", "capability obligations are not API 0.3")
+
+    audit = candidate.get("sole_path_audit", {})
+    _expect(errors, audit.get("public_creation") == "ordinary-api-0.3",
+            "ordinary public creation is not the frozen sole path")
+    _expect(errors, audit.get("production_schedule_count") == 1,
+            "candidate does not freeze exactly one production schedule")
+    _expect(errors, audit.get("gallery_session") == "shared",
+            "candidate does not freeze the shared Gallery session")
+    _expect(errors, audit.get("legacy_selection_found") is False,
+            "candidate reports a selectable legacy path")
+    audit_path = root / str(audit.get("audit_evidence", ""))
+    _expect(errors, audit_path.is_file(), "sole-path audit evidence is missing")
+    audit_evidence = load_json(audit_path) if audit_path.is_file() else {}
+    _expect(errors, audit_evidence.get("status") == "passed" and
+            audit_evidence.get("audited_source_revision") ==
+            ACTIVE_SOURCE_REVISION,
+            "sole-path audit did not pass for the frozen source")
+    negative_findings = audit_evidence.get("negative_findings", {})
+    _expect(errors, negative_findings and
+            not any(negative_findings.values()),
+            "sole-path audit retains a negative finding")
+    _expect(errors, not (root / "src/simulation/reference_schedule.hpp").exists(),
+            "retired legacy production schedule exists")
+    runtime_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted((root / "src/simulation").glob("runtime_*.cu.inc"))
+    )
+    for token in ("PhysicsStepProfile", "simulation::schedule_frame"):
+        _expect(errors, token not in runtime_text,
+                f"selectable production schedule token remains: {token}")
+    public_contract_text = "\n".join(
+        (root / relative).read_text(encoding="utf-8")
+        for relative in ("include/parallel_mater/parallel_mater.h",
+                         "registry/pm.xml")
+    )
+    for token in ("PM_EXT_simulation_profile", "PmSimulationExecutionProfile"):
+        _expect(errors, token not in public_contract_text,
+                f"retired public execution selector remains: {token}")
 
     canonical = canonical_kernels(root)
     covered: defaultdict[str, list[str]] = defaultdict(list)
@@ -310,7 +393,8 @@ def validate_candidate(
 
     binaries = candidate.get("native_binaries", [])
     binary_variants = {item.get("runtime_variant") for item in binaries}
-    _expect(errors, {"cpu-runtime", "cuda-runtime", "vulkan-runtime", "metal-runtime"}
+    _expect(errors, {"cpu-runtime", "cuda-runtime", "vulkan-runtime",
+                     "d3d12-runtime", "metal-runtime"}
             <= binary_variants, "native binary hashes lack runtime coverage")
     for binary in binaries:
         _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
@@ -333,9 +417,35 @@ def validate_candidate(
             _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
                                               str(artifact.get(key, "")))),
                     f"artifact {artifact.get('name')} lacks {key}")
+
+    applications = candidate.get("application_artifacts", [])
+    application_platforms = {item.get("platform") for item in applications}
+    _expect(errors, {"macos", "ipados", "android"} <= application_platforms,
+            "candidate application artifacts lack a Gallery platform")
+    for artifact in applications:
+        _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
+                                          str(artifact.get("sha256", "")))),
+                f"application artifact {artifact.get('id')} lacks SHA-256")
+
+    prerequisite_records = {
+        item.get("task"): item
+        for item in candidate.get("prerequisite_evidence", [])
+    }
+    _expect(errors, set(prerequisite_records) == set(PREREQUISITE_EVIDENCE),
+            "prerequisite evidence set drift")
+    for task_id, relative in PREREQUISITE_EVIDENCE.items():
+        path = root / relative
+        record = prerequisite_records.get(task_id, {})
+        _expect(errors, record.get("path") == relative,
+                f"{task_id} evidence path drift")
+        _expect(errors, path.is_file(), f"{task_id} evidence is missing")
+        if path.is_file():
+            _expect(errors, record.get("sha256") == file_sha256(path),
+                    f"{task_id} evidence hash drift")
+
     execution_path = root / str(candidate.get("execution_evidence", ""))
     _expect(errors, execution_path.is_file(),
-            "installed production CPU execution evidence is missing")
+            "installed consumer preflight evidence is missing")
     execution = load_json(execution_path) if execution_path.is_file() else {}
     execution_candidate = execution.get("candidate", {})
     _expect(errors, execution_candidate.get("id") == ACTIVE_ID,
@@ -343,49 +453,31 @@ def validate_candidate(
     _expect(errors, execution_candidate.get("manifest_sha256") ==
             file_sha256(candidate_path),
             "installed execution evidence candidate manifest hash drift")
-    installed = execution.get("installed_public_profile", {})
+    installed = execution.get("installed_consumer_preflight", {})
     _expect(errors, installed.get("runtime_variant") == "cpu-runtime" and
             installed.get("status") == "passed",
-            "installed production CPU public profile did not pass")
-    _expect(errors, installed.get("driver_sha256") in {
-        item.get("sha256") for item in binaries
-    }, "installed execution driver is not frozen in native binary hashes")
-    for key in ("plain_observation_sha256", "validation_observation_sha256"):
+            "installed CPU consumer preflight did not pass")
+    _expect(errors, installed.get("source_dirty") is False,
+            "installed consumer preflight used a dirty source")
+    _expect(errors, installed.get("check_count", 0) >= 14 and
+            installed.get("checks_passed") == installed.get("check_count"),
+            "installed consumer preflight checks are incomplete")
+    for key in ("report_sha256", "driver_sha256",
+                "plain_observation_sha256", "validation_observation_sha256"):
         _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
                                           str(installed.get(key, "")))),
-                f"installed public profile lacks {key}")
-    capacity = installed.get("exact_capacity_regression", {})
-    _expect(errors, capacity.get("status") == "passed",
-            "installed exact-capacity regression did not pass")
-    _expect(errors, capacity.get("workload") == {
-        "rigid_bodies_live": 8,
-        "rigid_bodies_capacity": 8,
-        "constraints_live": 8,
-        "constraints_capacity": 8,
-        "contact_capacity": 2048,
-    }, "installed exact-capacity workload drift")
-    _expect(errors, capacity.get("work") == {
-        "dispatches": 20,
-        "workgroups": 1421,
-        "rigid_iterations": 8,
-        "spatial_builds": 1,
-        "spatial_publications": 1,
-        "time_advances": 1,
-        "queue_submissions": 1,
-        "intra_tick_host_readbacks": 0,
-    }, "installed exact-capacity work accounting drift")
-    _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
-                                      str(capacity.get("observation_sha256", "")))),
-            "installed exact-capacity observation lacks SHA-256")
+                f"installed consumer preflight lacks {key}")
 
     supersedes = candidate.get("supersedes", {})
-    _expect(errors, supersedes.get("candidate_id") == V2_REJECTED_ID and
-            supersedes.get("manifest_sha256") == V2_MANIFEST_SHA256,
-            "candidate does not supersede exact v2 identity")
+    _expect(errors, supersedes.get("candidate_id") == V3_REJECTED_ID and
+            supersedes.get("manifest_sha256") == V3_MANIFEST_SHA256,
+            "candidate does not supersede exact v3 identity")
     _expect(errors, file_sha256(v1_candidate_path) == V1_MANIFEST_SHA256,
             "rejected v1 candidate manifest changed")
     _expect(errors, file_sha256(v2_candidate_path) == V2_MANIFEST_SHA256,
             "rejected v2 candidate manifest changed")
+    _expect(errors, file_sha256(v3_candidate_path) == V3_MANIFEST_SHA256,
+            "superseded v3 candidate manifest changed")
     _expect(errors, v1_rejection.get("candidate_id") == V1_REJECTED_ID and
             v1_rejection.get("candidate_manifest_sha256") == V1_MANIFEST_SHA256,
             "v1 rejection record lost its candidate identity")
@@ -402,11 +494,23 @@ def validate_candidate(
             v2_rejection.get("status") == "rejected-telemetry-capacity-overflow",
             "v2 candidate is not durably rejected")
     v2_replacement = v2_rejection.get("replacement", {})
-    _expect(errors, v2_replacement.get("candidate_id") == ACTIVE_ID and
+    _expect(errors, v2_replacement.get("candidate_id") == V3_REJECTED_ID and
             v2_replacement.get("candidate_manifest_sha256") ==
+            V3_MANIFEST_SHA256,
+            "v2 rejection history no longer routes to exact v3")
+    _expect(errors, v3_rejection.get("candidate_id") == V3_REJECTED_ID and
+            v3_rejection.get("candidate_manifest_sha256") == V3_MANIFEST_SHA256,
+            "v3 supersession record lost its candidate identity")
+    _expect(errors,
+            v3_rejection.get("status") == "superseded-incomplete-single-path",
+            "v3 candidate is not durably superseded")
+    v3_replacement = v3_rejection.get("replacement", {})
+    _expect(errors, v3_replacement.get("candidate_id") == ACTIVE_ID and
+            v3_replacement.get("candidate_manifest_sha256") ==
             file_sha256(candidate_path),
-            "v2 rejection record routes to the wrong replacement")
-    for label, rejection in (("v1", v1_rejection), ("v2", v2_rejection)):
+            "v3 supersession record routes to the wrong replacement")
+    for label, rejection in (("v1", v1_rejection), ("v2", v2_rejection),
+                             ("v3", v3_rejection)):
         _expect(errors, rejection.get("evidence_union_allowed") is False,
                 f"{label} rejection record permits evidence union")
         invalidated = {
@@ -427,25 +531,28 @@ def validate_candidate(
             "qualification routing names the wrong candidate")
     _expect(errors, routing.get("evidence_union_allowed") is False,
             "qualification routing permits evidence union")
+    candidate_sha256 = file_sha256(candidate_path)
     for task_id in sorted(QUALIFICATION_TASKS):
         task = load_json(root / TASK_DIR.relative_to(ROOT) / f"{task_id}.json")
-        _expect(errors, "F8-36" in task.get("dependencies", []),
-                f"{task_id} does not depend on F8-36")
-        _expect(errors, "F8-38" in task.get("dependencies", []),
-                f"{task_id} does not depend on F8-38")
+        _expect(errors, "F8-52" in task.get("dependencies", []),
+                f"{task_id} does not depend on F8-52")
         scope = task.get("scope", "")
         _expect(errors, ACTIVE_ID in scope,
                 f"{task_id} does not route to the exact replacement")
-        _expect(errors, V1_REJECTED_ID not in scope,
-                f"{task_id} routes to rejected v1")
-        _expect(errors, V2_REJECTED_ID in scope and
-                "rejected for qualification" in scope,
-                f"{task_id} does not preserve v2 rejection routing")
+        _expect(errors, ACTIVE_SOURCE_REVISION in scope and
+                ACTIVE_SOURCE_TREE in scope,
+                f"{task_id} does not bind exact source identity")
+        _expect(errors, candidate_sha256 in scope,
+                f"{task_id} does not bind exact candidate manifest")
+        _expect(errors, V3_REJECTED_ID in scope and "interim" in scope and
+                "cannot be unioned" in scope,
+                f"{task_id} does not preserve v3 interim provenance")
     exit_dependencies = set(load_json(
         root / TASK_DIR.relative_to(ROOT) / "F8-99.json"
     ).get("dependencies", []))
     _expect(errors, QUALIFICATION_TASKS |
-            {"F8-33", "F8-34", "F8-35", "F8-36", "F8-37", "F8-38"}
+            {"F8-33", "F8-34", "F8-35", "F8-36", "F8-37", "F8-38",
+             "F8-52"}
             <= exit_dependencies,
             "F8-99 lacks a repair, refreeze or qualification dependency")
     return errors

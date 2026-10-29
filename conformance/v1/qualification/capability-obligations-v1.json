@@ -2,6 +2,7 @@
   "schema": "parallel-mater-conformance-obligations/v1",
   "id": "capability-obligations-v1",
   "compatible_obligations_sha256": [
+    "dea7c86f212dff9b226805084fc4242d1308a46ae287b98eff32c33697e0f8be",
     "1e94782beb98d6d1234aa64906229edd411553eb04f2769c522185a095438e00",
     "0e8ecdefc378d1490a7bdbea75c0e5e6b8f92cbbb8112f8b251ab1e7ed2d7052",
     "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
@@ -12,7 +13,7 @@
     "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
     "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
   ],
-  "api_version": "0.2",
+  "api_version": "0.3",
   "title": "Interaction capability qualification obligations",
   "sources": {
     "capability_identity": "registry/pm.xml and docs/INTERACTION-MODES.md",
