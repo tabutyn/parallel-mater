@@ -1,7 +1,7 @@
 {
   "id": "F8-61",
   "title": "Refreeze the repaired single-step candidate",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-59",
     "F8-60"
@@ -21,6 +21,14 @@
     "Final device qualification can reproduce the candidate from documented commands without changing physics, capabilities, cases, work budgets, tolerances or schedule. Any subsequent protected change creates another candidate rather than mutating this one."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "6b5353aa-8291-418c-ad42-2d70b959c165",
+    "owner": "codex-f8-candidate-freeze",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-61/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-29T15:35:04Z",
+    "heartbeat_at": "2026-10-29T15:35:04Z",
+    "expires_at": "2026-10-30T15:35:04Z"
+  },
   "history": []
 }
