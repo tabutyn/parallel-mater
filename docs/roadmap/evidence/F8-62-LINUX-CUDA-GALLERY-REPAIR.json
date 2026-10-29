@@ -1,0 +1,152 @@
+{
+  "schema": "parallel-mater-linux-cuda-gallery-repair/v1",
+  "status": "passed",
+  "captured_at": "2026-10-29T18:37:57Z",
+  "task": "F8-62",
+  "lease_token": "40f9e365-800f-409a-ba43-093a427d46ef",
+  "rejected_candidate": {
+    "id": "realtime-single-step-v1-cfb104b",
+    "source_revision": "cfb104b1c530f859d9a1c3549d2e67c7de31c289",
+    "source_tree": "e6838f954384363e79a4485f3c2cfb6ff5e0ea79",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v5.json",
+    "manifest_sha256": "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000",
+    "failure_evidence": "docs/roadmap/evidence/F8-24-CANDIDATE-V5-LINUX-CUDA-FAILURE.json",
+    "qualification_status": "remains-rejected"
+  },
+  "repair_source": {
+    "revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+    "tree": "fccd57eabd07dd4ae40cd38fdce8020d079a09da",
+    "branch": "work/F8-62/ThomasLaptop",
+    "working_tree_during_final_build": "clean"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01"
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "cuda": "13.1.80",
+    "cuda_architectures": "86",
+    "slang": "2026.18"
+  },
+  "reproduction": {
+    "source": "exact rejected candidate v5",
+    "registered_suite": {
+      "passed": 127,
+      "failed": 3,
+      "skipped": 0,
+      "total": 130
+    },
+    "observations": [
+      {
+        "test": "parallel-mater-device-profile-tests",
+        "failure": "generated multi-wall support must remain stable at rest",
+        "maximum_displacement": 0.0903551,
+        "maximum_speed": 0.318922,
+        "body": "Brick_17",
+        "delta": [-0.0481094, 0.0228704, -0.0729828]
+      },
+      {
+        "test": "parallel-mater-dump-truck-tests",
+        "failure": "bucket must physically reach 100 degrees relative to chassis",
+        "observed_degrees": 97.4238
+      },
+      {
+        "test": "parallel-mater-gallery-frame-timing-headless",
+        "failure": "create Parallel Mater instance: layer not present",
+        "registration": "PM_DRIVER_FILES and PM_LAYER_FILES were absent"
+      }
+    ]
+  },
+  "repairs": [
+    {
+      "area": "generated multi-wall support",
+      "change": "Use self-supported triangular rows, closed box collision proxies for bricks and floor, the solver rest separation, and authored high-friction brick contact.",
+      "contract": "The public scene path, sole fixed-tick schedule, body counts, 0.03 displacement/speed limits, and four-brick impact minimum remain unchanged."
+    },
+    {
+      "area": "dump-truck bed",
+      "change": "Track physical bed travel through the existing public generic constraint and use a low-friction sloped bucket liner so all payload exits the open top.",
+      "contract": "The public 100-degree target, 30-degree-per-second profile, 480-frame unload run, 240-frame return run, payload count, solver path, and backend equations remain unchanged."
+    },
+    {
+      "area": "headless Gallery discovery",
+      "change": "Bind the selected built driver and validation layer as dependencies and exact PM_DRIVER_FILES/PM_LAYER_FILES CTest environment entries.",
+      "contract": "No ambient driver or layer search path is used."
+    }
+  ],
+  "commands": {
+    "configure": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake -S . -B /tmp/parallel-mater-f8-62-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_INSTALL_PREFIX=/tmp/parallel-mater-f8-62-install -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON -DPARALLEL_MATER_SLANGC_EXECUTABLE=/home/thomas/Repos/ballroller-2026/parallel-mater/build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc",
+    "build": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --build /tmp/parallel-mater-f8-62-build -j4",
+    "physical_suite": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/ctest --test-dir /tmp/parallel-mater-f8-62-build -j1 --output-on-failure",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-62-build --output /tmp/parallel-mater-f8-62-sdk-evidence-fc2ffba",
+    "roadmap_tests": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+    "roadmap_check": "python3 tools/roadmap.py check"
+  },
+  "results": {
+    "clean_release_build": "passed",
+    "physical_ctest": {
+      "status": "passed",
+      "passed": 130,
+      "failed": 0,
+      "skipped": 0,
+      "total": 130,
+      "cuda_labeled_tests_executed": 42,
+      "elapsed_seconds": 77.91
+    },
+    "repaired_observations": [
+      {
+        "test": "parallel-mater-device-profile-tests",
+        "status": "passed",
+        "stable_rest": "maximum displacement and speed each remained below the unchanged 0.03 limit",
+        "impact": "at least four bricks moved more than the unchanged 0.05 limit"
+      },
+      {
+        "test": "parallel-mater-dump-truck-tests",
+        "status": "passed",
+        "physical_target": "within the unchanged one-degree tolerance of 100 degrees",
+        "payload_remaining_after_480_frames": 0,
+        "return": "below 0.02 radians after the unchanged 240-frame return run"
+      },
+      {
+        "test": "parallel-mater-gallery-frame-timing-headless",
+        "status": "passed",
+        "driver_manifest": "/tmp/parallel-mater-f8-62-build/Release/manifests/slang-cuda.json",
+        "layer_manifest": "/tmp/parallel-mater-f8-62-build/Release/manifests/validation.json"
+      }
+    ],
+    "build_manifest_contract": "passed",
+    "linux_launcher_contract": "passed",
+    "relocated_sdk": {
+      "status": "passed",
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "source_dirty": false,
+      "checks_passed": 12,
+      "installed_driver_and_layer_manifests": "passed",
+      "external_consumer_and_conformance": "passed"
+    },
+    "roadmap_tests": "passed: 89/89",
+    "roadmap_check": "passed: 282 task cards"
+  },
+  "artifacts": {
+    "build_driver_sha256": "16ce4ffc2970981e4ff2a294481a699747c62965efb155cb1bd350cc3a0721c1",
+    "build_validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "gallery_sha256": "11ee683bf24b86ca1424df9982cdf83876a6dc3f6043819e7f60a15ccc360d3d",
+    "device_profile_test_sha256": "fd04ffb4c1810c060952a6167f773f0bc4976ccab48b4bc4d4b6e65966299bfc",
+    "dump_truck_test_sha256": "6b168b687ce00a819d13a69071b044146ca5cb3cd5283f3f1e6cce86a9da6fc7",
+    "build_driver_manifest_sha256": "ab52960ae98b201c23d452a76cb17a1ee6c9384f5c6cc92a25554e810946579d",
+    "build_layer_manifest_sha256": "6106cd26dcdd984bbc6893c1c45656f9748eb2fcfc76cea15cebf02ee9873564",
+    "installed_driver_sha256": "f66f9df8a3408adb62c4a1dc326a082ed7adef9893ceadc7bbf1c121c03b53f0",
+    "installed_validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "installed_driver_manifest_sha256": "ce3e696e32bdf45a76e1d03428080f1ea6786d36d20355b121e5201fe60dd1e7",
+    "installed_layer_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "qualification_effect": "F8-62 repairs are proven on their exact clean source and are eligible for F8-63 to freeze as a new candidate. Candidate v5 and all F8-24 partial observations remain rejected historical provenance and are not promoted or unioned with this repair evidence."
+}

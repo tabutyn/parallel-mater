@@ -1,7 +1,7 @@
 {
   "id": "F8-62",
   "title": "Repair Linux CUDA Gallery candidate failures",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-61"
   ],
@@ -19,15 +19,27 @@
     "The headless Gallery timing test and installed Linux Gallery/runtime discover the intended driver and validation layer without ambient developer paths; build-tree and relocated/install checks cover the corrected registration.",
     "A clean Release Linux Slang CUDA build passes the complete registered suite with all physical CUDA tests executed and no required skips, and protected portable CI remains green. Attach exact source/tree, artifact, device, driver and toolchain evidence for F8-63 refreeze."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "40f9e365-800f-409a-ba43-093a427d46ef",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-62/ThomasLaptop",
-    "claimed_at": "2026-10-29T17:31:50Z",
-    "heartbeat_at": "2026-10-29T17:31:50Z",
-    "expires_at": "2026-10-30T17:31:50Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "40f9e365-800f-409a-ba43-093a427d46ef",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-62/ThomasLaptop",
+        "claimed_at": "2026-10-29T17:31:50Z",
+        "heartbeat_at": "2026-10-29T17:31:50Z",
+        "expires_at": "2026-10-30T17:31:50Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-29T18:38:28Z",
+      "reason": "Repaired all three F8-24 Linux CUDA Gallery failures; exact clean source passes 130/130 physical tests and relocated SDK checks.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json"
+      ]
+    }
+  ]
 }
