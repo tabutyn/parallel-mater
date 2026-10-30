@@ -1,0 +1,140 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification-failure/v2",
+  "status": "failed-required-installed-public-suite",
+  "captured_at": "2026-10-30T12:27:11Z",
+  "task": "F8-24",
+  "lease_token": "acf2c9ab-b66c-49ee-bb0f-f2fb617a30d1",
+  "candidate": {
+    "id": "realtime-single-step-v1-fc2ffba",
+    "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+    "source_tree": "fccd57eabd07dd4ae40cd38fdce8020d079a09da",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v6.json",
+    "manifest_sha256": "6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9",
+    "target": "linux-rtx3050ti-slang-cuda",
+    "runtime_variant": "cuda-runtime"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01",
+    "gpu_temperature_celsius_before": 42
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "cuda": "13.1.80",
+    "cuda_architectures": "86",
+    "slang": "2026.18"
+  },
+  "commands": {
+    "configure": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake -S . -B /tmp/parallel-mater-f8-24-v6-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_INSTALL_PREFIX=/tmp/parallel-mater-f8-24-v6-install -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON -DPARALLEL_MATER_SLANGC_EXECUTABLE=/home/thomas/Repos/ballroller-2026/parallel-mater/build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc",
+    "build": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --build /tmp/parallel-mater-f8-24-v6-build -j4",
+    "physical_suite": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/ctest --test-dir /tmp/parallel-mater-f8-24-v6-build -j1 --output-on-failure --output-log /tmp/f8-24-v6-ctest.log",
+    "install": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --install /tmp/parallel-mater-f8-24-v6-build",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-24-v6-build --output /tmp/parallel-mater-f8-24-v6-sdk-evidence",
+    "plain_public_cases": "PM_DRIVER_FILES=<installed-slang-cuda-manifest> <installed>/bin/parallel-mater-conformance --case all --root <exact-source> --output /tmp/parallel-mater-f8-24-v6-public-plain",
+    "validation_public_cases": "PM_DRIVER_FILES=<installed-slang-cuda-manifest> PM_LAYER_FILES=<installed-validation-manifest> PM_TEST_VALIDATION=1 <installed>/bin/parallel-mater-conformance --case all --root <exact-source> --output /tmp/parallel-mater-f8-24-v6-public-validation",
+    "compare": "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <public-results> --report <report>",
+    "fixture_contract": "python3 conformance/v1/realtime_scenario_fixtures.py --check"
+  },
+  "passing_prerequisites": {
+    "clean_release_build": "passed: 685/685 targets",
+    "physical_ctest": {
+      "status": "passed",
+      "passed": 130,
+      "failed": 0,
+      "skipped": 0,
+      "total": 130,
+      "cuda_labeled_tests_executed": 42,
+      "elapsed_seconds": 77.28
+    },
+    "repaired_v5_failures": {
+      "parallel-mater-device-profile-tests": "passed",
+      "parallel-mater-dump-truck-tests": "passed",
+      "parallel-mater-gallery-frame-timing-headless": "passed"
+    },
+    "relocated_sdk": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0
+    },
+    "installed_public_provenance": {
+      "api_version": "0.3",
+      "source_commit": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "driver_version": 13010
+    },
+    "advertised_capability_rows": 49,
+    "shared_fixture_contract": "passed: 12 scenarios"
+  },
+  "required_failures": [
+    {
+      "gate": "installed public cases without validation",
+      "result": {
+        "completed": 0,
+        "unsupported": 0,
+        "failed": 30,
+        "total": 30
+      },
+      "common_observation": "step command scene frame 1: end statistics query: invalid state",
+      "representative_case": "rigid-direct",
+      "representative_repetitions": "3/3 failed identically",
+      "pinned_candidate_binary_reproduction": "The F8-62 driver pinned by candidate v6 also fails through the fresh exact-source installed runner.",
+      "effect": "Plain and validation-enabled public executions are both mandatory; validation success cannot replace the plain failure."
+    },
+    {
+      "gate": "installed public CUDA reference regression with validation",
+      "execution": {
+        "completed": 30,
+        "unsupported": 0,
+        "failed": 0,
+        "total": 30
+      },
+      "comparison": {
+        "passed": 0,
+        "failed": 30,
+        "unsupported": 0,
+        "total_differences": 5629,
+        "every_case_input_hash_mismatched_frozen_cuda_golden": true,
+        "physical_state_differences_beyond_existing_tolerances": true
+      },
+      "effect": "Successful execution is not reference or physical-quality qualification; the existing CUDA goldens cannot be rewritten or tolerances relaxed to close F8-24."
+    },
+    {
+      "gate": "frozen physical scenario and performance capture",
+      "result": "not promotable after required public execution/reference failures",
+      "integration_observation": "The repository installs a fixture-plan emitter and capture validator, but no installed-public producer for the required 12-scenario/37-measurement capture or five exact desktop-full-v1 workload distributions was found.",
+      "effect": "Missing production qualification integration is a failure, not an unsupported capability."
+    }
+  ],
+  "artifacts": {
+    "ctest_log_sha256": "4271bb76eadfbff2a45b292efa2afff4e43c522bca4403caad59a286a106e293",
+    "plain_public_results": {
+      "file_count": 30,
+      "tree_sha256": "0c5a3151b8469d7d15225b4916075c743970c22dc1d3a21a279fd1bef6806f88"
+    },
+    "validation_public_results": {
+      "file_count": 30,
+      "tree_sha256": "dc518e32e0ace222ba24f1e5a18df2055e8ddaba61e4bedb6f3893baa67a01c9"
+    },
+    "plain_compare_report_sha256": "05d8a2c092c6b1131f1f8090b56444c648e848e25929ccb664e7490e0e0b88b9",
+    "validation_compare_report_sha256": "3d69e7eeecd2114bcad5d5ab12a34ef197832dc763b05b3dc082bb96ee2abac4",
+    "sdk_evidence": {
+      "file_count": 659,
+      "tree_sha256": "a368b5cea28088dd4e6073e7f7dd03545818bcd4a8e75556550d03fd25d997fb"
+    },
+    "frozen_f8_62_driver_sha256": "16ce4ffc2970981e4ff2a294481a699747c62965efb155cb1bd350cc3a0721c1",
+    "fresh_exact_source_build_driver_sha256": "01078d05f116f59cd4f5cfa0198d845c650dfccf2a2b9bd12029f7274584de74",
+    "fresh_installed_driver_sha256": "1cce466b3bf1ac92d48ad16af117fe96a97727900bd2e32f90bf1140dd57541c",
+    "fresh_installed_driver_manifest_sha256": "ce3e696e32bdf45a76e1d03428080f1ea6786d36d20355b121e5201fe60dd1e7",
+    "fresh_installed_conformance_runner_sha256": "b2169233ab0d556f46048a50b59872c9392c8a526e759ff9bcb7383bbf7016b7",
+    "pinned_and_fresh_validation_rigid_result_sha256": "8167cc9cc048c4892d584bffa9ade854ca6901bcb8c927ac4abe3778242a278d"
+  },
+  "qualification_effect": "F8-24 remains incomplete. Candidate v6 cannot pass its mandatory installed-public Linux CUDA row and must be repaired and refrozen before requalification. The 130-test and relocation passes are prerequisite observations only and cannot be unioned with a replacement candidate. Preserve this failure and create bounded repair and refreeze leaves; do not lower tolerances, rewrite goldens, or classify required cases as unsupported."
+}
