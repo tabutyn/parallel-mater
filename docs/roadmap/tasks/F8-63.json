@@ -1,7 +1,7 @@
 {
   "id": "F8-63",
   "title": "Refreeze candidate after Linux CUDA repairs",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-62"
   ],
@@ -20,6 +20,14 @@
     "Final device qualification can reproduce the replacement from documented commands without changing physics, capabilities, public cases, work budgets, tolerances or schedule. Any later protected change creates another candidate instead of mutating this freeze."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "978462c7-be4c-4a86-93e3-a46c22791373",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-63/ThomasLaptop",
+    "claimed_at": "2026-10-30T00:54:44Z",
+    "heartbeat_at": "2026-10-30T00:54:44Z",
+    "expires_at": "2026-10-31T00:54:44Z"
+  },
   "history": []
 }
