@@ -1,5 +1,11 @@
 # F8-61 repaired single-step candidate freeze
 
+> Historical candidate record. Candidate v5 failed the required physical Linux
+> CUDA suite recorded by F8-24 and is durably rejected by F8-63. Final
+> qualification must use the replacement named by the
+> [F8-63 freeze record](F8-63-CANDIDATE-FREEZE.md); candidate-v5 observations
+> cannot be unioned with replacement evidence.
+
 F8-61 freezes final qualification candidate
 `realtime-single-step-v1-cfb104b` at source revision
 `cfb104b1c530f859d9a1c3549d2e67c7de31c289` and tree

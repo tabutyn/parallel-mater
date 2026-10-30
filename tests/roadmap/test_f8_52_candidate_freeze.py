@@ -17,14 +17,14 @@ from check_realtime_candidate import (  # noqa: E402
 )
 
 
-class F861CandidateFreezeTests(unittest.TestCase):
+class F863CandidateFreezeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
     def test_final_candidate_is_frozen_without_drift(self):
         self.assertEqual(validate_candidate(), [])
-        self.assertEqual(self.candidate["task"], "F8-61")
+        self.assertEqual(self.candidate["task"], "F8-63")
 
     def test_every_required_protected_drift_is_rejected(self):
         closures = {
@@ -71,14 +71,14 @@ class F861CandidateFreezeTests(unittest.TestCase):
         self.assertFalse(routing["evidence_union_allowed"])
         self.assertEqual(
             self.candidate["supersedes"]["candidate_id"],
-            "realtime-single-step-v1-5a811c4",
+            "realtime-single-step-v1-cfb104b",
         )
         for task_id in routing["tasks"]:
             task = json.loads(
                 (ROOT / "docs/roadmap/tasks" / f"{task_id}.json")
                 .read_text(encoding="utf-8")
             )
-            self.assertIn("F8-61", task["dependencies"])
+            self.assertIn("F8-63", task["dependencies"])
             self.assertIn(ACTIVE_ID, task["scope"])
             self.assertIn(ACTIVE_SOURCE_REVISION, task["scope"])
             self.assertIn("cannot be unioned", task["scope"])
