@@ -1,0 +1,25 @@
+{
+  "id": "F8-64",
+  "title": "Repair installed-public CUDA candidate failures",
+  "status": "open",
+  "dependencies": [
+    "F8-63"
+  ],
+  "locks": [
+    "f8-linux-cuda-public-repair"
+  ],
+  "requires": [
+    "Physical Linux NVIDIA CUDA device, installed public SDK/Gallery, and current shared Slang toolchain"
+  ],
+  "scope": "Repair the mandatory installed-public failures exposed by F8-24 on exact candidate realtime-single-step-v1-fc2ffba. Reproduce the plain-mode 30/30 statistics-query failure, the validation-mode 30/30 reference-regression failure with 5629 differences, and the absent 12-scenario/37-measurement plus five-workload capture producer from docs/roadmap/evidence/F8-24-CANDIDATE-V6-LINUX-CUDA-FAILURE.json. Repair production loader/driver/conformance integration and add executable public capture tooling without reducing capability or case coverage, requiring the validation layer for ordinary execution, changing the sole schedule, lowering work budgets, weakening quality assertions, relaxing tolerances or rewriting goldens merely to manufacture a pass. Candidate v6 remains rejected for final qualification and none of its partial passing observations can be unioned with repaired-source evidence.",
+  "acceptance": [
+    "Reproduce every F8-24 candidate-v6 failure on the exact frozen source and pinned F8-62 CUDA binary before repair; retain hash-bound before/after outputs for plain and validation-enabled installed-public execution.",
+    "Ordinary API 0.3 simulation creation with validation disabled completes all 30 public cases and the realtime statistics query lifecycle without invalid-state errors. Validation-enabled execution independently completes the same cases and produces matching public state under the unchanged sole schedule.",
+    "All 30 cases pass candidate-consistent reference and independent quality/lifecycle gates under existing tolerances. Preserve mismatching historical goldens; any justified replacement baseline requires independent analytic/physical review and cannot overwrite evidence or hide changed inputs.",
+    "An installed-public producer executes the exact shared 12-scenario/37-measurement fixture in plain and validation-enabled modes, retains every tick/work/state observation, exercises all five desktop-full-v1 workloads for 600 warmup plus 7200 measured ticks, and reports CPU/GPU/physics/frame p50/p95/p99/maximum without synthetic passing values.",
+    "A clean exact-source Release build passes 130/130 registered tests, all 42 CUDA-labeled tests, installed SDK relocation, 49 capability rows, 30 public cases, required negative controls, scenario quality, cold-start and sustained budgets on the physical RTX 3050 Ti. Attach exact source/tree, binary, manifest, device, driver, toolchain and raw artifact hashes for F8-65."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
