@@ -1,0 +1,25 @@
+{
+  "id": "F8-65",
+  "title": "Refreeze candidate after public CUDA repairs",
+  "status": "open",
+  "dependencies": [
+    "F8-64"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Green protected CI and complete physical Linux CUDA installed-public evidence for the repaired candidate closure"
+  ],
+  "scope": "Freeze a new immutable sole-path candidate only after F8-64 repairs and physically proves the installed-public CUDA path, candidate-consistent 30-case reference/quality regression, executable 12-scenario/37-measurement capture, negative controls and five desktop workload distributions. Record one exact source commit, tree, candidate binary/deployment identity, manifest hash, complete protected closure, runtime variants, toolchains and green exact-source CI run. Preserve candidates v5 and v6 plus both F8-24 failure records as rejected historical provenance, never union partial passing observations, and route every unfinished physical qualification row to the replacement identity through a separate coordination change before it becomes ready.",
+  "acceptance": [
+    "A new immutable candidate manifest records the exact repaired source commit/tree, public headers, shared Slang sources, runtime variants, all 49 capability rows and 30 public cases, cases/goldens, executable capture producer, fixture/validator contract, fixed budgets and unchanged quality tolerances.",
+    "The protected closure is mechanically regenerated and independently hash-verified. Exact-source protected CI, 130/130 physical Linux CUDA regression, installed SDK relocation, plain and validation 30-case qualification, scenario capture and desktop workload budgets all pass from the frozen source and named binaries.",
+    "Candidate v6, manifest SHA-256 6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9, and docs/roadmap/evidence/F8-24-CANDIDATE-V6-LINUX-CUDA-FAILURE.json remain immutable rejected history; no old pass is relabeled or combined with replacement evidence.",
+    "A coordination-only change writes the replacement candidate id, manifest hash, source/tree, exact CI run and failure provenance into F8-24 through F8-30 and F8-53 before any qualification task becomes ready.",
+    "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances or schedule. Any later protected change creates another candidate rather than mutating this freeze."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
