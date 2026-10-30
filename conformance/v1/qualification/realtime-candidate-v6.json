@@ -1,0 +1,767 @@
+{
+  "schema": "parallel-mater-realtime-candidate/v3",
+  "id": "realtime-single-step-v1-fc2ffba",
+  "task": "F8-63",
+  "frozen_at": "2026-10-29",
+  "status": "frozen-awaiting-physical-qualification",
+  "lease_token": "978462c7-be4c-4a86-93e3-a46c22791373",
+  "supersedes": {
+    "candidate_id": "realtime-single-step-v1-cfb104b",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v5.json",
+    "manifest_sha256": "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000",
+    "supersession_record": "conformance/v1/qualification/realtime-candidate-v5-rejection.json"
+  },
+  "source": {
+    "revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+    "tree": "fccd57eabd07dd4ae40cd38fdce8020d079a09da",
+    "definition": "The executable implementation is the exact clean F8-62 repair commit. It changes only five files in the protected Gallery closure, repairs the candidate-v5 Linux CUDA failures without changing physics equations, public capabilities, cases, budgets, tolerances or schedule, and passes the complete physical Linux CUDA suite. F8-63 adds only immutable freeze metadata, routing, evidence and checks outside that source identity.",
+    "repair_evidence": "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
+    "repair_evidence_sha256": "22f75c7ba708bc108275fd92546ac8fcaa067a0d7a2d41b353718398779e97d0",
+    "hash_method": "SHA-256 over sorted repository-relative path + NUL + file bytes + NUL",
+    "protected_closures": [
+      {
+        "category": "api_abi",
+        "patterns": [
+          "include/parallel_mater/*.h",
+          "registry/pm.xml",
+          "src/loader/**/*",
+          "cmake/ParallelMaterLoader.cmake",
+          "cmake/ParallelMaterConfig.cmake.in",
+          "MIGRATION.md"
+        ],
+        "file_count": 10,
+        "sha256": "80b96574e37d84ab5d3cfaf8c0c1b66b81403ea71975ebf44e78b7989088502d"
+      },
+      {
+        "category": "kernel",
+        "patterns": [
+          "cmake/SlangKernelManifest.cmake",
+          "src/slang/**/*.slang"
+        ],
+        "file_count": 39,
+        "sha256": "b53c371b1bae224625fe4d9fd60f3c85b6f3eeb209de75f2a4639d55c1857ec7"
+      },
+      {
+        "category": "adapter_binding",
+        "patterns": [
+          "src/api/**/*",
+          "src/layers/**/*",
+          "src/driver/**/*",
+          "src/device/**/*"
+        ],
+        "file_count": 45,
+        "sha256": "3618762ef2849cfdad85a226a49eea98101ab5597986ebc27eec1db9f6b83cae"
+      },
+      {
+        "category": "runtime",
+        "patterns": [
+          "src/simulation/**/*"
+        ],
+        "file_count": 127,
+        "sha256": "2f90a8f0d12f5ee737f9228bc954333cc9cbed74897074cc49ff4649905b91ec"
+      },
+      {
+        "category": "schedule_telemetry",
+        "patterns": [
+          "src/simulation/realtime_schedule.hpp",
+          "src/simulation/runtime_schedule.cu.inc",
+          "src/simulation/production_realtime_backend.cu.inc",
+          "src/simulation/native_schedule_backend.cu.inc",
+          "src/simulation/realtime_telemetry.hpp",
+          "src/simulation/runtime_diagnostics.cu.inc"
+        ],
+        "file_count": 6,
+        "sha256": "2d7ffc3b4a59fe7df72c4449487b3529062cfd23da0217b89a36811714e2e1e2"
+      },
+      {
+        "category": "contract",
+        "patterns": [
+          "conformance/v1/qualification/realtime-profile-v1.json",
+          "conformance/v1/qualification/capability-obligations-v1.json",
+          "conformance/v1/qualification/kernel-device-obligations-v1.json",
+          "config/device-profiles.json",
+          "docs/INTERACTION-MODES.md",
+          "docs/DRIVER_SDK.md"
+        ],
+        "file_count": 6,
+        "sha256": "54a9c59f7f815b15c7c55363f3b86be9dcec18a51231affea4491a60c0129192"
+      },
+      {
+        "category": "public_oracle",
+        "patterns": [
+          "conformance/v1/realtime/**/*",
+          "conformance/v1/realtime_oracle.py",
+          "conformance/v1/realtime_device_suite.py",
+          "conformance/v1/realtime_scenario_fixtures.py",
+          "conformance/v1/tests/test_realtime_oracle.py",
+          "conformance/v1/tests/test_realtime_device_suite.py",
+          "conformance/v1/tests/test_realtime_scenario_fixtures.py",
+          "tests/sdk/realtime_profile.c",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/solver/check_slang_architecture.py"
+        ],
+        "file_count": 11,
+        "sha256": "a7820e9ce7b109cb48606ea59898326db3c9b63937079dc1858ab6827197685f"
+      },
+      {
+        "category": "work_budget",
+        "patterns": [
+          "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+          "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+          "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+          "tests/solver/rigid_realtime_tests.cpp",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/gallery/metal_schedule_profile_tests.py",
+          "tests/gallery/test_mobile_metal_qualification.py"
+        ],
+        "file_count": 7,
+        "sha256": "a503b5c4cb98f2e6912e24f83ffbf567c34d507df0b46839929b7f6fd3c6d8ea"
+      },
+      {
+        "category": "gallery",
+        "patterns": [
+          "examples/support/**/*",
+          "examples/gallery/**/*",
+          "examples/android/app/src/**/*",
+          "examples/ios/**/*",
+          "cmake/*Gallery*.cmake",
+          "cmake/BundleMacOSRuntime.cmake",
+          "cmake/DeployMacOSBundle.cmake",
+          "scripts/Build-*Gallery*",
+          "scripts/Deploy-*Gallery*",
+          "tests/gallery/**/*"
+        ],
+        "file_count": 160,
+        "sha256": "fb31aebed76d89a1e9806ac0825cd2ba456eac3f16b191ae473e1037cc7ce65f"
+      }
+    ]
+  },
+  "profile": {
+    "id": "realtime-single-step-v1",
+    "semantic_name": "realtime-single-step",
+    "version": {
+      "major": 1,
+      "minor": 0
+    },
+    "timestep": "1/60",
+    "runtime_selection": "none-sole-api-0.3-path",
+    "workload_tolerance_budget_manifest": "conformance/v1/qualification/realtime-profile-v1.json",
+    "telemetry_schema_version": 1,
+    "schedule_profile_version": 1,
+    "schedule_budget_version": 1
+  },
+  "capability_surface": {
+    "api_version": "0.3",
+    "driver_abi_version": 2,
+    "public_domains": [
+      "RIGID_BODY",
+      "FLUID",
+      "CLOTH",
+      "SOFT_BODY",
+      "ROPE",
+      "SMOKE"
+    ],
+    "advertised_modes": [
+      "ATTACHMENT",
+      "CONTACT",
+      "CONTAINMENT",
+      "DRAG",
+      "PHASE",
+      "PRESSURE",
+      "THERMAL",
+      "VISCOSITY"
+    ],
+    "interaction_capability_count": 49,
+    "public_case_count": 30,
+    "runtime_variant_count": 5,
+    "physical_target_count": 8,
+    "capability_reduction_allowed": false
+  },
+  "sole_path_audit": {
+    "public_creation": "ordinary-api-0.3",
+    "production_schedule_count": 1,
+    "schedule": "fixed-tick-60hz-v1",
+    "gallery_session": "shared",
+    "legacy_selection_found": false,
+    "blanket_integration_rejection_found": false,
+    "private_test_only_coverage_found": false,
+    "audit_evidence": "docs/roadmap/evidence/F8-63-SOLE-PATH-AUDIT.json"
+  },
+  "kernel_coverage": {
+    "canonical_module_count": 26,
+    "canonical_entry_count": 225,
+    "kernel_group_count": 32,
+    "group_coverage": "complete",
+    "coverage_gaps": [],
+    "auxiliary_runtime_case": "f8-paint-contact-stamping"
+  },
+  "runtime_variants": [
+    {
+      "id": "cuda-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cuda",
+      "applicable_targets": [
+        "linux-rtx3050ti-slang-cuda",
+        "windows-gtx1080-slang-cuda"
+      ],
+      "qualification_owners": [
+        "F8-24",
+        "F8-26"
+      ],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "vulkan-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/vulkan",
+      "applicable_targets": [
+        "android-pixel7-slang-vulkan",
+        "linux-rtx3050ti-slang-vulkan"
+      ],
+      "qualification_owners": [
+        "F8-25",
+        "F8-30"
+      ],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "d3d12-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/d3d12",
+      "applicable_targets": [
+        "windows-gtx1080-slang-d3d12"
+      ],
+      "qualification_owners": [
+        "F8-27"
+      ],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "metal-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/metal",
+      "applicable_targets": [
+        "ipados-m1-slang-metal",
+        "macos-m4-slang-metal"
+      ],
+      "qualification_owners": [
+        "F8-28",
+        "F8-29"
+      ],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "cpu-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cpu",
+      "applicable_targets": [
+        "linux-thomas-laptop-slang-cpu"
+      ],
+      "qualification_owners": [
+        "F8-53"
+      ],
+      "status": "awaiting-physical-qualification"
+    }
+  ],
+  "compile_only_variants": [
+    {
+      "id": "cuda-source-mirror",
+      "qualification_allowed": false
+    },
+    {
+      "id": "ptx-mirror",
+      "qualification_allowed": false
+    },
+    {
+      "id": "spirv-mirror",
+      "qualification_allowed": false
+    }
+  ],
+  "native_binaries": [
+    {
+      "id": "ci-linux-installed-slang-cpu-driver",
+      "runtime_variant": "cpu-runtime",
+      "path": "lib/libparallel_mater_driver_slang_cpu.so",
+      "sha256": "916b8c2fdc853aa584cf39786a745e196630cf5a44772e67ec529d48c28fcb71",
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "provenance": "GitHub Actions run 40982968850 exact-head installed SDK manifest",
+      "artifact_id": 12946850291,
+      "qualification_claim": false
+    },
+    {
+      "id": "f8-62-linux-slang-cuda-driver",
+      "runtime_variant": "cuda-runtime",
+      "path": "build/libparallel_mater_driver_slang_cuda.so",
+      "sha256": "16ce4ffc2970981e4ff2a294481a699747c62965efb155cb1bd350cc3a0721c1",
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "candidate_binary": true,
+      "provenance": "F8-62 clean physical Linux CUDA build; complete 130/130 suite passed",
+      "qualification_claim": false
+    },
+    {
+      "id": "p1-59-installed-slang-d3d12-driver",
+      "runtime_variant": "d3d12-runtime",
+      "path": "parallel_mater_driver_slang_d3d12.dll",
+      "sha256": "beba56913d4b75843f636210a1348c42d27e9fabb6ff1b9742c328da516d2c74",
+      "candidate_binary": false,
+      "provenance": "Historical P1-59 build retained only to identify adapter lineage; F8-27 must build and qualify candidate v6",
+      "qualification_claim": false
+    },
+    {
+      "id": "ci-android-vulkan-apk",
+      "runtime_variant": "vulkan-runtime",
+      "path": "app-debug.apk",
+      "sha256": "b85d2058f35fc83b061155dabd0da9e91d01dc4e17de8f42347d20efa812ac09",
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "provenance": "GitHub Actions run 40982968850 exact-head Android artifact",
+      "artifact_id": 12945053789,
+      "qualification_claim": false
+    },
+    {
+      "id": "ci-ipados-metal-driver",
+      "runtime_variant": "metal-runtime",
+      "path": "Frameworks/ParallelMaterMetal.framework/ParallelMaterMetal",
+      "sha256": "077e006fa25c8c478906ce4da87efb66cddafa8b06f131f4fd05ca87eaac79f7",
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "provenance": "GitHub Actions run 40982968850 exact-head iPadOS artifact",
+      "artifact_id": 12946037166,
+      "qualification_claim": false
+    }
+  ],
+  "compile_evidence": {
+    "qualification_claim": false,
+    "rule": "Compilation, reflection, packaging and hosted execution are build evidence only. Compile-only mirrors and hosted runners qualify no physical row. F8-62 physical Linux CUDA evidence is separate.",
+    "github_actions": {
+      "workflow": "CI",
+      "run_id": 40982968850,
+      "run_url": "https://github.com/tabutyn/parallel-mater/actions/runs/40982968850",
+      "result": "success",
+      "head_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "head_tree": "fccd57eabd07dd4ae40cd38fdce8020d079a09da",
+      "checkout_merge_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "jobs": [
+        {
+          "name": "Roadmap lease contract",
+          "conclusion": "success"
+        },
+        {
+          "name": "windows / loader",
+          "conclusion": "success"
+        },
+        {
+          "name": "mobile / android-ui",
+          "conclusion": "success"
+        },
+        {
+          "name": "mobile / ipad",
+          "conclusion": "success"
+        },
+        {
+          "name": "shaders / Shader compilation (windows-latest)",
+          "conclusion": "success"
+        },
+        {
+          "name": "mobile / android",
+          "conclusion": "success"
+        },
+        {
+          "name": "sdk / sdk (Windows x64)",
+          "conclusion": "success"
+        },
+        {
+          "name": "reference / reproduce",
+          "conclusion": "success"
+        },
+        {
+          "name": "timing / portable-timing (macos-latest)",
+          "conclusion": "success"
+        },
+        {
+          "name": "sdk / sdk (macOS ARM64)",
+          "conclusion": "success"
+        },
+        {
+          "name": "sdk / sdk",
+          "conclusion": "success"
+        },
+        {
+          "name": "shaders / Shader compilation (macos-26)",
+          "conclusion": "success"
+        },
+        {
+          "name": "shaders / Shader compilation (ubuntu-latest)",
+          "conclusion": "success"
+        },
+        {
+          "name": "timing / portable-timing (windows-latest)",
+          "conclusion": "success"
+        },
+        {
+          "name": "timing / portable-timing (ubuntu-latest)",
+          "conclusion": "success"
+        },
+        {
+          "name": "shaders / Shader portability required",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI required",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "sdk-install-contracts",
+          "id": 12946850291,
+          "archive_sha256": "d3af55fd0b8e2cc00672170a4054339e6d7659d078ffa16b97f3cd72ec9d7fdb",
+          "file_count": 76,
+          "extracted_tree_sha256": "9cfbdcb368865d6cddb18bf129e7f979876397bc815a02b680ab3bb7d2266841"
+        },
+        {
+          "name": "sdk-install-contracts-macos-arm64",
+          "id": 12946615123,
+          "archive_sha256": "b2c1d93ea41f2a79e6c66eb27b4e50b831afe531e134bc1a66d6c2ce0c03f76c",
+          "file_count": 68,
+          "extracted_tree_sha256": "db15ce88abe2f0bc688c457df18bcf125f2b696b1184384bf8e3246d6bb0f1a5"
+        },
+        {
+          "name": "sdk-install-contracts-windows-x64",
+          "id": 12947220148,
+          "archive_sha256": "f184e13b7c94f03d5c1269741c56729dec0d954d45227cacb8fd1b774ed1212e",
+          "file_count": 68,
+          "extracted_tree_sha256": "b0e128073b7638f650e5764b58aa21d966678b497c854f19eaddc98668da6f86"
+        },
+        {
+          "name": "shader-portability-ubuntu-latest",
+          "id": 12945772858,
+          "archive_sha256": "7389b1935802a95a2b90531f257a330ef854de34fbfa7374fb193dcf8e72228e",
+          "file_count": 295,
+          "extracted_tree_sha256": "b688371045eac954b0004fac0d22c22c627693fe507359786e2b04ba0a87a72d"
+        },
+        {
+          "name": "shader-portability-windows-latest",
+          "id": 12946875725,
+          "archive_sha256": "0e014e9f150fcf3d26a42b55dff37609b244d7a8eb67a9fa7e3e2507f811cd0c",
+          "file_count": 522,
+          "extracted_tree_sha256": "cc16239e0e5e817bcfec8e3673449839e3ac5bc9f00766f29aaf080d3d6aa1fc"
+        },
+        {
+          "name": "shader-portability-macos-26",
+          "id": 12946410416,
+          "archive_sha256": "dbd4c79c72bd0c995d296631e7ec375c21718663f445409656cd939066e5a91a",
+          "file_count": 295,
+          "extracted_tree_sha256": "b8e1e5bea3d94f085297ab37fe710aa9d82c405ae06babccb037fa77a79ffcb4"
+        },
+        {
+          "name": "android-vulkan-preview",
+          "id": 12945053789,
+          "archive_sha256": "159e027c12bd4070d997f77bbe8b71441a8836432197213c33150848b49029d5",
+          "file_count": 1,
+          "extracted_tree_sha256": "26ca9e49efdf8fb90f538d77c277c455c5c40acc54b271dc83d0b180b0688906"
+        },
+        {
+          "name": "android-gallery-ui-evidence",
+          "id": 12944944180,
+          "archive_sha256": "32b50251055574326a8e0f9182ddc9713ff6ba2bcd80b6a410cd5e0c516bfa12",
+          "file_count": 14,
+          "extracted_tree_sha256": "722a5f658073f393175907066dd9f070dd7773d5fd05d038067958c4191f5c40"
+        },
+        {
+          "name": "ipad-unsigned-preview",
+          "id": 12946037166,
+          "archive_sha256": "adf0ea114e0accbb76ba508b45b52436ef6197c116615ddf081da73fa2fb509d",
+          "file_count": 530,
+          "extracted_tree_sha256": "86ad5d1c653e69de3fa047c032dd61a2efdd68d5fcfd5e358096463736ddaa86"
+        },
+        {
+          "name": "reference-artifacts",
+          "id": 12945562775,
+          "archive_sha256": "48cbdc33db71fcf0ece9504c7ec4d9c02894ea886d88b6cfdedc87eb0fd90d45",
+          "file_count": 16,
+          "extracted_tree_sha256": "0aee55693f629cfd74563cb7d875f6f692855345b6e2532e5fb5c65d05b4188c"
+        }
+      ],
+      "event": "workflow_dispatch",
+      "archive_hash_method": "GitHub Actions artifact digest returned by the repository API",
+      "tree_hash_method": "SHA-256 over sorted extracted relative path + NUL + file bytes + NUL"
+    },
+    "source_clean_evidence": {
+      "linux_sdk_report": {
+        "artifact_id": 12946850291,
+        "report_sha256": "93b3eb4b74e3bcd3f7a932da0c462557fe893ed38b0737882d4f0cd323878939",
+        "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+        "source_dirty": false
+      },
+      "macos_sdk_report": {
+        "artifact_id": 12946615123,
+        "report_sha256": "357fa513922cd679aac49b97a115a8e64502c0c2e48aea55c7502e9cb8fce96f",
+        "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+        "source_dirty": false
+      },
+      "windows_sdk_report": {
+        "artifact_id": 12947220148,
+        "report_sha256": "2b1787fa2d440aedd1c4b71c5a14573855963ac63ab83b4689184e8e66a4180f",
+        "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+        "source_dirty": false
+      },
+      "ipad_build_info": {
+        "artifact_id": 12946037166,
+        "sha256": "36fe28eaa3f4bc705b641dfda8f2578a3df1b7536ab3024cbd6a326ba0deef2a",
+        "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+        "source_dirty": false
+      }
+    }
+  },
+  "application_artifacts": [
+    {
+      "id": "f8-60-macos-gallery-historical",
+      "platform": "macos",
+      "path": "build-macos-metal-preview/ParallelMater Gallery.app/Contents/MacOS/ParallelMater Gallery",
+      "sha256": "fae003a78e2986837ff2c75997f4d03845bb95507022a5cc76595da177a77416",
+      "source_revision": "f623bf003a4afc2aa19fbc009392232fce7a507c",
+      "candidate_binary": false,
+      "gallery_source_equivalent_to_candidate": false,
+      "qualification_claim": false,
+      "provenance": "Historical platform lineage only; F8-28 must build and qualify candidate v6"
+    },
+    {
+      "id": "f8-62-linux-cuda-gallery",
+      "platform": "linux",
+      "path": "build/parallel-mater-gallery",
+      "sha256": "11ee683bf24b86ca1424df9982cdf83876a6dc3f6043819e7f60a15ccc360d3d",
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "candidate_binary": true,
+      "qualification_claim": false,
+      "provenance": "F8-62 clean physical Linux CUDA build; complete 130/130 suite passed"
+    },
+    {
+      "id": "ci-ipados-gallery",
+      "platform": "ipados",
+      "path": "ParallelMater Gallery",
+      "sha256": "739f1b162995f50355cc145a40e59ad0c51d62d30500c97e62b0f29b38d015d0",
+      "artifact_id": 12946037166,
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "qualification_claim": false,
+      "embedded_build_info": {
+        "revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+        "dirty": false,
+        "sha256": "36fe28eaa3f4bc705b641dfda8f2578a3df1b7536ab3024cbd6a326ba0deef2a"
+      }
+    },
+    {
+      "id": "ci-ipados-loader-framework",
+      "platform": "ipados",
+      "path": "Frameworks/ParallelMater.framework/ParallelMater",
+      "sha256": "102356236e5632614e094765f4be936b574c0918ba9de7c4403a0eee69ea4dd7",
+      "artifact_id": 12946037166,
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "qualification_claim": false
+    },
+    {
+      "id": "ci-ipados-metal-framework",
+      "platform": "ipados",
+      "path": "Frameworks/ParallelMaterMetal.framework/ParallelMaterMetal",
+      "sha256": "077e006fa25c8c478906ce4da87efb66cddafa8b06f131f4fd05ca87eaac79f7",
+      "artifact_id": 12946037166,
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "qualification_claim": false
+    },
+    {
+      "id": "ci-android-vulkan-gallery",
+      "platform": "android",
+      "path": "app-debug.apk",
+      "sha256": "b85d2058f35fc83b061155dabd0da9e91d01dc4e17de8f42347d20efa812ac09",
+      "artifact_id": 12945053789,
+      "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+      "qualification_claim": false
+    }
+  ],
+  "prerequisite_evidence": [
+    {
+      "task": "F8-50",
+      "path": "docs/roadmap/evidence/F8-50-single-execution-path.json",
+      "sha256": "9040fcef72d87e167f25f56c34a410e74cadd17db8a1bc8105259bcc55b13c13"
+    },
+    {
+      "task": "F8-51",
+      "path": "docs/roadmap/evidence/F8-51-gallery-fixed-tick.json",
+      "sha256": "6d3b4b783a4684338eba1e994a900b03bc333fab86d52fc6ed81d7778ca7472a"
+    },
+    {
+      "task": "F8-54",
+      "path": "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+      "sha256": "739215962f7406c01481805372e608d72e848928219202470b739e34e16061ea"
+    },
+    {
+      "task": "F8-55",
+      "path": "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+      "sha256": "6cb06f247a4bbe3d9eb1f35aa3e7f66a4889a4c3c23adbd6437f2088bcf1b0ea"
+    },
+    {
+      "task": "F8-56",
+      "path": "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+      "sha256": "0658114f6fa0da86dbcabc7c3c19e63196f82f466e28164005317377fdeb8e02"
+    },
+    {
+      "task": "F8-60",
+      "path": "docs/roadmap/evidence/F8-60-capability-case-reconciliation.json",
+      "sha256": "f60d44ca792e85e2acb8993380c53fa7276727a9ff9b6533fcf4169ee3b61134"
+    },
+    {
+      "task": "F8-62",
+      "path": "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
+      "sha256": "22f75c7ba708bc108275fd92546ac8fcaa067a0d7a2d41b353718398779e97d0"
+    }
+  ],
+  "execution_evidence": "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
+  "physical_targets": [
+    {
+      "id": "windows-gtx1080-slang-cuda",
+      "variant": "cuda-runtime",
+      "qualification_owner": "F8-26",
+      "status": "pending"
+    },
+    {
+      "id": "windows-gtx1080-slang-d3d12",
+      "variant": "d3d12-runtime",
+      "qualification_owner": "F8-27",
+      "status": "pending"
+    },
+    {
+      "id": "linux-thomas-laptop-slang-cpu",
+      "variant": "cpu-runtime",
+      "qualification_owner": "F8-53",
+      "status": "pending"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda",
+      "variant": "cuda-runtime",
+      "qualification_owner": "F8-24",
+      "status": "pending"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-vulkan",
+      "variant": "vulkan-runtime",
+      "qualification_owner": "F8-25",
+      "status": "pending"
+    },
+    {
+      "id": "macos-m4-slang-metal",
+      "variant": "metal-runtime",
+      "qualification_owner": "F8-28",
+      "status": "pending"
+    },
+    {
+      "id": "ipados-m1-slang-metal",
+      "variant": "metal-runtime",
+      "qualification_owner": "F8-29",
+      "status": "pending"
+    },
+    {
+      "id": "android-pixel7-slang-vulkan",
+      "variant": "vulkan-runtime",
+      "qualification_owner": "F8-30",
+      "status": "pending"
+    }
+  ],
+  "qualification_routing": {
+    "tasks": [
+      "F8-24",
+      "F8-25",
+      "F8-26",
+      "F8-27",
+      "F8-28",
+      "F8-29",
+      "F8-30",
+      "F8-53"
+    ],
+    "accepted_candidate": "realtime-single-step-v1-fc2ffba",
+    "evidence_union_allowed": false,
+    "interim_cpu_evidence": "F8-23, candidate-v4 and candidate-v5 preflights remain immutable provenance and supply no candidate-v6 pass. F8-62 proves the full physical Linux CUDA regression on the exact repaired source; F8-24 through F8-30 and F8-53 still own final qualification rows.",
+    "rule": "Every final physical row must name this exact candidate id, source revision, tree, CI run, candidate manifest hash and protected closure hashes. Historical evidence cannot be unioned."
+  },
+  "invalidation": {
+    "policy": "Evidence from different candidates is never unioned. Any protected closure drift freezes a new candidate identity and reruns every affected physical row.",
+    "triggers": [
+      "public API or driver ABI",
+      "kernel source or entry manifest",
+      "adapter binding or device dispatch",
+      "runtime physics or spatial implementation",
+      "fixed-tick schedule or telemetry",
+      "capability or execution contract",
+      "independent workload, quality or work budget",
+      "public oracle",
+      "shared Gallery session, platform integration or deployment"
+    ],
+    "completed_row_rule": "Preserve superseded evidence as history and create a bounded repair/refreeze/requalification leaf; add every leaf to F8-99.",
+    "capability_rule": "Missing implementation creates a prerequisite repair task; it never removes a domain, interaction, runtime variant or physical row from this candidate.",
+    "exit_rule": "F8-99 accepts only complete rows naming one exact non-superseded candidate and its protected hashes."
+  },
+  "contract_inputs": {
+    "scenario_fixtures": {
+      "path": "conformance/v1/realtime/scenario-fixtures-v1.json",
+      "sha256": "879464c508e4fa741c5deed567324b09354b9fc8d1cbc41d70499d4d9a58a882",
+      "scenario_count": 12,
+      "measurement_count": 37
+    },
+    "capture_validator": {
+      "path": "conformance/v1/realtime_device_suite.py",
+      "sha256": "655cef04651db27a0020352072cf9ddf361596f4d2ee6eb71463e9d709ff3902",
+      "schema": "parallel-mater-realtime-device-suite-capture/v1"
+    },
+    "capability_rows": 49,
+    "public_cases": 30,
+    "budgets_and_tolerances": "conformance/v1/qualification/realtime-profile-v1.json"
+  },
+  "toolchains": [
+    {
+      "scope": "portable-sdk-linux",
+      "artifact_id": 12946850291,
+      "host": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+      "compiler": "GNU 13.3.0",
+      "architecture": "x86_64"
+    },
+    {
+      "scope": "portable-sdk-macos",
+      "artifact_id": 12946615123,
+      "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+      "compiler": "AppleClang 21.0.0.21000101",
+      "architecture": "arm64"
+    },
+    {
+      "scope": "portable-sdk-windows",
+      "artifact_id": 12947220148,
+      "host": "Windows-2025Server-10.0.26100-SP0",
+      "compiler": "MSVC 19.51.36260.0",
+      "architecture": "AMD64"
+    },
+    {
+      "scope": "shared-physics-shaders",
+      "compiler": "Slang 2026.18",
+      "targets": [
+        "CUDA",
+        "DXIL",
+        "SPIR-V",
+        "Metal"
+      ]
+    },
+    {
+      "scope": "android-gallery",
+      "artifact_id": 12945053789,
+      "host": "ubuntu-latest",
+      "compiler": "Android NDK 29.0.14206865 with CMake 4.1.2",
+      "java": "21"
+    },
+    {
+      "scope": "ipados-gallery",
+      "artifact_id": 12946037166,
+      "host": "macos-26",
+      "compiler": "Xcode 26 device SDK plus Metal Toolchain"
+    },
+    {
+      "scope": "physical-linux-cuda",
+      "evidence": "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
+      "host_compiler": "GNU 12.2.0",
+      "cuda": "13.1.80",
+      "cuda_architectures": "86",
+      "slang": "2026.18",
+      "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "driver": "590.44.01"
+    }
+  ]
+}

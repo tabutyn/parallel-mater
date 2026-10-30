@@ -19,7 +19,7 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v5.json"
+    ROOT / "conformance/v1/qualification/realtime-candidate-v6.json"
 )
 ACTIVE_POINTER_PATH = (
     ROOT / "conformance/v1/qualification/active-realtime-candidate.json"
@@ -36,6 +36,9 @@ V3_REJECTION_PATH = (
 V4_REJECTION_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v4-rejection.json"
 )
+V5_REJECTION_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v5-rejection.json"
+)
 V1_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v1.json"
 )
@@ -48,6 +51,13 @@ V3_CANDIDATE_PATH = (
 V4_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v4.json"
 )
+V5_CANDIDATE_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v5.json"
+)
+V5_FAILURE_PATH = (
+    ROOT / "docs/roadmap/evidence/"
+    "F8-24-CANDIDATE-V5-LINUX-CUDA-FAILURE.json"
+)
 INVENTORY_PATH = (
     ROOT / "conformance/v1/qualification/kernel-device-obligations-v1.json"
 )
@@ -59,14 +69,15 @@ ORACLE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
 MANIFEST_PATH = ROOT / "cmake/SlangKernelManifest.cmake"
 TASK_DIR = ROOT / "docs/roadmap/tasks"
 
-ACTIVE_ID = "realtime-single-step-v1-cfb104b"
-ACTIVE_SOURCE_REVISION = "cfb104b1c530f859d9a1c3549d2e67c7de31c289"
-ACTIVE_SOURCE_TREE = "e6838f954384363e79a4485f3c2cfb6ff5e0ea79"
-ACTIVE_CI_RUN_ID = 40906474584
+ACTIVE_ID = "realtime-single-step-v1-fc2ffba"
+ACTIVE_SOURCE_REVISION = "fc2ffbafdb81631c4c7393336970cefc3d65f55e"
+ACTIVE_SOURCE_TREE = "fccd57eabd07dd4ae40cd38fdce8020d079a09da"
+ACTIVE_CI_RUN_ID = 40982968850
 V1_REJECTED_ID = "realtime-single-step-v1-dea47c1"
 V2_REJECTED_ID = "realtime-single-step-v1-fd78fa8"
 V3_REJECTED_ID = "realtime-single-step-v1-3671f18"
 V4_REJECTED_ID = "realtime-single-step-v1-5a811c4"
+V5_REJECTED_ID = "realtime-single-step-v1-cfb104b"
 V1_MANIFEST_SHA256 = (
     "c25c010be3a0e908537e3c6542c1759b28b10cfb4a4169b51bb2834233411d43"
 )
@@ -79,6 +90,12 @@ V3_MANIFEST_SHA256 = (
 V4_MANIFEST_SHA256 = (
     "f0f15a65fed178625b263c6462e7e0d9397fd4880cfc2a3a73582b98584876ae"
 )
+V5_MANIFEST_SHA256 = (
+    "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000"
+)
+V5_FAILURE_SHA256 = (
+    "529f43bf26c36cd989c8bd72c936ecdd1306b372d70d194071b71f5c0e9453dd"
+)
 REQUIRED_CLOSURES = {
     "api_abi",
     "kernel",
@@ -90,6 +107,37 @@ REQUIRED_CLOSURES = {
     "work_budget",
     "gallery",
 }
+REQUIRED_CI_ARTIFACTS = {
+    "sdk-install-contracts",
+    "sdk-install-contracts-macos-arm64",
+    "sdk-install-contracts-windows-x64",
+    "shader-portability-ubuntu-latest",
+    "shader-portability-windows-latest",
+    "shader-portability-macos-26",
+    "android-vulkan-preview",
+    "android-gallery-ui-evidence",
+    "ipad-unsigned-preview",
+    "reference-artifacts",
+}
+REQUIRED_CI_JOBS = {
+    "Roadmap lease contract",
+    "sdk / sdk (Windows x64)",
+    "windows / loader",
+    "sdk / sdk",
+    "timing / portable-timing (windows-latest)",
+    "mobile / ipad",
+    "sdk / sdk (macOS ARM64)",
+    "timing / portable-timing (macos-latest)",
+    "shaders / Shader compilation (macos-26)",
+    "mobile / android",
+    "shaders / Shader compilation (ubuntu-latest)",
+    "reference / reproduce",
+    "shaders / Shader compilation (windows-latest)",
+    "timing / portable-timing (ubuntu-latest)",
+    "mobile / android-ui",
+    "shaders / Shader portability required",
+    "CI required",
+}
 QUALIFICATION_TASKS = {f"F8-{number}" for number in range(24, 31)} | {"F8-53"}
 PREREQUISITE_EVIDENCE = {
     "F8-50": "docs/roadmap/evidence/F8-50-single-execution-path.json",
@@ -98,6 +146,7 @@ PREREQUISITE_EVIDENCE = {
     "F8-55": "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
     "F8-56": "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
     "F8-60": "docs/roadmap/evidence/F8-60-capability-case-reconciliation.json",
+    "F8-62": "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
 }
 
 
@@ -178,10 +227,13 @@ def validate_candidate(
     v2_rejection_path = root / V2_REJECTION_PATH.relative_to(ROOT)
     v3_rejection_path = root / V3_REJECTION_PATH.relative_to(ROOT)
     v4_rejection_path = root / V4_REJECTION_PATH.relative_to(ROOT)
+    v5_rejection_path = root / V5_REJECTION_PATH.relative_to(ROOT)
     v1_candidate_path = root / V1_CANDIDATE_PATH.relative_to(ROOT)
     v2_candidate_path = root / V2_CANDIDATE_PATH.relative_to(ROOT)
     v3_candidate_path = root / V3_CANDIDATE_PATH.relative_to(ROOT)
     v4_candidate_path = root / V4_CANDIDATE_PATH.relative_to(ROOT)
+    v5_candidate_path = root / V5_CANDIDATE_PATH.relative_to(ROOT)
+    v5_failure_path = root / V5_FAILURE_PATH.relative_to(ROOT)
     inventory = load_json(root / INVENTORY_PATH.relative_to(ROOT))
     profile = load_json(root / PROFILE_PATH.relative_to(ROOT))
     oracle = load_json(root / ORACLE_PATH.relative_to(ROOT))
@@ -191,6 +243,8 @@ def validate_candidate(
                     if v3_rejection_path.is_file() else {})
     v4_rejection = (load_json(v4_rejection_path)
                     if v4_rejection_path.is_file() else {})
+    v5_rejection = (load_json(v5_rejection_path)
+                    if v5_rejection_path.is_file() else {})
     if candidate is None:
         candidate = load_json(candidate_path)
 
@@ -213,8 +267,8 @@ def validate_candidate(
             "candidate schema is not v3")
     _expect(errors, candidate.get("id") == ACTIVE_ID,
             "active candidate id changed")
-    _expect(errors, candidate.get("task") == "F8-61",
-            "candidate freeze task is not F8-61")
+    _expect(errors, candidate.get("task") == "F8-63",
+            "candidate freeze task is not F8-63")
     _expect(errors, candidate.get("status") == "frozen-awaiting-physical-qualification",
             "candidate status is not frozen")
     source = candidate.get("source", {})
@@ -225,6 +279,14 @@ def validate_candidate(
             "active source revision drift")
     _expect(errors, source.get("tree") == ACTIVE_SOURCE_TREE,
             "active source tree drift")
+    _expect(errors,
+            source.get("repair_evidence") ==
+            "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
+            "candidate does not bind the F8-62 repair evidence")
+    repair_path = root / str(source.get("repair_evidence", ""))
+    _expect(errors, repair_path.is_file() and
+            source.get("repair_evidence_sha256") == file_sha256(repair_path),
+            "F8-62 repair evidence hash drift")
 
     closures = {
         item.get("category"): item
@@ -461,16 +523,28 @@ def validate_candidate(
             "cross-platform GitHub Actions evidence did not pass")
     _expect(errors, actions.get("head_revision") == ACTIVE_SOURCE_REVISION,
             "GitHub Actions did not run from the frozen source revision")
+    _expect(errors, actions.get("head_tree") == ACTIVE_SOURCE_TREE,
+            "GitHub Actions did not run from the frozen source tree")
     _expect(errors, actions.get("event") == "workflow_dispatch",
             "GitHub Actions source run was not the immutable manual run")
     _expect(errors, actions.get("run_id") == ACTIVE_CI_RUN_ID,
             "GitHub Actions run identity drift")
-    artifact_text = " ".join(item.get("name", "")
-                             for item in actions.get("artifacts", [])).lower()
-    for platform in ("ubuntu", "windows", "macos", "android", "ipad"):
-        _expect(errors, platform in artifact_text,
-                f"cross-platform evidence lacks {platform}")
+    jobs = {item.get("name"): item for item in actions.get("jobs", [])}
+    _expect(errors, set(jobs) == REQUIRED_CI_JOBS,
+            "protected CI job set drift")
+    for name, job in jobs.items():
+        _expect(errors, job.get("conclusion") == "success",
+                f"protected CI job did not pass: {name}")
+    artifact_names = {
+        item.get("name") for item in actions.get("artifacts", [])
+    }
+    _expect(errors, artifact_names == REQUIRED_CI_ARTIFACTS,
+            "cross-platform CI artifact set drift")
     for artifact in actions.get("artifacts", []):
+        _expect(errors, isinstance(artifact.get("id"), int) and
+                artifact.get("id", 0) > 0 and
+                artifact.get("file_count", 0) > 0,
+                f"artifact {artifact.get('name')} lacks exact identity")
         for key in ("archive_sha256", "extracted_tree_sha256"):
             _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
                                               str(artifact.get(key, "")))),
@@ -509,8 +583,8 @@ def validate_candidate(
     embedded = ipad_gallery.get("embedded_build_info", {})
     _expect(errors, embedded.get("revision") == ACTIVE_SOURCE_REVISION,
             "iPad compile artifact embeds the wrong source revision")
-    _expect(errors, embedded.get("dirty") is True and bool(embedded.get("reason")),
-            "historical iPad CI scratch dirtiness is not explicitly bounded")
+    _expect(errors, embedded.get("dirty") is False,
+            "iPad compile artifact did not use a clean frozen source")
     mobile_workflow = (
         root / ".github/workflows/mobile-gallery.yml"
     ).read_text(encoding="utf-8")
@@ -536,45 +610,35 @@ def validate_candidate(
 
     execution_path = root / str(candidate.get("execution_evidence", ""))
     _expect(errors, execution_path.is_file(),
-            "installed consumer preflight evidence is missing")
+            "F8-62 physical repair evidence is missing")
     execution = load_json(execution_path) if execution_path.is_file() else {}
-    execution_candidate = execution.get("candidate", {})
-    _expect(errors, execution_candidate.get("id") == ACTIVE_ID,
-            "installed execution evidence names the wrong candidate")
-    _expect(errors, execution_candidate.get("manifest_sha256") ==
-            file_sha256(candidate_path),
-            "installed execution evidence candidate manifest hash drift")
-    installed = execution.get("installed_consumer_preflight", {})
-    _expect(errors, installed.get("runtime_variant") == "cpu-runtime" and
-            installed.get("status") == "passed",
-            "installed CPU consumer preflight did not pass")
-    _expect(errors, installed.get("source_dirty") is False,
-            "installed consumer preflight used a dirty source")
-    _expect(errors, installed.get("check_count", 0) >= 14 and
-            installed.get("checks_passed") == installed.get("check_count"),
-            "installed consumer preflight checks are incomplete")
-    for key in ("report_sha256", "driver_sha256",
-                "plain_observation_sha256", "validation_observation_sha256"):
-        _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
-                                          str(installed.get(key, "")))),
-                f"installed consumer preflight lacks {key}")
-    validator = execution.get("f8_58_validator", {})
-    _expect(errors, validator.get("status") == "passed" and
-            validator.get("runtime_variant") == "cpu-runtime" and
-            validator.get("scenario_count") == 12 and
-            validator.get("qualification_claim") is False,
-            "F8-58 CPU contract preflight is incomplete")
-    for key in ("capture_sha256", "report_sha256"):
-        _expect(errors, bool(re.fullmatch(
-            r"[0-9a-f]{64}", str(validator.get(key, "")))),
-            f"F8-58 CPU contract preflight lacks {key}")
-    _expect(errors, execution.get("physical_qualification_claim") is False,
-            "candidate preflight claims final physical qualification")
+    repair_source = execution.get("repair_source", {})
+    _expect(errors,
+            repair_source.get("revision") == ACTIVE_SOURCE_REVISION and
+            repair_source.get("tree") == ACTIVE_SOURCE_TREE and
+            repair_source.get("working_tree_during_final_build") == "clean",
+            "F8-62 did not execute the exact clean frozen source")
+    physical = execution.get("results", {}).get("physical_ctest", {})
+    _expect(errors,
+            physical.get("status") == "passed" and
+            physical.get("passed") == 130 and
+            physical.get("failed") == 0 and
+            physical.get("skipped") == 0 and
+            physical.get("total") == 130 and
+            physical.get("cuda_labeled_tests_executed") == 42,
+            "F8-62 complete physical Linux CUDA regression did not pass")
+    relocated = execution.get("results", {}).get("relocated_sdk", {})
+    _expect(errors,
+            relocated.get("status") == "passed" and
+            relocated.get("source_revision") == ACTIVE_SOURCE_REVISION and
+            relocated.get("source_dirty") is False and
+            relocated.get("checks_passed") == 12,
+            "F8-62 relocated SDK evidence is incomplete")
 
     supersedes = candidate.get("supersedes", {})
-    _expect(errors, supersedes.get("candidate_id") == V4_REJECTED_ID and
-            supersedes.get("manifest_sha256") == V4_MANIFEST_SHA256,
-            "candidate does not supersede exact v4 identity")
+    _expect(errors, supersedes.get("candidate_id") == V5_REJECTED_ID and
+            supersedes.get("manifest_sha256") == V5_MANIFEST_SHA256,
+            "candidate does not supersede exact v5 identity")
     _expect(errors, file_sha256(v1_candidate_path) == V1_MANIFEST_SHA256,
             "rejected v1 candidate manifest changed")
     _expect(errors, file_sha256(v2_candidate_path) == V2_MANIFEST_SHA256,
@@ -583,6 +647,10 @@ def validate_candidate(
             "superseded v3 candidate manifest changed")
     _expect(errors, file_sha256(v4_candidate_path) == V4_MANIFEST_SHA256,
             "superseded v4 candidate manifest changed")
+    _expect(errors, file_sha256(v5_candidate_path) == V5_MANIFEST_SHA256,
+            "rejected v5 candidate manifest changed")
+    _expect(errors, file_sha256(v5_failure_path) == V5_FAILURE_SHA256,
+            "candidate-v5 F8-24 failure evidence changed")
     _expect(errors, v1_rejection.get("candidate_id") == V1_REJECTED_ID and
             v1_rejection.get("candidate_manifest_sha256") == V1_MANIFEST_SHA256,
             "v1 rejection record lost its candidate identity")
@@ -623,12 +691,31 @@ def validate_candidate(
             "superseded-repaired-matrix-refreeze",
             "v4 candidate is not durably superseded")
     v4_replacement = v4_rejection.get("replacement", {})
-    _expect(errors, v4_replacement.get("candidate_id") == ACTIVE_ID and
+    _expect(errors, v4_replacement.get("candidate_id") == V5_REJECTED_ID and
             v4_replacement.get("candidate_manifest_sha256") ==
+            V5_MANIFEST_SHA256,
+            "v4 supersession record no longer routes to exact v5")
+    _expect(errors, v5_rejection.get("candidate_id") == V5_REJECTED_ID and
+            v5_rejection.get("candidate_manifest_sha256") ==
+            V5_MANIFEST_SHA256,
+            "v5 rejection record lost its candidate identity")
+    _expect(errors,
+            v5_rejection.get("status") ==
+            "rejected-required-linux-cuda-suite",
+            "v5 candidate is not durably rejected")
+    _expect(errors,
+            v5_rejection.get("failure_evidence") ==
+            V5_FAILURE_PATH.relative_to(ROOT).as_posix() and
+            v5_rejection.get("failure_evidence_sha256") == V5_FAILURE_SHA256,
+            "v5 rejection record lost its exact failure evidence")
+    v5_replacement = v5_rejection.get("replacement", {})
+    _expect(errors, v5_replacement.get("candidate_id") == ACTIVE_ID and
+            v5_replacement.get("candidate_manifest_sha256") ==
             file_sha256(candidate_path),
-            "v4 supersession record routes to the wrong replacement")
+            "v5 rejection record routes to the wrong replacement")
     for label, rejection in (("v1", v1_rejection), ("v2", v2_rejection),
-                             ("v3", v3_rejection), ("v4", v4_rejection)):
+                             ("v3", v3_rejection), ("v4", v4_rejection),
+                             ("v5", v5_rejection)):
         _expect(errors, rejection.get("evidence_union_allowed") is False,
                 f"{label} rejection record permits evidence union")
         invalidated = {
@@ -652,8 +739,8 @@ def validate_candidate(
     candidate_sha256 = file_sha256(candidate_path)
     for task_id in sorted(QUALIFICATION_TASKS):
         task = load_json(root / TASK_DIR.relative_to(ROOT) / f"{task_id}.json")
-        _expect(errors, "F8-61" in task.get("dependencies", []),
-                f"{task_id} does not depend on F8-61")
+        _expect(errors, "F8-63" in task.get("dependencies", []),
+                f"{task_id} does not depend on F8-63")
         scope = task.get("scope", "")
         _expect(errors, ACTIVE_ID in scope,
                 f"{task_id} does not route to the exact replacement")
@@ -662,7 +749,10 @@ def validate_candidate(
                 f"{task_id} does not bind exact source identity")
         _expect(errors, candidate_sha256 in scope,
                 f"{task_id} does not bind exact candidate manifest")
-        _expect(errors, V4_REJECTED_ID in scope and V3_REJECTED_ID in scope and
+        _expect(errors, str(ACTIVE_CI_RUN_ID) in scope,
+                f"{task_id} does not bind exact protected CI run")
+        _expect(errors, V5_REJECTED_ID in scope and V4_REJECTED_ID in scope and
+                V3_REJECTED_ID in scope and
                 "interim" in scope and "cannot be unioned" in scope,
                 f"{task_id} does not preserve candidate history")
     exit_dependencies = set(load_json(
@@ -670,7 +760,7 @@ def validate_candidate(
     ).get("dependencies", []))
     _expect(errors, QUALIFICATION_TASKS |
             {"F8-33", "F8-34", "F8-35", "F8-36", "F8-37", "F8-38",
-             "F8-52", "F8-61"}
+             "F8-52", "F8-61", "F8-62", "F8-63"}
             <= exit_dependencies,
             "F8-99 lacks a repair, refreeze or qualification dependency")
     return errors

@@ -90,25 +90,30 @@ rewriting their history or treating unsupported results as passes.
    physical quality on installed Mac/iPad Gallery. F8-52 then freezes the
    complete source/API/Gallery candidate and independent work-budget inputs.
    F8-59 adds executable shared scenarios, F8-60 repairs the final capability
-   and public-case matrix, and F8-61 refreezes the resulting closure.
-   F8-24 through F8-30 qualify the F8-61 candidate on their registered GPU
-   targets; F8-53 supplies final CPU/public-contract qualification. F8-31 packages
-   and deploys verified builds; F8-99 audits the sole production path and all
-   required results.
+   and public-case matrix, and F8-61 refreezes the resulting closure. F8-24's
+   physical Linux CUDA run rejects that candidate, F8-62 repairs the three
+   required Gallery failures, and F8-63 freezes the exact repaired source.
+   F8-24 through F8-30 qualify the F8-63 candidate on their registered GPU
+   targets; F8-53 supplies final CPU/public-contract qualification. F8-31
+   packages and deploys verified builds; F8-99 audits the sole production path
+   and all required results.
 
 F8-38 completed the narrowly scoped rigid-path refreeze, and F8-23 completed
 its interim qualification. F8-52 preserved the first complete single-path
 candidate, but it predates the executable scenario and final repaired matrix.
-F8-61 supersedes it with `realtime-single-step-v1-cfb104b`, manifest SHA-256
-`3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000`.
-F8-24 through F8-30 and F8-53 accept only that exact
-candidate. All earlier records remain immutable provenance; evidence from
-different candidates may not be combined into a pass. See the
-[F8-61 freeze record](F8-61-CANDIDATE-FREEZE.md).
+F8-61's `realtime-single-step-v1-cfb104b` then failed the required physical
+Linux CUDA suite and remains rejected history. F8-63 replaces it with
+`realtime-single-step-v1-fc2ffba`, manifest SHA-256
+`6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9`.
+F8-24 through F8-30 and F8-53 accept only that exact candidate. All earlier
+records remain immutable provenance; evidence from different candidates may
+not be combined into a pass. See the
+[F8-63 freeze record](F8-63-CANDIDATE-FREEZE.md).
 
 The frozen `realtime-profile-v1.json` and earlier candidate records remain
 unchanged historical inputs. F8-50 updates the executable contract, and F8-61
-captures the final repaired source, scenarios, validator and exact hashes.
+captures the repaired matrix, scenarios and validator. F8-63 captures the
+post-CUDA-repair source and exact replacement hashes.
 Numeric quality limits may not be weakened to make this migration pass.
 
 Existing branches may temporarily contain migration scaffolding, but "F8 done"

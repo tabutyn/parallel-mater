@@ -1,7 +1,7 @@
 {
   "id": "F8-63",
   "title": "Refreeze candidate after Linux CUDA repairs",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-62"
   ],
@@ -19,15 +19,27 @@
     "A coordination change writes the replacement candidate identity, manifest hash, source/tree and required CI run into F8-24 through F8-30 and F8-53 before any of those qualification tasks becomes ready.",
     "Final device qualification can reproduce the replacement from documented commands without changing physics, capabilities, public cases, work budgets, tolerances or schedule. Any later protected change creates another candidate instead of mutating this freeze."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "978462c7-be4c-4a86-93e3-a46c22791373",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-63/ThomasLaptop",
-    "claimed_at": "2026-10-30T00:54:44Z",
-    "heartbeat_at": "2026-10-30T00:54:44Z",
-    "expires_at": "2026-10-31T00:54:44Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-63-CANDIDATE-V6-FREEZE.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "978462c7-be4c-4a86-93e3-a46c22791373",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-63/ThomasLaptop",
+        "claimed_at": "2026-10-30T00:54:44Z",
+        "heartbeat_at": "2026-10-30T00:54:44Z",
+        "expires_at": "2026-10-31T00:54:44Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-30T01:23:55Z",
+      "reason": "Freeze candidate v6 after exact-source portable CI and physical Linux CUDA repair verification",
+      "evidence": [
+        "docs/roadmap/evidence/F8-63-CANDIDATE-V6-FREEZE.json"
+      ]
+    }
+  ]
 }
