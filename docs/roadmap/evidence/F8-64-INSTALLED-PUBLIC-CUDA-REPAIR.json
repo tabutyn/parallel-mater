@@ -1,0 +1,213 @@
+{
+  "schema": "parallel-mater-f8-64-installed-public-cuda-repair/v1",
+  "task": "F8-64",
+  "status": "passed",
+  "captured_at": "2026-10-30T20:26:48Z",
+  "lease_token": "904b6d49-83f0-469e-a1ff-cb96e4a65468",
+  "rejected_candidate": {
+    "id": "realtime-single-step-v1-fc2ffba",
+    "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+    "source_tree": "fccd57eabd07dd4ae40cd38fdce8020d079a09da",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v6.json",
+    "manifest_sha256": "6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9",
+    "failure_evidence": "docs/roadmap/evidence/F8-24-CANDIDATE-V6-LINUX-CUDA-FAILURE.json",
+    "failure_evidence_sha256": "1be323331ac05533be95ec448c5be121604d734c7b3f43185c6c7f58f5465d07",
+    "qualification_status": "remains-rejected",
+    "evidence_union_allowed": false
+  },
+  "repair_source": {
+    "revision": "861e8f11ccd2412968bb156daf59937c8f1a8c49",
+    "tree": "05558f64cd4d07e6de0ba573857188ef2cd7430f",
+    "branch": "work/F8-64/ThomasLaptop",
+    "working_tree_during_final_build_and_capture": "clean",
+    "base_revision": "a14a2f00ed5695fd4e242f0bd1f31678eb7e5479"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01",
+    "cuda_driver_version": 13010,
+    "gpu_temperature_celsius_after": 54
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "cuda": "13.1.80",
+    "cuda_architectures": "86",
+    "slang": "2026.18"
+  },
+  "reproduced_failures": {
+    "evidence": "docs/roadmap/evidence/F8-24-CANDIDATE-V6-LINUX-CUDA-FAILURE.json",
+    "plain_public_cases": {
+      "completed": 0,
+      "failed": 30,
+      "common_error": "end statistics query: invalid state"
+    },
+    "validation_public_cases": {
+      "completed": 30,
+      "reference_failed": 30,
+      "reference_differences": 5629
+    },
+    "capture_producer": "absent"
+  },
+  "repairs": [
+    {
+      "area": "installed public execution",
+      "change": "Preserve asynchronous step failures through the ordered submission wait, repair loader manifest resolution, and make public realtime statistics lifecycle valid in plain and validation-enabled execution."
+    },
+    {
+      "area": "production native schedule",
+      "change": "Complete rigid, fluid, cloth, rope, soft-body, smoke, coupling, boundary, lifecycle, capacity and mixed-family dispatch behavior without changing the sole schedule or reducing work budgets."
+    },
+    {
+      "area": "installed-public capture",
+      "change": "Add a public SDK producer for all shared scenarios, public cases and exact sustained workloads, retaining raw plain and validation artifacts and deriving measurements only from those artifacts."
+    },
+    {
+      "area": "quality fixtures and oracle",
+      "change": "Repair candidate-consistent physical fixtures and measurement derivation while preserving historical goldens, existing tolerance limits, negative controls and failure diagnostics."
+    },
+    {
+      "area": "smoke lifecycle",
+      "change": "Permit an exact zero-rate rewrite to disable the existing source without deleting live smoke; reject unrelated zero-rate descriptor changes before mutation."
+    }
+  ],
+  "commands": {
+    "configure": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake -S . -B /tmp/parallel-mater-f8-64-cuda4-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_INSTALL_PREFIX=/tmp/parallel-mater-f8-64-cuda4-install -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON -DPARALLEL_MATER_SLANGC_EXECUTABLE=/home/thomas/Repos/ballroller-2026/parallel-mater/build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc",
+    "build": "cmake --build /tmp/parallel-mater-f8-64-cuda4-build -j2",
+    "physical_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/slang-cuda.json PM_LAYER_FILES=/tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/validation.json ctest --test-dir /tmp/parallel-mater-f8-64-cuda4-build --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_discovery_suite": "ctest --test-dir /tmp/parallel-mater-f8-64-cuda4-build --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-64-cuda4-build --output /tmp/f8-64-sdk-evidence-861e8f1",
+    "device_capture": "python3 conformance/v1/realtime_device_capture.py --runner /tmp/parallel-mater-f8-64-cuda4-build/parallel-mater-conformance --driver-manifest /tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/slang-cuda.json --validation-layer-manifest /tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/validation.json --output /tmp/f8-64-full-capture-final-861e8f1",
+    "capture_unit_tests": "python3 -m unittest conformance/v1/tests/test_realtime_device_capture.py conformance/v1/tests/test_realtime_device_suite.py conformance/v1/tests/test_realtime_oracle.py",
+    "generated_checks": "python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+    "diff_check": "git diff --check"
+  },
+  "results": {
+    "clean_release_build": "passed",
+    "registered_tests": {
+      "status": "passed",
+      "passed": 131,
+      "failed": 0,
+      "skipped": 0,
+      "total": 131,
+      "cuda_aware_run": 128,
+      "isolated_discovery_and_install_run": 3,
+      "split_reason": "The three isolation tests intentionally control and assert their own driver manifests; inheriting the physical manifest would invalidate their isolation contract.",
+      "cuda_labeled_tests_executed": 42,
+      "cuda_aware_elapsed_seconds": 77.93,
+      "isolated_elapsed_seconds": 0.21
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "861e8f11ccd2412968bb156daf59937c8f1a8c49",
+      "source_dirty": false,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    },
+    "installed_public_capture": {
+      "status": "passed",
+      "failure_count": 0,
+      "runtime_variant": "cuda-runtime",
+      "target_id": "linux-rtx3050ti-slang-cuda",
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "public_cases_completed": 30,
+      "scenarios_passed": 12,
+      "unique_named_measurements": 37,
+      "scenario_measurement_observations": 176,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0,
+      "reported_distributions": [
+        "cpu_ms.p50/p95/p99/maximum",
+        "gpu_ms.p50/p95/p99/maximum",
+        "physics_ms.p50/p95/p99/maximum",
+        "frame_ms.p50/p95/p99/maximum"
+      ]
+    },
+    "capture_unit_tests": "passed: 40/40",
+    "manifest_hash_check": "passed",
+    "evidence_index_check": "passed",
+    "diff_check": "passed"
+  },
+  "workload_summary": [
+    {
+      "id": "rigid-wall",
+      "simulated_to_wall_time_ratio": 5.171523187931148,
+      "frame_p95_ms": 3.298446,
+      "frame_maximum_ms": 6.092919,
+      "gpu_p95_ms": 3.169792,
+      "gpu_maximum_ms": 3.457024
+    },
+    {
+      "id": "fluid-rigid",
+      "simulated_to_wall_time_ratio": 7.2823001895468344,
+      "frame_p95_ms": 2.348441,
+      "frame_maximum_ms": 3.939893,
+      "gpu_p95_ms": 2.224128,
+      "gpu_maximum_ms": 2.474752
+    },
+    {
+      "id": "deformable-mixed",
+      "simulated_to_wall_time_ratio": 3.015751106763335,
+      "frame_p95_ms": 5.616852,
+      "frame_maximum_ms": 14.166077,
+      "gpu_p95_ms": 5.506048,
+      "gpu_maximum_ms": 5.95968
+    },
+    {
+      "id": "smoke-coupled",
+      "simulated_to_wall_time_ratio": 12.556990457097971,
+      "frame_p95_ms": 1.569658,
+      "frame_maximum_ms": 4.495616,
+      "gpu_p95_ms": 1.482752,
+      "gpu_maximum_ms": 2.262016
+    },
+    {
+      "id": "six-family-mixed",
+      "simulated_to_wall_time_ratio": 2.0611729111094514,
+      "frame_p95_ms": 8.644937,
+      "frame_maximum_ms": 9.429999,
+      "gpu_p95_ms": 8.56064,
+      "gpu_maximum_ms": 9.332736
+    }
+  ],
+  "artifacts": {
+    "tracked_capture_archive": "docs/roadmap/evidence/F8-64-installed-public-capture.tar.zst",
+    "tracked_capture_archive_sha256": "34e0f1c7d1112bc9e231b33e373c6a1446fb1809e083b9bc0aa42c0c939512b8",
+    "tracked_capture_archive_contents": "capture.json, report.json, all raw plain/validation public cases, scenarios and workload tick streams, and producer logs",
+    "raw_file_count": 94,
+    "raw_tree_sha256": "4a22d0d082063ffa984d89ae84141df681ad90cce28cdf9ada10f0887485855b",
+    "capture_sha256": "bbd6bafd81aa89f16e3f1278bb7bd51c96185dada0007679f76ca28b17a882e1",
+    "report_sha256": "403b2d6213ebbd60524723d2d60139685f13b41220f0f2e88f668fb04ada7e0e",
+    "runner_sha256": "c6ce35674d12fe26e1cdb583ae20ff448dc66aabd14bb060f160c547bef52fb5",
+    "driver_sha256": "dab63dc788007974dc14676e4395d5730040dddf56a88c4da02173e5bf22653d",
+    "driver_manifest_sha256": "887d827dc6ecd5c4d993fd01312430b009a958484aaef277ee45cabca5e025a2",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "validation_manifest_sha256": "fb6b83ef8055b96f536a777b8806095631d0328dd1cff615b9a44c93af1b5016",
+    "cuda_ctest_log_sha256": "366bbdf51ae6380308f607aeea0b16b623611aa23e1f005f37b247e46fbbcf1f",
+    "isolated_ctest_log_sha256": "f420e22202d78243e3083c5f8a47bdd176f1ae376d14b9b470c84ac554a25ace",
+    "sdk_report_sha256": "3c088cf77a59e144d67b5e6d81895110f13fcf59d6ae0e5567c601035ae73267",
+    "sdk_evidence_file_count": 663,
+    "sdk_evidence_tree_sha256": "983b36356ba31e0b3814110fa420f01333cf3a3c026a34b7c73b9a73468f290c"
+  },
+  "qualification_effect": "F8-64 repairs and complete installed-public CUDA evidence are eligible inputs for F8-65. Candidate v6 remains rejected immutable history; repaired-source observations are not relabeled as candidate-v6 results and are not unioned with its partial passes. Any protected-source change after 861e8f11ccd2412968bb156daf59937c8f1a8c49 requires a new exact-source capture."
+}

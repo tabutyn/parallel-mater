@@ -1,0 +1,69 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-fc2ffba",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v6.json",
+  "candidate_manifest_sha256": "6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9",
+  "status": "rejected-required-installed-public-cuda-suite",
+  "rejected_at": "2026-10-30",
+  "rejection_task": "F8-64",
+  "historical_qualification_task": "F8-24",
+  "failure_evidence": "docs/roadmap/evidence/F8-24-CANDIDATE-V6-LINUX-CUDA-FAILURE.json",
+  "failure_evidence_sha256": "1be323331ac05533be95ec448c5be121604d734c7b3f43185c6c7f58f5465d07",
+  "repair_evidence": "docs/roadmap/evidence/F8-64-INSTALLED-PUBLIC-CUDA-REPAIR.json",
+  "repair_evidence_sha256": "27411fa368aa3f08f003b7593ed9be89c5094d4e1cdf68df577038e5ece926cd",
+  "reasons": [
+    "Candidate v6 failed all 30 mandatory plain installed-public cases at the statistics query lifecycle, all 30 validation reference regressions with 5629 differences, and lacked the required installed-public scenario and workload producer.",
+    "F8-64 repairs those failures and proves 131 registered tests, all 42 CUDA-labeled tests, SDK relocation, 49 capability rows, 30 public cases, 12 scenarios, 37 named measurements, five negative controls and five sustained workloads on exact clean replacement source 861e8f11ccd2412968bb156daf59937c8f1a8c49.",
+    "Candidate-v6 passing observations remain immutable rejected provenance and cannot qualify or be unioned with the F8-64 repaired-source evidence."
+  ],
+  "replacement": {
+    "status": "pending-refreeze",
+    "freeze_task": "F8-65",
+    "source_revision": "861e8f11ccd2412968bb156daf59937c8f1a8c49",
+    "source_tree": "05558f64cd4d07e6de0ba573857188ef2cd7430f"
+  },
+  "evidence_union_allowed": false,
+  "invalidated_physical_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "qualification_owner": "F8-26",
+      "status": "invalidated-awaiting-f8-65"
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "qualification_owner": "F8-27",
+      "status": "invalidated-awaiting-f8-65"
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "qualification_owner": "F8-53",
+      "status": "invalidated-awaiting-f8-65"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "qualification_owner": "F8-24",
+      "status": "invalidated-awaiting-f8-65"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "qualification_owner": "F8-25",
+      "status": "invalidated-awaiting-f8-65"
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "qualification_owner": "F8-28",
+      "status": "invalidated-awaiting-f8-65"
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "qualification_owner": "F8-29",
+      "status": "invalidated-awaiting-f8-65"
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "qualification_owner": "F8-30",
+      "status": "invalidated-awaiting-f8-65"
+    }
+  ],
+  "qualification_rule": "No final F8 qualification report may name or reuse candidate v6. F8-65 must freeze an exact replacement before F8-24 through F8-30 and F8-53 can be rerouted or become ready."
+}
