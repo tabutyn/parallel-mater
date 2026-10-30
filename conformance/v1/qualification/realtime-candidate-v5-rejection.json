@@ -1,0 +1,69 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-cfb104b",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v5.json",
+  "candidate_manifest_sha256": "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000",
+  "status": "rejected-required-linux-cuda-suite",
+  "superseded_at": "2026-10-29",
+  "supersession_task": "F8-63",
+  "historical_qualification_task": "F8-61",
+  "failure_evidence": "docs/roadmap/evidence/F8-24-CANDIDATE-V5-LINUX-CUDA-FAILURE.json",
+  "failure_evidence_sha256": "529f43bf26c36cd989c8bd72c936ecdd1306b372d70d194071b71f5c0e9453dd",
+  "repair_evidence": "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
+  "repair_evidence_sha256": "22f75c7ba708bc108275fd92546ac8fcaa067a0d7a2d41b353718398779e97d0",
+  "reasons": [
+    "Candidate v5 failed the required complete physical Linux CUDA suite: 127/130 tests passed and three required Gallery tests failed.",
+    "F8-62 repairs those failures in the Gallery closure and proves 130/130 tests, including 42 CUDA-labeled tests, on the exact clean replacement source.",
+    "Candidate-v5 passing observations remain immutable provenance and cannot qualify or be unioned with any candidate-v6 row."
+  ],
+  "replacement": {
+    "candidate_id": "realtime-single-step-v1-fc2ffba",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v6.json",
+    "candidate_manifest_sha256": "6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9",
+    "freeze_task": "F8-63"
+  },
+  "evidence_union_allowed": false,
+  "invalidated_physical_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "qualification_owner": "F8-26",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "qualification_owner": "F8-27",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "qualification_owner": "F8-53",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "qualification_owner": "F8-24",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "qualification_owner": "F8-25",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "qualification_owner": "F8-28",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "qualification_owner": "F8-29",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "qualification_owner": "F8-30",
+      "status": "invalidated-requalify-replacement"
+    }
+  ],
+  "qualification_rule": "No final F8 qualification report may name or reuse candidate v5. F8-24 through F8-30 and F8-53 must execute only realtime-single-step-v1-fc2ffba from F8-63."
+}
