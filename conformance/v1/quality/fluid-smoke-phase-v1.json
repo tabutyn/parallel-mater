@@ -15,7 +15,8 @@
     {
       "id": "particle-phase-transfer",
       "representation": "SMOKE_PARTICLE",
-      "timestep_seconds": 0.01,
+      "timestep_seconds": 0.016666666666666666,
+      "step_count": 2,
       "substeps": 1,
       "gravity_m_s2": [0.0, 0.0, 0.0],
       "fluid_initial_temperature_celsius": 120.0,
@@ -54,7 +55,8 @@
     {
       "id": "grid-phase-transfer",
       "representation": "SMOKE_GRID",
-      "timestep_seconds": 0.01,
+      "timestep_seconds": 0.016666666666666666,
+      "step_count": 2,
       "substeps": 1,
       "gravity_m_s2": [0.0, 0.0, 0.0],
       "fluid_initial_temperature_celsius": 120.0,
@@ -76,7 +78,7 @@
       "smoke_lifetime_seconds": 10.0,
       "smoke_particle_radius_m": 0.1,
       "smoke_rest_number_density": 1.0,
-      "smoke_maximum_speed_m_s": 4.0,
+      "smoke_maximum_speed_m_s": 3.7,
       "smoke_grid_resolution": 16,
       "smoke_grid_vertical_resolution": 8,
       "smoke_grid_minimum_m": [0.0, 0.0, 0.0],

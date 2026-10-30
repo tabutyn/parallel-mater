@@ -28,6 +28,22 @@ void drag_fluid_with_smoke_particles(
     const void *smoke_velocities, const std::uint64_t *smoke_keys,
     const std::uint32_t *smoke_indices, float timestep) noexcept;
 
+void drag_fluid_with_smoke_realtime_particles(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    const void *current_velocities, void *velocity_deltas,
+    const std::uint32_t *particle_count,
+    const FluidSmokeDispatchOptions &options, const void *smoke_positions,
+    const void *smoke_velocities, std::uint32_t smoke_owner_slot,
+    std::uint32_t smoke_owner_generation,
+    std::uint32_t smoke_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    const SmokeGridDispatchField &smoke_grid, float timestep) noexcept;
+
 void drag_fluid_with_smoke_grid(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const std::uint32_t *particle_count,
@@ -36,7 +52,8 @@ void drag_fluid_with_smoke_grid(
 
 void exchange_fluid_with_smoke(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
-    void *velocities, float *temperatures,
+    const void *base_velocities, const void *velocity_deltas,
+    float *temperatures,
     const std::uint32_t *particle_count, float particle_radius,
     const FluidSmokeDispatchOptions &options, void *smoke_positions,
     void *smoke_velocities, float *smoke_ages, float *smoke_thermal_lift,

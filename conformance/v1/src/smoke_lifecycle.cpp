@@ -256,7 +256,7 @@ int parallel_mater_smoke_lifecycle_fixture(bool grid,
     material.maximumSpeed = 4.0F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_vertical_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridPressureTolerance = 1.0e-4F;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;

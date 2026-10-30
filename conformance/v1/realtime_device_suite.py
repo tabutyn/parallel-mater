@@ -316,10 +316,9 @@ def _validate_scenario(
         observation.get("tick_work"), expected_ticks,
         path + ".tick_work", contract, fixture, failures)
     if isinstance(executions, list) and len(executions) == 2:
-        expected_digests = {
-            "measurements_sha256": value_sha256(measurements),
-            "tick_work_sha256": value_sha256(observation.get("tick_work")),
-        }
+        mode_measurements: list[Any] = []
+        mode_tick_work: list[Any] = []
+        mode_states: list[Any] = []
         state_hashes: list[Any] = []
         for index, execution in enumerate(executions):
             execution_path = f"{path}.executions[{index}]"
@@ -334,7 +333,6 @@ def _validate_scenario(
                 "simulation_status": "PM_SUCCESS",
                 "simulation_instance_count": 1,
                 "completed_tick_records": expected_ticks,
-                **expected_digests,
             }
             for name, expected_value in exact.items():
                 if execution.get(name) != expected_value:
@@ -342,6 +340,24 @@ def _validate_scenario(
                         f"{execution_path}.{name}",
                         "plain/validation execution proof is not exact",
                         execution.get(name), expected_value))
+            execution_measurements = execution.get("measurements")
+            execution_work = execution.get("tick_work")
+            execution_state = execution.get("final_public_state")
+            mode_measurements.append(execution_measurements)
+            mode_tick_work.append(execution_work)
+            mode_states.append(execution_state)
+            for name, value in (
+                ("measurements", execution_measurements),
+                ("tick_work", execution_work),
+                ("final_public_state", execution_state),
+            ):
+                digest_name = name + "_sha256"
+                expected_digest = value_sha256(value)
+                if execution.get(digest_name) != expected_digest:
+                    failures.append(_failure(
+                        f"{execution_path}.{digest_name}",
+                        "execution proof digest does not match retained data",
+                        execution.get(digest_name), expected_digest))
             state_hash = execution.get("final_public_state_sha256")
             if (not isinstance(state_hash, str)
                     or re.fullmatch(r"[0-9a-f]{64}", state_hash) is None):
@@ -349,11 +365,32 @@ def _validate_scenario(
                     execution_path + ".final_public_state_sha256",
                     "canonical public-state SHA-256 is required", state_hash))
             state_hashes.append(state_hash)
-        if len(state_hashes) == 2 and state_hashes[0] != state_hashes[1]:
+        if len(mode_measurements) == 2 and mode_measurements[0] != mode_measurements[1]:
             failures.append(_failure(
-                path + ".executions.final_public_state_sha256",
+                path + ".executions.measurements",
+                "plain and validation-enabled measurements differ",
+                mode_measurements[1], mode_measurements[0]))
+        if len(mode_tick_work) == 2 and mode_tick_work[0] != mode_tick_work[1]:
+            failures.append(_failure(
+                path + ".executions.tick_work",
+                "plain and validation-enabled tick work differs",
+                mode_tick_work[1], mode_tick_work[0]))
+        if len(mode_states) == 2 and mode_states[0] != mode_states[1]:
+            failures.append(_failure(
+                path + ".executions.final_public_state",
                 "plain and validation-enabled public states differ",
-                state_hashes[1], state_hashes[0]))
+                state_hashes[1] if len(state_hashes) == 2 else mode_states[1],
+                state_hashes[0] if len(state_hashes) == 2 else mode_states[0]))
+        if mode_measurements and mode_measurements[0] != measurements:
+            failures.append(_failure(
+                path + ".measurements",
+                "scenario measurements do not match the plain execution",
+                measurements, mode_measurements[0]))
+        if mode_tick_work and mode_tick_work[0] != observation.get("tick_work"):
+            failures.append(_failure(
+                path + ".tick_work",
+                "scenario tick work does not match the plain execution",
+                observation.get("tick_work"), mode_tick_work[0]))
 
 
 def _capability_key(value: Mapping[str, Any]) -> tuple[Any, ...]:

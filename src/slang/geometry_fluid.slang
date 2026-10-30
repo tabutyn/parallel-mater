@@ -604,6 +604,7 @@ void fluid_resolve_moving_contacts(
         particle_contact_flags[particle] = 2u;
     }
     Vec3 velocity = velocities[particle];
+    float finalVelocityScale = commit_velocity_scale;
     Vec3 arm = subtract(bestContact, state.position);
     Vec3 bodyVelocity = add(state.linear_velocity,
         cross(state.angular_velocity, arm));
@@ -617,7 +618,7 @@ void fluid_resolve_moving_contacts(
             correctedPosition, previous_positions[particle]),
             frame_inverse_dt);
         velocity_deltas[particle] = subtract(
-            multiply(velocity, 1.0f / commit_velocity_scale),
+            multiply(velocity, 1.0f / finalVelocityScale),
             positionalVelocity);
         return;
     }
@@ -662,7 +663,7 @@ void fluid_resolve_moving_contacts(
         correctedPosition, previous_positions[particle]),
         frame_inverse_dt);
     velocity_deltas[particle] = subtract(
-        multiply(velocity, 1.0f / commit_velocity_scale),
+        multiply(velocity, 1.0f / finalVelocityScale),
         positionalVelocity);
     foam[particle] = max(foam[particle], min(1.0f, -incoming * 0.35f));
     impulses[particle] = {multiply(impulse, -1.0f),

@@ -38,26 +38,35 @@ class SmokeQualityTests(unittest.TestCase):
         fixtures = []
         for definition in self.profile["fixtures"]:
             fixture = copy.deepcopy(definition)
+            timestep = definition["timestep_seconds"]
+            first_age = (timestep if definition["representation"] == "particle"
+                         else 0.0)
             fixture["first_particles"] = [
-                particle(index, 0.0, 0.0, 0.0) for index in range(32)]
-            second_pressure = (4.0 if definition["representation"] == "particle"
+                particle(index, first_age, 0.0, 0.0) for index in range(32)]
+            particle_pressure = 1.0 - math.exp(
+                -definition["pressure_stiffness"])
+            second_pressure = (particle_pressure
+                               if definition["representation"] == "particle"
                                else 0.0)
             fixture["second_particles"] = [
-                particle(index, 0.015625, 2.0, second_pressure)
+                particle(index, first_age + timestep, 2.0, second_pressure)
                 for index in range(32)] + [
-                particle(index, 0.0, 0.0, 0.0)
+                particle(index, first_age, 0.0, 0.0)
                 for index in range(32, 64)]
             first_final_pressure = (
-                4.0 + 4.0 * math.exp(-0.015625 / 0.05)
+                particle_pressure
                 if definition["representation"] == "particle" else 0.5)
             second_final_pressure = (
-                4.0 if definition["representation"] == "particle" else 0.0)
+                particle_pressure
+                if definition["representation"] == "particle" else 0.0)
             fixture["final_particles"] = [
-                particle(index, 0.03125, 2.0, first_final_pressure)
+                particle(index, first_age + 2.0 * timestep, 2.0,
+                         first_final_pressure)
                 for index in range(32)] + [
-                particle(index, 0.015625, 2.0, second_final_pressure)
+                particle(index, first_age + timestep, 2.0,
+                         second_final_pressure)
                 for index in range(32, 64)] + [
-                particle(index, 0.0, 0.0, 0.0)
+                particle(index, first_age, 0.0, 0.0)
                 for index in range(64, 96)]
             fixtures.append(fixture)
         self.result = {
@@ -76,7 +85,7 @@ class SmokeQualityTests(unittest.TestCase):
     def test_accepts_particle_equation_and_grid_activity(self) -> None:
         report = self.evaluate()
         self.assertTrue(report["passed"], report["failures"])
-        self.assertEqual(report["sample_count"], 96)
+        self.assertEqual(report["sample_count"], 128)
 
     def test_rejects_particle_pressure_not_matching_density(self) -> None:
         result = copy.deepcopy(self.result)

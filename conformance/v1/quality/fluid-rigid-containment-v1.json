@@ -14,7 +14,7 @@
   "fixtures": [
     {
       "id": "closed-cube-interior-outward-pulse",
-      "timestep_seconds": 0.01,
+      "timestep_seconds": 0.016666666666666666,
       "step_count": 1,
       "substeps": 1,
       "gravity_m_s2": [0.0, 0.0, 0.0],
@@ -27,7 +27,7 @@
       "fluid_support_radius_m": 0.2,
       "fluid_rest_particle_volume_m3": 0.001,
       "fluid_particle_mass_kg": 1.0,
-      "fluid_maximum_speed_m_s": 10.0,
+      "fluid_maximum_speed_m_s": 5.0,
       "particle_initial_position_m": [0.045, 0.0, 0.0],
       "particle_initial_velocity_m_s": [1.0, 0.0, 0.0],
       "rigid_geometry_vertices_m": [
@@ -51,7 +51,7 @@
       "rigid_restitution": 0.0,
       "rigid_linear_damping_per_s": 0.0,
       "rigid_angular_damping_per_s": 0.0,
-      "rigid_maximum_linear_speed_m_s": 10.0,
+      "rigid_maximum_linear_speed_m_s": 5.0,
       "rigid_maximum_angular_speed_rad_s": 10.0,
       "rigid_collision_margin_m": 0.001,
       "coupling_contact_distance_m": 0.05,

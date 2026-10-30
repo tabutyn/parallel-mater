@@ -119,7 +119,9 @@ class F822CandidateFreezeTests(unittest.TestCase):
 
         coverage = self.candidate["kernel_coverage"]
         self.assertEqual(coverage["canonical_module_count"], len(canonical))
-        self.assertEqual(coverage["canonical_entry_count"], sum(map(len, canonical.values())))
+        # Candidate v1 is immutable rejected history. Later repaired source
+        # may add canonical entries without rewriting its recorded surface.
+        self.assertEqual(coverage["canonical_entry_count"], 225)
         self.assertEqual(coverage["kernel_group_count"], len(self.inventory["kernel_groups"]))
         self.assertEqual(coverage["coverage_gaps"], [])
         self.assertIn("f8-paint-contact-stamping", realtime_cases)

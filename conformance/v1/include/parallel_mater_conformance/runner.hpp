@@ -18,7 +18,11 @@ struct CaseExecution {
 [[nodiscard]] std::vector<std::string> conformance_case_ids();
 [[nodiscard]] CaseExecution execute_conformance_case(
     const std::string &case_id, const std::filesystem::path &root,
-    bool every_frame = false);
+    bool every_frame = false, std::uint32_t tick_count = 0U);
+[[nodiscard]] std::vector<std::string> conformance_realtime_workload_ids();
+[[nodiscard]] std::string conformance_realtime_workload(
+    const std::string &workload_id, std::uint32_t warmup_ticks = 600U,
+    std::uint32_t measured_ticks = 7200U);
 [[nodiscard]] std::string conformance_device_provenance(
     const std::filesystem::path &root);
 [[nodiscard]] std::string conformance_advertised_capabilities(

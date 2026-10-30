@@ -22,6 +22,7 @@ struct FluidDispatchConstants {
     float rest_density{};
     float rest_particle_volume{};
     std::uint32_t maximum_neighbors{};
+    float realtime_commit_velocity_scale{1.0F};
 };
 
 inline constexpr std::uint32_t k_fluid_interface_sample = 1U;
@@ -312,6 +313,13 @@ void filter_fluid_spatial_candidates(
     const std::uint32_t *candidate_sources,
     std::uint32_t candidates_per_query, std::uint32_t *filtered_counts,
     std::uint32_t *filtered_sources, std::uint32_t *status) noexcept;
+
+PmResult gather_fluid_spatial_payloads(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const std::uint32_t *compacted_sources,
+    const std::uint32_t *active_slot_count, const void *metadata,
+    std::uint32_t leaf_capacity, std::uint32_t candidate_slot_capacity,
+    std::uint32_t *active_payloads, std::uint32_t *status) noexcept;
 
 void count_fluid_spatial_neighbors(
     device::DispatchSize grid, device::DispatchSize block,

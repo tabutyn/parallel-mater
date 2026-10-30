@@ -66,7 +66,9 @@ void apply_deformable_smoke_coupling_first(
     deformable_smoke_coupling_apply_first<<<dim3(grid.x, grid.y, grid.z),
         dim3(block.x, block.y, block.z), 0U,
         static_cast<cudaStream_t>(stream.native_handle)>>>(
-        as<Vec3_0>(first.positions), as<Vec3_0>(first.velocities),
+        as<Vec3_0>(first.positions),
+        mutable_pointer(as<Vec3_0>(first.previous_positions)),
+        as<Vec3_0>(first.velocities),
         mutable_pointer(first.inverse_masses), first.correction_used,
         mutable_pointer(first.generations), first.count,
         mutable_pointer(constraints.first_endpoints),
@@ -89,7 +91,9 @@ void apply_deformable_smoke_coupling_second(
     deformable_smoke_coupling_apply_second<<<dim3(grid.x, grid.y, grid.z),
         dim3(block.x, block.y, block.z), 0U,
         static_cast<cudaStream_t>(stream.native_handle)>>>(
-        as<Vec3_0>(second.positions), as<Vec3_0>(second.velocities),
+        as<Vec3_0>(second.positions),
+        mutable_pointer(as<Vec3_0>(second.previous_positions)),
+        as<Vec3_0>(second.velocities),
         mutable_pointer(second.inverse_masses), second.correction_used,
         mutable_pointer(second.generations), second.count,
         mutable_pointer(constraints.second_endpoints),

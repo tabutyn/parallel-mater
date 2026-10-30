@@ -103,14 +103,14 @@ void solve_smoke_realtime_density_pressure(
     const std::uint32_t *candidate_indices,
     std::uint32_t candidates_per_particle, float timestep,
     std::uint32_t profile_version, float *densities, float *pressures,
-    std::uint32_t *status) noexcept {
+    void *position_deltas, std::uint32_t *status) noexcept {
     smoke_realtime_particle_density_pressure<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
         const_cast<float *>(ages), count, smoke_options(options),
         const_cast<std::uint32_t *>(candidate_counts),
         const_cast<std::uint32_t *>(candidate_indices),
         candidates_per_particle, timestep, profile_version, densities,
-        pressures, status);
+        pressures, as<Vec3_0>(position_deltas), status);
 }
 
 void solve_smoke_realtime_position_delta(

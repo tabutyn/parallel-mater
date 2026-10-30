@@ -148,7 +148,7 @@ struct Fixture {
             smoke_realtime_particle_density_pressure<<<blocks, threads>>>(
                 positions, ages, count, options, candidate_counts,
                 candidate_indices, candidates_per_particle, dt, profile,
-                densities, pressures, status);
+                densities, pressures, position_deltas, status);
             smoke_realtime_particle_position_delta<<<blocks, threads>>>(
                 positions, velocities, ages, count, options, candidate_counts,
                 candidate_indices, candidates_per_particle, densities,

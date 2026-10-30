@@ -24,8 +24,8 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
-constexpr float preparation_gravity = 100.0F;
+constexpr float timestep = 1.0F / 60.0F;
+constexpr float preparation_gravity = 60.0F;
 constexpr float node_mass = 2.0F;
 constexpr float node_radius = 0.05F;
 constexpr float rigid_mass = 2.0F;
@@ -53,13 +53,13 @@ constexpr std::array<std::uint32_t, 36U> cube_indices{{
     0U, 1U, 5U, 0U, 5U, 4U, 3U, 7U, 6U, 3U, 6U, 2U,
 }};
 
-// Preparation advances every node +0.01 m in X and gives it +1 m/s before
+// Preparation advances every node +1/60 m in X and gives it +1 m/s before
 // the rigid endpoint exists. The prepared apex is therefore at -0.155 m.
 constexpr std::array<PmFloat3, 4U> authored_nodes{{
-    {-0.165F, 0.0F, 0.0F},
-    {-0.665F, 0.5F, -0.5F},
-    {-0.665F, -0.5F, -0.5F},
-    {-0.665F, 0.0F, 0.5F},
+    {-0.171666667F, 0.0F, 0.0F},
+    {-0.671666667F, 0.5F, -0.5F},
+    {-0.671666667F, -0.5F, -0.5F},
+    {-0.671666667F, 0.0F, 0.5F},
 }};
 constexpr std::array<PmFloat3, 4U> prepared_nodes{{
     {-0.155F, 0.0F, 0.0F},
@@ -200,7 +200,7 @@ void require_contact_capability(const Context &context) {
     PmSoftBodyMaterialState material{};
     material.nodeMass = node_mass;
     material.nodeRadius = node_radius;
-    material.stretchCompliance = 1.0F;
+    material.stretchCompliance = 0.005F;
     material.velocityDamping = 0.0F;
     material.springDamping = 0.0F;
     material.contactFriction = 0.0F;

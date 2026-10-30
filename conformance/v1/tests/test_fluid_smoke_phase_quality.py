@@ -30,12 +30,12 @@ def fluid(stable_id: int, velocity: list[float]) -> dict:
     }
 
 
-def smoke(velocity: list[float]) -> dict:
+def smoke(velocity: list[float], age: float) -> dict:
     return {
         "slot": 0,
         "position_m": [0.25, 0.25, 0.25],
         "velocity_m_s": velocity,
-        "age_seconds": 0.01,
+        "age_seconds": age,
         "number_density": 0.0,
         "pressure_m_s2": 0.0,
         "vorticity_per_s": [0.0, 0.0, 0.0],
@@ -51,6 +51,7 @@ def fixture(definition: dict) -> dict:
     single = list(definition["single_source_velocity_m_s"])
     bounded = [list(value)
                for value in definition["bounded_source_velocities_m_s"]]
+    timestep = definition["timestep_seconds"]
     result["runs"] = [
         {
             "id": "below-threshold-control",
@@ -60,7 +61,7 @@ def fixture(definition: dict) -> dict:
         {
             "id": "single-transfer",
             "initial": snapshot([fluid(0, single)], []),
-            "final": snapshot([], [smoke(single)]),
+            "final": snapshot([], [smoke(single, timestep)]),
         },
         {
             "id": "capacity-bound",
@@ -69,7 +70,8 @@ def fixture(definition: dict) -> dict:
                  for index, velocity in enumerate(bounded)], []),
             "final": snapshot(
                 [fluid(2, bounded[2])],
-                [smoke(bounded[0]), smoke(bounded[1])]),
+                [smoke(bounded[0], timestep),
+                 smoke(bounded[1], timestep)]),
         },
     ]
     return result

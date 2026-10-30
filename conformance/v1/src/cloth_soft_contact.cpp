@@ -24,30 +24,35 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float preparation_timestep = 0.01F;
-constexpr PmFloat3 preparation_gravity{100.0F, -100.0F, 0.0F};
-constexpr float quality_timestep = 0.01F;
+constexpr float preparation_timestep = 1.0F / 60.0F;
+constexpr PmFloat3 preparation_gravity{60.0F, -60.0F, 0.0F};
+constexpr float quality_timestep = 1.0F / 60.0F;
 constexpr float cloth_vertex_mass = 1.0F;
 constexpr float soft_node_mass = 2.0F;
 constexpr float contact_distance = 0.1F;
 constexpr std::array<PmFloat3, 3U> cloth_vertices{{
-    {-1.0F, 0.0F, -1.0F},
-    {0.0F, 0.0F, 1.0F},
-    {1.0F, 0.0F, -1.0F}}};
+    {-0.8F, 0.0F, -0.8F},
+    {0.0F, 0.0F, 0.8F},
+    {0.8F, 0.0F, -0.8F}}};
 constexpr std::array<std::uint32_t, 3U> cloth_indices{{0U, 1U, 2U}};
 constexpr std::array<float, 3U> cloth_inverse_masses{{1.0F, 1.0F, 1.0F}};
 constexpr std::array<float, 3U> pinned_cloth{{0.0F, 0.0F, 0.0F}};
 
 constexpr std::array<PmFloat3, 4U> soft_nodes{{
-    {-0.01F, 0.02F, 0.0F},
-    {0.49F, 0.5F, -0.5F},
-    {-0.51F, 0.5F, -0.5F},
-    {-0.01F, 0.5F, 0.5F}}};
+    {-0.01666667F, 0.02666667F, 0.0F},
+    {0.48333333F, 0.50666667F, -0.5F},
+    {-0.51666667F, 0.50666667F, -0.5F},
+    {-0.01666667F, 0.50666667F, 0.5F}}};
 constexpr std::array<PmFloat3, 4U> prepared_soft_nodes{{
     {0.0F, 0.01F, 0.0F},
     {0.5F, 0.49F, -0.5F},
     {-0.5F, 0.49F, -0.5F},
     {0.0F, 0.49F, 0.5F}}};
+constexpr std::array<PmFloat3, 4U> prepared_soft_velocities{{
+    {1.0F, -1.0F, 0.0F},
+    {1.0F, -1.0F, 0.0F},
+    {1.0F, -1.0F, 0.0F},
+    {1.0F, -1.0F, 0.0F}}};
 constexpr std::array<float, 4U> soft_inverse_masses{{
     0.5F, 0.5F, 0.5F, 0.5F}};
 constexpr std::array<float, 4U> lifecycle_soft_inverse_masses{{
@@ -61,9 +66,12 @@ constexpr std::array<PmSoftBodyBond, 6U> soft_bonds{{
     {2U, 3U, 1.118033988749895F}}};
 constexpr std::array<PmFloat3, 10U> surface_vertices{{
     soft_nodes[0], soft_nodes[1], soft_nodes[2], soft_nodes[3],
-    {0.24F, 0.26F, -0.25F}, {-0.26F, 0.26F, -0.25F},
-    {-0.01F, 0.26F, 0.25F}, {-0.01F, 0.5F, -0.5F},
-    {0.24F, 0.5F, 0.0F}, {-0.26F, 0.5F, 0.0F}}};
+    {0.23333333F, 0.26666667F, -0.25F},
+    {-0.26666667F, 0.26666667F, -0.25F},
+    {-0.01666667F, 0.26666667F, 0.25F},
+    {-0.01666667F, 0.50666667F, -0.5F},
+    {0.23333333F, 0.50666667F, 0.0F},
+    {-0.26666667F, 0.50666667F, 0.0F}}};
 constexpr std::array<std::uint32_t, 48U> surface_indices{{
     0U, 5U, 4U, 5U, 2U, 7U, 4U, 7U, 1U, 5U, 7U, 4U,
     0U, 4U, 6U, 4U, 1U, 8U, 6U, 8U, 3U, 4U, 8U, 6U,
@@ -203,8 +211,8 @@ template <std::size_t Size>
     PmClothMaterialState material{};
     material.vertexMass = cloth_vertex_mass;
     material.thickness = 0.01F;
-    material.stretchCompliance = 1.0F;
-    material.bendingCompliance = 1.0F;
+    material.stretchCompliance = 1.0e-3F;
+    material.bendingCompliance = 1.0e-3F;
     material.velocityDamping = 0.0F;
     material.contactFriction = 0.0F;
     material.solverIterations = 1U;
@@ -218,7 +226,7 @@ template <std::size_t Size>
     PmSoftBodyMaterialState material{};
     material.nodeMass = soft_node_mass;
     material.nodeRadius = 0.05F;
-    material.stretchCompliance = 1.0F;
+    material.stretchCompliance = 1.0e-3F;
     material.velocityDamping = 0.0F;
     material.springDamping = 0.0F;
     material.contactFriction = 0.0F;
@@ -482,8 +490,8 @@ void record_copies(Context &context, const FixtureObjects &fixture,
     result["two_way"] = true;
     result["authored_soft_nodes_m"] = vectors_json(soft_nodes);
     result["prepared_soft_nodes_m"] = vectors_json(prepared_soft_nodes);
-    result["prepared_soft_velocity_m_s"] =
-        vector_json(PmFloat3{1.0F, -1.0F, 0.0F});
+    result["prepared_soft_velocities_m_s"] =
+        vectors_json(prepared_soft_velocities);
     result["soft_inverse_masses_kg_inverse"] =
         floats_json(soft_inverse_masses);
     result["soft_bonds"] = std::move(bonds);

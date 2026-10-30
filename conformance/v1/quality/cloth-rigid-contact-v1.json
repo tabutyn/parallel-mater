@@ -14,18 +14,18 @@
   "fixture": {
     "id": "cloth-vertex-centered-cube-impact",
     "graph_policy": "none",
-    "preparation_timestep_seconds": 0.01,
-    "preparation_gravity_m_s2": [100.0, 100.0, 0.0],
-    "timestep_seconds": 0.01,
+    "preparation_timestep_seconds": 0.016666666666666666,
+    "preparation_gravity_m_s2": [60.0, 60.0, 0.0],
+    "timestep_seconds": 0.016666666666666666,
     "substeps": 1,
     "gravity_m_s2": [0.0, 0.0, 0.0],
     "authored_cloth_vertices_m": [
-      [-0.125, -0.02, 0.0],
-      [-1.0, 0.99, -1.0],
-      [-1.0, -1.01, -1.0]
+      [-0.13166667, -0.03333334, 0.0],
+      [-1.00666667, 0.98333333, -1.0],
+      [-1.00666667, -1.01666667, -1.0]
     ],
     "prepared_cloth_vertices_m": [
-      [-0.115, -0.01, 0.0],
+      [-0.115, -0.01666667, 0.0],
       [-0.99, 1.0, -1.0],
       [-0.99, -1.0, -1.0]
     ],
@@ -34,8 +34,8 @@
     "cloth_inverse_masses_kg_inverse": [1.0, 1.0, 1.0],
     "cloth_vertex_mass_kg": 1.0,
     "cloth_thickness_m": 0.01,
-    "cloth_stretch_compliance_m_per_n": 1.0,
-    "cloth_bending_compliance_m_per_n": 1.0,
+    "cloth_stretch_compliance_m_per_n": 0.001,
+    "cloth_bending_compliance_m_per_n": 0.001,
     "cloth_velocity_damping": 0.0,
     "cloth_contact_friction": 0.0,
     "cloth_solver_iterations": 1,
@@ -61,7 +61,7 @@
     "rigid_restitution": 0.0,
     "rigid_linear_damping_per_s": 0.0,
     "rigid_angular_damping_per_s": 0.0,
-    "rigid_maximum_linear_speed_m_s": 10.0,
+    "rigid_maximum_linear_speed_m_s": 5.0,
     "rigid_maximum_angular_speed_rad_s": 10.0,
     "rigid_collision_margin_m": 0.005,
     "two_way": true,

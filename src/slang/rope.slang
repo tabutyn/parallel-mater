@@ -28,6 +28,8 @@ groupshared float ropeUpper[1024];
 groupshared float ropeRhs[1024];
 groupshared Vec3 ropeRealtimeDirections[1024];
 groupshared Vec3 ropeRealtimeContactPositions[1024];
+groupshared Vec3 ropeRealtimeCorrectionMean;
+groupshared float ropeRealtimeCorrectionScale;
 
 bool rope_realtime_finite_vec3(Vec3 value)
 {
@@ -188,6 +190,7 @@ void rope_realtime_predict(
 void rope_realtime_project_constraints(
     uniform PMBuffer<Vec3> positions,
     uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<Vec3> constraint_forces,
     uniform PMBuffer<float> correction_used,
     uniform PMBuffer<float> inverse_masses,
     uniform PMBuffer<float> rest_lengths,
@@ -497,6 +500,25 @@ void rope_realtime_project_contacts(
         positions[node] = position;
         correction_used[node] += vector_length(correction);
     }
+}
+
+[shader("compute")]
+[numthreads(1, 1, 1)]
+void rope_realtime_finalize_self_contacts(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> previous_velocities,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMByteBuffer anchor_active,
+    uniform PMByteBuffer contact_active, uniform uint count,
+    uniform uint capacity, uniform float node_spacing, uniform float radius,
+    uniform uint self_collision, uniform float maximum_speed,
+    uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
 }
 
 [shader("compute")]

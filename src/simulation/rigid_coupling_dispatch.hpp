@@ -80,4 +80,28 @@ void apply_rigid_coupling_bodies(
     std::uint32_t profile_version, std::uint32_t sweep,
     std::uint32_t *status) noexcept;
 
+void sync_rigid_rope_attachments(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *rope_positions,
+    void *rope_previous_positions, void *rope_velocities,
+    std::uint32_t rope_count, const float *rope_rest_lengths,
+    void *rope_anchor_targets,
+    const RigidCouplingBodyBuffers &bodies,
+    const RigidCouplingConstraintBuffers &constraints,
+    float timestep) noexcept;
+
+void apply_rigid_rope_attachment_reactions(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream,
+    const void *previous_rope_velocities,
+    const void *current_rope_velocities,
+    const float *rope_inverse_masses, std::uint32_t rope_count,
+    const float *rope_rest_lengths, float rope_maximum_speed,
+    std::uint32_t attached_end_mask, std::uint32_t attached_end_count,
+    const float gravity[3], float timestep, void *rope_positions,
+    void *rope_velocities, void *rope_constraint_forces,
+    void *rope_anchor_targets, const void *body_accumulators,
+    const RigidCouplingBodyBuffers &bodies,
+    const RigidCouplingConstraintBuffers &constraints) noexcept;
+
 } // namespace parallel_mater::simulation

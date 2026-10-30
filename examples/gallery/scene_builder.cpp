@@ -221,6 +221,10 @@ struct CommandScene::Impl {
     Region contact_output;
     Region debug_output;
     std::vector<PmRigidConstraintInfo> constraints;
+    std::vector<PmRigidBodyInfo> rigid_bodies;
+    std::vector<std::uint8_t> cloth_active;
+    std::vector<std::uint8_t> rope_active;
+    std::vector<std::uint8_t> soft_body_active;
     std::vector<PmFluidCapacity> fluid_capacities;
     std::vector<PmClothCapacity> cloth_capacities;
     std::vector<PmRopeCapacity> rope_capacities;
@@ -234,9 +238,11 @@ struct CommandScene::Impl {
     SceneDefinition original_scene;
     std::optional<PmNativeBackend> selected_backend;
     std::uint32_t debug_frame_capacity{};
+    bool validation_enabled{};
     bool fence_submitted{};
     bool output_ready{};
     bool contacts_available{};
+    bool smoke_active{};
 
     ~Impl() { release(); }
 
@@ -331,7 +337,8 @@ struct CommandScene::Impl {
                     "bind physics pipeline", error);
     }
 
-    [[nodiscard]] bool submit(std::string &error) {
+    [[nodiscard]] bool submit(std::string &error,
+                              PmResult expected_result = PM_SUCCESS) {
         if (!checked(pmEndCommandBuffer(commands), "end command buffer", error))
             return false;
         PmSubmitInfo submit_info{};
@@ -342,10 +349,15 @@ struct CommandScene::Impl {
                      error))
             return false;
         fence_submitted = true;
-        if (!checked(pmWaitForFences(device, 1U, &fence, PM_TRUE,
-                                     PM_TIMEOUT_INFINITE),
-                     "wait for commands", error))
+        const PmResult completion = pmWaitForFences(
+            device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE);
+        if (completion != expected_result) {
+            error = "wait for commands: expected ";
+            error += result_name(expected_result);
+            error += ", received ";
+            error += result_name(completion);
             return false;
+        }
         return true;
     }
 

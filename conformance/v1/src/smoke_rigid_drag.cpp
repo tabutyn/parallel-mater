@@ -26,9 +26,12 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
-constexpr std::uint32_t warmup_steps = 8U;
-constexpr std::uint32_t drag_steps = 2U;
+constexpr float timestep = 1.0F / 60.0F;
+constexpr std::uint32_t warmup_steps = 5U;
+[[nodiscard]] constexpr std::uint32_t drag_steps(bool grid) noexcept {
+    // Grid tracers observe the projected Eulerian response on the next tick.
+    return grid ? 2U : 1U;
+}
 constexpr std::uint32_t smoke_capacity = 64U;
 constexpr std::uint32_t grid_resolution = 16U;
 constexpr std::uint32_t grid_vertical_resolution = 8U;
@@ -176,10 +179,10 @@ void require_drag_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 4.0F;
+    material.maximumSpeed = grid ? 3.7F : 4.0F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_vertical_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridKinematicViscosity = grid ? 0.1F : 0.0F;
     material.gridLesCoefficient = 0.0F;
     material.gridPressureTolerance = 1.0e-4F;
@@ -413,7 +416,7 @@ void record_copies(Context &context, const FixtureObjects &fixture) {
              PM_SUCCESS);
     PM_CHECK(pmCmdSetCouplings(context.commands, fixture.simulation, 1U,
                               &edge) == PM_SUCCESS);
-    for (std::uint32_t index = 0U; index < drag_steps; ++index)
+    for (std::uint32_t index = 0U; index < drag_steps(grid); ++index)
         PM_CHECK(pmCmdStepSimulation(context.commands, fixture.simulation,
                                     &step) == PM_SUCCESS);
     record_copies(context, fixture);
@@ -531,7 +534,8 @@ template <typename Value, std::size_t Size>
     result["representation"] = grid ? "SMOKE_GRID" : "SMOKE_PARTICLE";
     result["timestep_seconds"] = static_cast<double>(timestep);
     result["warmup_step_count"] = static_cast<std::uint64_t>(warmup_steps);
-    result["drag_step_count"] = static_cast<std::uint64_t>(drag_steps);
+    result["drag_step_count"] =
+        static_cast<std::uint64_t>(drag_steps(grid));
     result["substeps"] = static_cast<std::uint64_t>(1U);
     result["gravity_m_s2"] = vector_json(PmFloat3{});
     result["rigid_geometry_vertices_m"] = vectors_json(cube_vertices);
@@ -571,13 +575,13 @@ template <typename Value, std::size_t Size>
     result["smoke_pressure_stiffness_m2_s2"] = 0.0;
     result["smoke_viscosity_m2_s"] = 0.0;
     result["smoke_vorticity_confinement"] = 0.0;
-    result["smoke_maximum_speed_m_s"] = 4.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 3.7 : 4.0;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_vertical_resolution : 0U);
     result["smoke_grid_pressure_iterations"] =
-        static_cast<std::uint64_t>(grid ? 8U : 0U);
+        static_cast<std::uint64_t>(grid ? 12U : 0U);
     result["smoke_grid_kinematic_viscosity_m2_s"] = grid ? 0.1 : 0.0;
     result["smoke_grid_les_coefficient"] = 0.0;
     result["smoke_grid_pressure_tolerance"] = 0.0001;

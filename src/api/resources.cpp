@@ -577,16 +577,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
             info->pFluidCapacities[index].neighborCapacityPerParticle == 0U)
             return PM_ERROR_INVALID_ARGUMENT;
     for (std::uint32_t index = 0U; index < info->clothCount; ++index)
-        if (info->pClothCapacities[index].vertexCapacity == 0U ||
-            info->pClothCapacities[index].triangleIndexCapacity == 0U ||
-            info->pClothCapacities[index].bondCapacity == 0U)
+        if (info->pClothCapacities[index].vertexCapacity == 0U)
             return PM_ERROR_INVALID_ARGUMENT;
     for (std::uint32_t index = 0U; index < info->ropeCount; ++index)
         if (info->pRopeCapacities[index].nodeCapacity < 2U)
             return PM_ERROR_INVALID_ARGUMENT;
     for (std::uint32_t index = 0U; index < info->softBodyCount; ++index) {
         const auto &capacity = info->pSoftBodyCapacities[index];
-        if (capacity.nodeCapacity == 0U || capacity.bondCapacity == 0U ||
+        if (capacity.nodeCapacity == 0U ||
             capacity.surfaceVertexCapacity == 0U ||
             capacity.surfaceTriangleIndexCapacity == 0U)
             return PM_ERROR_INVALID_ARGUMENT;
@@ -647,6 +645,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         created->ropes.resize(info->ropeCount);
         created->soft_bodies.resize(info->softBodyCount);
         created->smokes.resize(info->smokeCount);
+        created->smoke_infos.resize(info->smokeCount);
         created->emitters.resize(info->emitterCapacity);
         created->emitter_fluid_indices.resize(info->emitterCapacity,
                                               PM_INVALID_INDEX);
@@ -1110,6 +1109,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
             for (auto &slot : simulation->ropes) slot.reset();
             for (auto &slot : simulation->soft_bodies) slot.reset();
             for (auto &slot : simulation->smokes) slot.reset();
+            for (auto &info : simulation->smoke_infos) info.reset();
             for (auto &slot : simulation->emitters) slot.reset();
             std::fill(simulation->emitter_fluid_indices.begin(),
                       simulation->emitter_fluid_indices.end(),
@@ -1268,10 +1268,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
             // This closure runs on the ordered submission worker. Retain the
             // frame through GPU completion and deferred overflow validation.
             parallel_mater::FrameToken frame;
-            result = parallel_mater::api::from_status(
-                simulation->runtime->step_async(options, frame, queue));
-            if (result == PM_SUCCESS)
-                result = parallel_mater::api::from_status(frame.wait());
+            const auto step_status =
+                simulation->runtime->step_async(options, frame, queue);
+            result = parallel_mater::api::from_status(step_status);
+            if (result == PM_SUCCESS) {
+                const auto wait_status = frame.wait();
+                result = parallel_mater::api::from_status(wait_status);
+            }
             simulation->execution_result = result;
             if (result == PM_SUCCESS) {
                 ++simulation->submitted_steps;

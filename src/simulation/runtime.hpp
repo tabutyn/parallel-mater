@@ -244,6 +244,7 @@ class SimulationRuntime {
     [[nodiscard]] Status remove_fluid_pair_coupling(
         FluidPairCouplingId coupling) noexcept;
     [[nodiscard]] Status add_smoke(SmokeOptions options, SmokeId &output) noexcept;
+    [[nodiscard]] Status disable_smoke_source(SmokeId smoke) noexcept;
     [[nodiscard]] Status remove_smoke(SmokeId smoke) noexcept;
     [[nodiscard]] Status smoke_view(SmokeId smoke, SmokeDeviceView &output) const noexcept;
     [[nodiscard]] Status add_fluid_smoke_coupling(

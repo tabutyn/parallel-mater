@@ -144,6 +144,9 @@ struct SceneDefinition {
     std::vector<ParticleDestroyPlaneOptions> destroy_planes{};
     SmokeOptions smoke_options{};
     std::string smoke_obstacle_name{};
+    // Capacity/lifecycle fixtures may intentionally exercise disconnected
+    // public resources without installing Gallery's convenience couplings.
+    bool create_default_couplings{true};
     struct ThermalSurfaceDefinition {
         ParticlePlane plane{};
         float temperature{500.0F};

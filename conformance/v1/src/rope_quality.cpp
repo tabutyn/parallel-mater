@@ -18,7 +18,7 @@ namespace parallel_mater::conformance {
 namespace {
 using namespace parallel_mater::gallery;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t substeps = 1U;
 constexpr std::uint32_t topology_exclusion = 2U;
 
@@ -111,7 +111,7 @@ constexpr std::uint32_t topology_exclusion = 2U;
     rope.options.velocity_damping = 0.0F;
     rope.options.maximum_substep_timestep = timestep;
     rope.options.friction = 0.0F;
-    rope.options.maximum_speed = 100.0F;
+    rope.options.maximum_speed = 2.99F;
     rope.options.solver_iterations = 24U;
     rope.options.self_collision = true;
     return rope;
@@ -153,7 +153,7 @@ struct RopeAuditFixture {
          {0.1F, 0.0F, 0.0F},
          {0.06F, 0.091651514F, 0.0F},
          {0.02F, 0.0F, 0.0F}},
-        0.101F, 0.06F, 0.4F, 0.01F, 0.5F, 100.0F, 24U);
+        0.101F, 0.06F, 0.4F, timestep, 0.5F, 2.99F, 24U);
     fixture.step_count = 240U;
     fixture.checkpoint_steps = {1U, 30U, 120U, 240U};
     fixture.excluded_probe_pairs = {{{1U, 3U}}};
@@ -170,7 +170,7 @@ struct RopeAuditFixture {
          {0.06F, 0.091651514F, 0.0F},
          {0.02F, 0.0F, 0.0F},
          {0.12F, 0.0F, 0.0F}},
-        0.101F, 0.06F, 0.6F, 0.01F, 0.5F, 100.0F, 24U);
+        0.101F, 0.06F, 0.6F, timestep, 0.5F, 2.99F, 24U);
     fixture.step_count = 60U;
     fixture.checkpoint_steps = {1U, 30U, 60U};
     fixture.excluded_probe_pairs = {{{2U, 4U}}};
@@ -186,7 +186,7 @@ struct RopeAuditFixture {
         centerline.push_back({0.02F * static_cast<float>(index), 0.0F, 0.0F});
     fixture.rope = audit_rope(
         "exact-capacity-256-node-rope", std::move(centerline),
-        0.0200001F, 0.011F, 2.56F, 0.005F, 0.2F, 5.0F, 8U);
+        0.0200001F, 0.011F, 2.56F, timestep, 0.2F, 0.59F, 8U);
     fixture.step_count = 4U;
     fixture.checkpoint_steps = {1U, 4U};
     return fixture;

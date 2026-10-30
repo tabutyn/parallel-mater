@@ -51,8 +51,13 @@ unsigned cell_index(
 }
 
 float magnitude(const Vec3_0 &value) {
-    return std::sqrt(value.x_0 * value.x_0 + value.y_0 * value.y_0 +
-        value.z_0 * value.z_0);
+    const auto *components = reinterpret_cast<const float *>(&value);
+    return std::sqrt(components[0] * components[0] +
+        components[1] * components[1] + components[2] * components[2]);
+}
+
+float component(const Vec3_0 &value, unsigned index) {
+    return reinterpret_cast<const float *>(&value)[index];
 }
 
 struct Fixture {
@@ -377,17 +382,20 @@ void test_transport_cold_start_long_run_and_timing() {
     smoke.grid.density_1 = smoke.density;
 
     for (unsigned particle = 0U; particle < smoke.particles; ++particle)
+    {
         smoke.positions[particle] = {0.25F, 0.25F, 0.25F};
+        smoke.particle_density[particle] = 1.0F;
+    }
     smoke.trace();
     CHECK(cudaDeviceSynchronize() == cudaSuccess);
-    CHECK(std::abs(smoke.positions[0].x_0 -
+    CHECK(std::abs(component(smoke.positions[0], 0U) -
                    (0.25F + smoke_realtime_timestep)) < 1.0e-5F);
     CHECK(smoke.ages[0] == smoke_realtime_timestep);
 
     smoke.options.emitter_center_0 = {0.5F, 0.6F, 0.7F};
     smoke.trace(17U, 1U, 42U);
     CHECK(cudaDeviceSynchronize() == cudaSuccess);
-    CHECK(smoke.positions[17].x_0 == 0.5F);
+    CHECK(component(smoke.positions[17], 0U) == 0.5F);
     CHECK(smoke.ages[17] == 0.0F);
 
     for (unsigned tick = 0U; tick < 120U; ++tick) {
@@ -421,9 +429,9 @@ void test_transport_cold_start_long_run_and_timing() {
     };
     float maximum_speed{};
     for (unsigned particle = 0U; particle < smoke.particles; ++particle) {
-        CHECK(std::isfinite(smoke.positions[particle].x_0));
-        CHECK(std::isfinite(smoke.positions[particle].y_0));
-        CHECK(std::isfinite(smoke.positions[particle].z_0));
+        CHECK(std::isfinite(component(smoke.positions[particle], 0U)));
+        CHECK(std::isfinite(component(smoke.positions[particle], 1U)));
+        CHECK(std::isfinite(component(smoke.positions[particle], 2U)));
         maximum_speed = std::max(maximum_speed,
             magnitude(smoke.velocities[particle]));
     }

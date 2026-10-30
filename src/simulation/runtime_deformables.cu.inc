@@ -567,10 +567,10 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
     if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    if (options.vertices.data == nullptr || options.vertices.size < 3U ||
+    if (options.vertices.data == nullptr || options.vertices.size == 0U ||
         options.vertices.size > UINT32_MAX ||
-        options.triangle_indices.data == nullptr ||
-        options.triangle_indices.size == 0U ||
+        (options.triangle_indices.size != 0U &&
+         options.triangle_indices.data == nullptr) ||
         options.triangle_indices.size % 3U != 0U ||
         options.triangle_indices.size > UINT32_MAX ||
         (options.inverse_masses.size != 0U &&
@@ -731,6 +731,8 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
             float shortest = std::numeric_limits<float>::infinity();
             for (const auto &neighbor : adjacency[vertex])
                 shortest = std::min(shortest, neighbor.rest_length);
+            if (!std::isfinite(shortest))
+                shortest = 2.0F * options.thickness;
             realtime_characteristic_lengths[vertex] = shortest;
         }
     } catch (...) {
@@ -995,9 +997,10 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
         return failure(StatusCode::invalid_argument, "simulation is not initialized");
     Status status = impl_->require_idle();
     if (!status) return status;
-    if (options.nodes.data == nullptr || options.nodes.size < 4U ||
-        options.nodes.size > UINT32_MAX || options.bonds.data == nullptr ||
-        options.bonds.size == 0U || options.bonds.size > UINT32_MAX ||
+    if (options.nodes.data == nullptr || options.nodes.size == 0U ||
+        options.nodes.size > UINT32_MAX ||
+        (options.bonds.size != 0U && options.bonds.data == nullptr) ||
+        options.bonds.size > UINT32_MAX ||
         options.surface_vertices.data == nullptr ||
         options.surface_vertices.size < 3U ||
         options.surface_vertices.size > UINT32_MAX ||
@@ -1129,17 +1132,16 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
             neighbors.insert(neighbors.end(), list.begin(), list.end());
             offsets.push_back(static_cast<std::uint32_t>(neighbors.size()));
         }
-        if (std::any_of(adjacency.begin(), adjacency.end(),
-                        [](const auto &list) { return list.empty(); }))
-            return failure(StatusCode::invalid_argument,
-                           "every soft-body node needs at least one bond");
         realtime_characteristic_lengths.reserve(node_count);
         for (const auto &list : adjacency) {
             float shortest = FLT_MAX;
             for (const DeformableNeighbor neighbor : list)
                 shortest = std::min(shortest, neighbor.rest_length);
+            if (list.empty()) shortest = 2.0F * options.node_radius;
             realtime_characteristic_lengths.push_back(shortest);
         }
+        if (options.bonds.empty())
+            minimum_bond_length = 2.0F * options.node_radius;
         std::size_t maximum_degree=0U;
         for(const auto &list:adjacency)
             maximum_degree=std::max(maximum_degree,list.size());
@@ -1511,9 +1513,8 @@ Status SimulationRuntime::add_rope(RopeOptions options, RopeId &output) noexcept
     }
     owner->realtime_anchor_targets[0] = nodes.front();
     owner->realtime_anchor_targets[1] = nodes.back();
-    // Production fixed ticks resolve moving rigid anchors in the reciprocal
-    // F8 coupling phase. Keeping these predictor pins active would use the
-    // creation-time target and then integrate the endpoint twice.
+    // Production fixed ticks resolve rigid anchors in the reciprocal coupling
+    // phase; predictor pins would over-constrain moving attachments.
     owner->realtime_anchor_active[0] = 0U;
     owner->realtime_anchor_active[1] = 0U;
     *owner->realtime_time_advances = 0U;
@@ -1670,7 +1671,8 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
         return failure(StatusCode::invalid_handle,"rope or soft body handle is stale");
     if(!valid_rope_soft_options(options))
         return failure(StatusCode::invalid_argument,"invalid rope soft-body options");
-    auto &rope=impl_->ropes[options.rope.index]->data;
+    auto &rope_owner=*impl_->ropes[options.rope.index];
+    auto &rope=rope_owner.data;
     auto &body=*impl_->soft_bodies[options.soft_body.index];
     if((options.attach_first && rope.options.first.enabled) ||
        (options.attach_last && rope.options.last.enabled))
@@ -1810,6 +1812,15 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
     if(options.enabled) {
         rope.soft_first|=options.attach_first;
         rope.soft_last|=options.attach_last;
+        if (options.attach_first) {
+            rope_owner.realtime_anchor_active[0] = 1U;
+            rope_owner.realtime_anchor_targets[0] = rope.positions[0];
+        }
+        if (options.attach_last) {
+            rope_owner.realtime_anchor_active[1] = 1U;
+            rope_owner.realtime_anchor_targets[1] =
+                rope.positions[rope.count - 1U];
+        }
     }
     output={slot,owner->generation};
     impl_->rope_soft_body_couplings[slot]=std::move(owner);
@@ -1832,7 +1843,8 @@ Status SimulationRuntime::update_rope_soft_body_coupling(RopeSoftBodyCouplingId 
        options.attach_last!=item.options.attach_last)
         return failure(StatusCode::invalid_argument,"cannot change rope soft-body endpoints");
     item.options=options;
-    auto &rope=impl_->ropes[options.rope.index]->data;
+    auto &rope_owner=*impl_->ropes[options.rope.index];
+    auto &rope=rope_owner.data;
     rope.soft_first=rope.soft_last=false;
     for(const auto &coupling:impl_->rope_soft_body_couplings)
         if(coupling && coupling->alive && coupling->options.enabled &&
@@ -1846,6 +1858,17 @@ Status SimulationRuntime::update_rope_soft_body_coupling(RopeSoftBodyCouplingId 
             rope.soft_first|=coupling.options.first_vertex!=UINT32_MAX;
             rope.soft_last|=coupling.options.last_vertex!=UINT32_MAX;
         }
+    if (options.attach_first)
+        rope_owner.realtime_anchor_active[0] =
+            options.enabled ? 1U : 0U;
+    if (options.attach_last)
+        rope_owner.realtime_anchor_active[1] =
+            options.enabled ? 1U : 0U;
+    if (options.enabled && options.attach_first)
+        rope_owner.realtime_anchor_targets[0] = rope.positions[0];
+    if (options.enabled && options.attach_last)
+        rope_owner.realtime_anchor_targets[1] =
+            rope.positions[rope.count - 1U];
     ++impl_->revision;return success();
 }
 
@@ -1859,8 +1882,11 @@ Status SimulationRuntime::remove_rope_soft_body_coupling(RopeSoftBodyCouplingId 
         return failure(StatusCode::invalid_handle,"rope soft-body coupling is stale");
     auto &item=*impl_->rope_soft_body_couplings[id.index];
     const auto rope_id=item.options.rope;
+    const bool attached_first = item.options.attach_first;
+    const bool attached_last = item.options.attach_last;
     impl_->rope_soft_body_couplings[id.index].retire();
-    auto &rope=impl_->ropes[rope_id.index]->data;
+    auto &rope_owner=*impl_->ropes[rope_id.index];
+    auto &rope=rope_owner.data;
     rope.soft_first=rope.soft_last=false;
     for(const auto &coupling:impl_->rope_soft_body_couplings)
         if(coupling && coupling->alive && coupling->options.enabled &&
@@ -1874,6 +1900,10 @@ Status SimulationRuntime::remove_rope_soft_body_coupling(RopeSoftBodyCouplingId 
             rope.soft_first|=coupling.options.first_vertex!=UINT32_MAX;
             rope.soft_last|=coupling.options.last_vertex!=UINT32_MAX;
         }
+    if (attached_first)
+        rope_owner.realtime_anchor_active[0] = 0U;
+    if (attached_last)
+        rope_owner.realtime_anchor_active[1] = 0U;
     ++impl_->revision;return success();
 }
 

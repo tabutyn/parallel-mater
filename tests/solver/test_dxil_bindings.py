@@ -151,6 +151,31 @@ void fixture(device::ExecutionQueue stream, void *values,
                 root, root / 'reflection', [Path('fixture_dispatch.cu')])
             self.assertIn('execution->dispatch("fixture", "execute"', text)
 
+    def test_result_wrapper_accepts_stream_named_execution_queue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'fixture_dispatch.cu').write_text('''
+PmResult fixture(device::ExecutionQueue stream, void *values,
+                 bool enabled) noexcept {
+    execute<<<1U, 64U, 0U,
+              static_cast<cudaStream_t>(stream.native_handle)>>>(
+        values, enabled);
+    return device::from_driver_error(cudaPeekAtLastError());
+}
+''', encoding='utf-8')
+            reflected = root / 'reflection' / 'fixture'
+            reflected.mkdir(parents=True)
+            (reflected / 'execute.json').write_text(
+                json.dumps(reflection()), encoding='utf-8')
+            text = generate_dxil_dispatch.generate(
+                root, root / 'reflection', [Path('fixture_dispatch.cu')])
+            self.assertIn(
+                'auto *execution = d3d12::context(stream.native_handle);',
+                text)
+            self.assertIn(
+                'return device::from_driver_error(execution->dispatch(', text)
+            self.assertNotIn('cudaPeekAtLastError', text)
+
     def test_preserves_bool_selected_dual_launch(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

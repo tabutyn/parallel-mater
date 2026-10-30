@@ -159,6 +159,18 @@ if(BUILD_TESTING)
             LABELS "api;loader;validation" ENVIRONMENT
             "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
     endforeach()
+    set(PARALLEL_MATER_TEST_DUPLICATE_LAYER_MANIFEST_DIR
+        "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/duplicate-layers")
+    foreach(name IN ITEMS validation-a validation-b)
+        file(GENERATE
+            OUTPUT "${PARALLEL_MATER_TEST_DUPLICATE_LAYER_MANIFEST_DIR}/${name}.json"
+            CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE:parallel-mater-layer-validation>\",\"api_version\":\"0.3.0\"}}\n")
+    endforeach()
+    add_test(NAME parallel-mater-layer-duplicate-discovery-tests
+        COMMAND parallel-mater-layer-validation-tests validation)
+    set_tests_properties(parallel-mater-layer-duplicate-discovery-tests
+        PROPERTIES LABELS "api;loader;validation" ENVIRONMENT
+        "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_PATH=${PARALLEL_MATER_TEST_DUPLICATE_LAYER_MANIFEST_DIR}")
     add_executable(parallel-mater-realtime-profile-tests
         tests/api/realtime_profile_tests.cpp)
     target_compile_features(parallel-mater-realtime-profile-tests PRIVATE

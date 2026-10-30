@@ -337,12 +337,18 @@ def generate(root, reflection, sources):
                     raise ValueError(
                         f'{entry}/{variant_entry}: selected launches must share ABI')
             is_export = signature[1] == 'PmResult'
+            queue = re.search(
+                r'\bdevice::ExecutionQueue\s+(\w+)\b', signature[3])
+            if queue is None:
+                raise ValueError(f'{signature[2]}: execution queue missing')
             out = [signature[0], '    auto *execution = d3d12::context(' +
-                   ('queue.native_handle' if is_export else 'stream.native_handle') + ');',
+                   queue[1] + '.native_handle);',
                    '    if (execution == nullptr) return' +
                    (' PM_ERROR_INVALID_ARGUMENT;' if is_export else ';')]
             if is_export:
-                checks = body.split('const cudaStream_t stream =')[0]
+                stream_boundary = body.find('const cudaStream_t stream =')
+                checks = (body[:stream_boundary] if stream_boundary >= 0
+                          else body[:launches[0].start()])
                 checks = re.sub(r'static_assert\(.*?\);', '', checks, flags=re.S)
                 out.append(checks)
                 out.append('    constexpr std::uint32_t block_size = 256U;')

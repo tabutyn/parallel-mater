@@ -26,7 +26,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t warmup_steps = 6U;
 constexpr std::uint32_t smoke_capacity = 64U;
 constexpr std::uint32_t grid_resolution = 16U;
@@ -171,10 +171,10 @@ void require_drag_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 4.0F;
+    material.maximumSpeed = grid ? 3.7F : 4.0F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_vertical_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridKinematicViscosity = grid ? 0.1F : 0.0F;
     material.gridLesCoefficient = 0.0F;
     material.gridPressureTolerance = 1.0e-4F;
@@ -458,7 +458,7 @@ void record_copies(Context &context, const FixtureObjects &fixture) {
     result["smoke_lifetime_seconds"] = 10.0;
     result["smoke_particle_radius_m"] = 0.10;
     result["smoke_rest_number_density"] = 1.0;
-    result["smoke_maximum_speed_m_s"] = 4.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 3.7 : 4.0;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =

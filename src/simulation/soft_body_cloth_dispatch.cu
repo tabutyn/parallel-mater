@@ -59,24 +59,28 @@ void detect_soft_body_cloth_contacts(device::DispatchSize grid, device::Dispatch
 }
 
 void apply_soft_body_cloth_contacts_to_soft_body(device::DispatchSize grid, device::DispatchSize block,
-    device::ExecutionQueue stream, void *positions, void *velocities, void *forces,
+    device::ExecutionQueue stream, void *positions, void *previous_positions,
+    void *velocities, void *forces,
     const float *inverse_masses, std::uint32_t count, const void *contacts,
     const std::uint32_t *contact_counts, float timestep,
     float maximum_speed) noexcept {
     soft_cloth_apply_soft<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
-        as<Vec3_0>(positions), as<Vec3_0>(velocities), as<Vec3_0>(forces),
+        as<Vec3_0>(positions), as<Vec3_0>(previous_positions),
+        as<Vec3_0>(velocities), as<Vec3_0>(forces),
         const_cast<float *>(inverse_masses), count,
         const_cast<SoftClothContact_0 *>(as<SoftClothContact_0>(contacts)),
         const_cast<std::uint32_t *>(contact_counts), timestep, maximum_speed);
 }
 
 void apply_soft_body_cloth_contacts_to_cloth(device::DispatchSize grid, device::DispatchSize block,
-    device::ExecutionQueue stream, void *positions, void *velocities, void *forces,
+    device::ExecutionQueue stream, void *positions, void *previous_positions,
+    void *velocities, void *forces,
     const float *inverse_masses, std::uint32_t count, const void *contacts,
     std::uint32_t contact_count, const std::uint32_t *contact_counts,
     float timestep) noexcept {
     soft_cloth_apply_cloth<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
-        as<Vec3_0>(positions), as<Vec3_0>(velocities), as<Vec3_0>(forces),
+        as<Vec3_0>(positions), as<Vec3_0>(previous_positions),
+        as<Vec3_0>(velocities), as<Vec3_0>(forces),
         const_cast<float *>(inverse_masses), count,
         const_cast<SoftClothContact_0 *>(as<SoftClothContact_0>(contacts)),
         contact_count, const_cast<std::uint32_t *>(contact_counts), timestep);

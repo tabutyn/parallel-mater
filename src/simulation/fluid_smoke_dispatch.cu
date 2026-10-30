@@ -81,6 +81,40 @@ void drag_fluid_with_smoke_particles(
         const_cast<std::uint32_t *>(smoke_indices), timestep);
 }
 
+void drag_fluid_with_smoke_realtime_particles(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    const void *current_velocities, void *velocity_deltas,
+    const std::uint32_t *particle_count,
+    const FluidSmokeDispatchOptions &options, const void *smoke_positions,
+    const void *smoke_velocities, std::uint32_t smoke_owner_slot,
+    std::uint32_t smoke_owner_generation,
+    std::uint32_t smoke_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    const SmokeGridDispatchField &smoke_grid, float timestep) noexcept {
+    fluid_smoke_realtime_drag<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(current_velocities)),
+        as<Vec3_0>(velocity_deltas),
+        const_cast<std::uint32_t *>(particle_count), coupling_options(options),
+        smoke_options(options),
+        const_cast<Vec3_0 *>(as<Vec3_0>(smoke_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(smoke_velocities)),
+        smoke_owner_slot, smoke_owner_generation, smoke_topology_revision,
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status, grid_field(smoke_grid), timestep);
+}
+
 void drag_fluid_with_smoke_grid(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const std::uint32_t *particle_count,
@@ -94,7 +128,8 @@ void drag_fluid_with_smoke_grid(
 
 void exchange_fluid_with_smoke(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
-    void *velocities, float *temperatures,
+    const void *base_velocities, const void *velocity_deltas,
+    float *temperatures,
     const std::uint32_t *particle_count, float particle_radius,
     const FluidSmokeDispatchOptions &options, void *smoke_positions,
     void *smoke_velocities, float *smoke_ages, float *smoke_thermal_lift,
@@ -103,8 +138,10 @@ void exchange_fluid_with_smoke(
     std::uint32_t *converted, std::uint8_t *keep, float timestep,
     const float gravity[3]) noexcept {
     fluid_smoke_exchange<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
-        const_cast<Vec3_0 *>(as<Vec3_0>(positions)), as<Vec3_0>(velocities),
-        temperatures, const_cast<std::uint32_t *>(particle_count),
+        const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(base_velocities)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(velocity_deltas)), temperatures,
+        const_cast<std::uint32_t *>(particle_count),
         particle_radius, coupling_options(options), smoke_options(options),
         as<Vec3_0>(smoke_positions), as<Vec3_0>(smoke_velocities), smoke_ages,
         smoke_thermal_lift, smoke_densities, smoke_pressures,

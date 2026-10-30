@@ -939,7 +939,6 @@ float fluid_density_kernel(float squared_distance, float support_radius)
 // legacy cell/sort/force/integrate path above remains profile 0.
 static const uint kFluidRealtimeProfileVersion = 1u;
 static const float kFluidRealtimeTimestep = 1.0f / 60.0f;
-static const float kFluidRealtimeSolverDamping = 0.05f;
 static const float kFluidRealtimeMaximumCorrectionFraction = 0.25f;
 static const uint kFluidRealtimeInvalidProfile = 1u << 13u;
 static const uint kFluidRealtimeInvalidTimestep = 1u << 14u;
@@ -1208,6 +1207,7 @@ void fluid_realtime_position_delta(
     }
     float mass = fluid_particle_mass(options);
     Vec3 deltaPosition = Vec3(0.0f);
+    Vec3 contactPosition = Vec3(0.0f);
     uint base = query * candidates_per_query;
     Vec3 position = positions[particle];
     for (uint candidate = 0u; candidate < candidateCount; ++candidate)
@@ -1225,19 +1225,38 @@ void fluid_realtime_position_delta(
             return;
         }
         Vec3 separation = subtract(position, positions[other]);
-        if (length_squared(separation) >=
-            options.support_radius * options.support_radius)
+        float squared = length_squared(separation);
+        if (squared >= options.support_radius * options.support_radius)
             continue;
         Vec3 gradient = fluid_realtime_density_gradient(
             separation, particle, other, options.support_radius);
         deltaPosition = add(deltaPosition, multiply(gradient,
             (lambdas[particle] + lambdas[other]) * mass /
                 options.rest_density));
+        float distance = sqrt(max(squared, 1.0e-12f));
+        float exclusion = 2.0f * options.particle_radius;
+        if (distance < exclusion)
+        {
+            Vec3 negativeX = Vec3(-1.0f, 0.0f, 0.0f);
+            Vec3 positiveX = Vec3(1.0f, 0.0f, 0.0f);
+            Vec3 direction = squared > 1.0e-12f
+                ? multiply(separation, 1.0f / distance)
+                : (particle < other ? negativeX : positiveX);
+            float q = max(0.0f,
+                1.0f - distance / options.support_radius);
+            contactPosition = add(contactPosition, multiply(direction,
+                options.repulsion * (1000.0f / options.rest_density) *
+                    q * q * dt * dt));
+        }
     }
     float response = options.repulsion == 0.0f ? 0.0f :
         clamp_scalar(1.0f - exp(-options.repulsion * dt),
             0.05f, 0.995f);
-    deltaPosition = multiply(deltaPosition, response);
+    if (options.maximum_pair_acceleration > 0.0f)
+        contactPosition = clamp_length(contactPosition,
+            options.maximum_pair_acceleration * dt * dt);
+    deltaPosition = add(multiply(deltaPosition, response),
+        multiply(contactPosition, response * response));
     float maximumCorrection =
         kFluidRealtimeMaximumCorrectionFraction * options.support_radius;
     float remaining = max(0.0f, maximumCorrection -
@@ -1333,7 +1352,6 @@ void fluid_realtime_viscosity_delta(
         pmAtomicOr(status, kFluidSpatialQueryOverflow);
         return;
     }
-    float mass = fluid_particle_mass(options);
     Vec3 viscosityDelta = Vec3(0.0f);
     Vec3 normalDelta = Vec3(0.0f);
     Vec3 position = positions[particle];
@@ -1357,10 +1375,8 @@ void fluid_realtime_viscosity_delta(
         float squared = length_squared(separation);
         if (squared >= options.support_radius * options.support_radius)
             continue;
-        float pairDensity = max(densities[particle] + densities[other],
-            1.0e-6f);
-        float weight = 2.0f * mass * fluid_density_kernel(
-            squared, options.support_radius) / pairDensity;
+        float weight = max(0.0f,
+            1.0f - sqrt(max(squared, 0.0f)) / options.support_radius);
         Vec3 relative = subtract(velocities[other], velocity);
         viscosityDelta = add(viscosityDelta,
             multiply(relative, weight));
@@ -1413,8 +1429,13 @@ void fluid_realtime_commit(
     Vec3 velocity = add(multiply(subtract(positions[particle],
         previous_positions[particle]), 1.0f / dt),
         velocity_deltas[particle]);
-    velocity = clamp_length(multiply(velocity,
-        1.0f - kFluidRealtimeSolverDamping), options.maximum_speed);
+    // The host selects one scale for the simulation's configured liquid
+    // population.  A truly single-particle simulation preserves authored
+    // motion; every domain in a cross-fluid population receives the same
+    // stabilizer so damping cannot create a momentum imbalance.
+    velocity = multiply(velocity,
+        options.realtime_commit_velocity_scale);
+    velocity = clamp_length(velocity, options.maximum_speed);
     if (!fluid_spatial_finite_vec3(positions[particle]) ||
         !fluid_spatial_finite_vec3(velocity))
     {
@@ -2724,4 +2745,32 @@ void fluid_apply_immiscible_pair_viscosity(
         second_forces[local] = add(second_forces[local], acceleration);
     else
         first_forces[local] = add(first_forces[local], acceleration);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_gather_spatial_payloads(
+    uniform PMBuffer<uint> compacted_sources,
+    uniform PMBuffer<uint> active_slot_count,
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform uint leaf_capacity, uniform uint candidate_slot_capacity,
+    uniform PMBuffer<uint> active_payloads,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint rank = pmThreadIndex();
+    uint count = active_slot_count[0];
+    if (count > candidate_slot_capacity)
+    {
+        if (rank == 0u) pmAtomicOr(status, kFluidSpatialCountOverflow);
+        return;
+    }
+    if (rank >= count) return;
+    uint source = compacted_sources[rank];
+    if (source >= leaf_capacity)
+    {
+        pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+        return;
+    }
+    active_payloads[rank] = metadata[source].payload_ref;
 }

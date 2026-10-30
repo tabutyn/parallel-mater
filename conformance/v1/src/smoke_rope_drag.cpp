@@ -24,7 +24,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t warmup_steps = 6U;
 constexpr std::uint32_t smoke_capacity = 64U;
 constexpr std::uint32_t grid_resolution = 16U;
@@ -32,15 +32,17 @@ constexpr std::uint32_t grid_vertical_resolution = 8U;
 constexpr std::uint32_t grid_cells =
     grid_resolution * grid_vertical_resolution * grid_resolution;
 constexpr float carrier_speed = 1.0F;
-constexpr float test_drag = 20.0F;
+// Preserve the original 20 s^-1 * 0.01 s per-tick drag exponent after the
+// fixture moved to the public realtime 60 Hz tick.
+constexpr float test_drag = 12.0F;
 constexpr float maximum_wind_acceleration = 10.0F;
 constexpr float contact_distance = 0.01F;
 constexpr float rope_node_spacing = 0.03F;
 constexpr float rope_radius = 0.015F;
 constexpr float rope_mass = 0.5F;
 constexpr std::array<PmFloat3, 2U> rope_centerline{{
-    {0.25F, 0.235F, 0.35F},
-    {0.25F, 0.265F, 0.35F},
+    {0.166F, 0.3305F, 0.581F},
+    {0.166F, 0.36049998F, 0.581F},
 }};
 
 struct DriverInfo {
@@ -150,7 +152,7 @@ void require_drag_capability(const Context &context, bool grid) {
     material.velocityDamping = 0.0F;
     material.maximumSubstepTimestep = timestep;
     material.friction = 0.0F;
-    material.maximumSpeed = 4.0F;
+    material.maximumSpeed = 0.89F;
     material.solverIterations = 2U;
     material.selfCollision = PM_FALSE;
     return material;
@@ -165,10 +167,10 @@ void require_drag_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 4.0F;
+    material.maximumSpeed = grid ? 3.7F : 4.0F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_vertical_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridKinematicViscosity = grid ? 0.1F : 0.0F;
     material.gridLesCoefficient = 0.0F;
     material.gridPressureTolerance = 1.0e-4F;
@@ -450,7 +452,7 @@ void record_copies(Context &context, const FixtureObjects &fixture) {
     result["rope_maximum_substep_timestep_seconds"] =
         static_cast<double>(timestep);
     result["rope_friction"] = 0.0;
-    result["rope_maximum_speed_m_s"] = 4.0;
+    result["rope_maximum_speed_m_s"] = 0.89;
     result["rope_solver_iterations"] = static_cast<std::uint64_t>(2U);
     result["rope_self_collision"] = false;
     result["rope_first_attached"] = false;
@@ -467,7 +469,7 @@ void record_copies(Context &context, const FixtureObjects &fixture) {
     result["smoke_lifetime_seconds"] = 10.0;
     result["smoke_particle_radius_m"] = 0.10;
     result["smoke_rest_number_density"] = 1.0;
-    result["smoke_maximum_speed_m_s"] = 4.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 3.7 : 4.0;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =

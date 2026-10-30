@@ -31,6 +31,7 @@ constexpr std::array<std::uint32_t, 12> cloth_indices{{
     1U, 2U, 3U,
 }};
 constexpr std::array<float, 4> cloth_inverse_masses{{1.0F, 1.0F, 1.0F, 1.0F}};
+constexpr float timestep = 1.0F / 60.0F;
 
 [[nodiscard]] const char *driver_name(PmDevice device) {
     PmNativeDeviceInfo native{};
@@ -80,7 +81,7 @@ constexpr std::array<float, 4> cloth_inverse_masses{{1.0F, 1.0F, 1.0F, 1.0F}};
     material.particleRadius = 0.05F;
     material.supportRadius = 0.2F;
     material.restParticleVolume = 0.001F;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = 5.0F;
     material.maximumPairAcceleration = 1000.0F;
     material.densityIterations = 1U;
     return material;
@@ -90,8 +91,8 @@ constexpr std::array<float, 4> cloth_inverse_masses{{1.0F, 1.0F, 1.0F, 1.0F}};
     PmClothMaterialState material{};
     material.vertexMass = 1.0F;
     material.thickness = 0.05F;
-    material.stretchCompliance = 1.0e-6F;
-    material.bendingCompliance = 0.1F;
+    material.stretchCompliance = 4.0e-6F;
+    material.bendingCompliance = 0.01F;
     material.solverIterations = 8U;
     material.fracturePersistenceSubsteps = 1U;
     material.preserveVolume = PM_TRUE;
@@ -152,7 +153,7 @@ constexpr std::array<float, 4> cloth_inverse_masses{{1.0F, 1.0F, 1.0F, 1.0F}};
 
     Json result = Json::object();
     result["id"] = "closed-tetrahedron-outward-pulse";
-    result["timestep_seconds"] = 0.01;
+    result["timestep_seconds"] = static_cast<double>(timestep);
     result["substeps"] = static_cast<std::uint64_t>(1U);
     result["gravity_m_s2"] = vector_json(PmFloat3{});
     result["fluid_particle_count"] = static_cast<std::uint64_t>(1U);
@@ -302,7 +303,7 @@ std::string conformance_fluid_cloth_containment_quality(
                                      &initial_fluid) == PM_SUCCESS);
     PM_CHECK(pmCmdCopyClothState(context.commands, simulation, 0U,
                                  &initial_cloth) == PM_SUCCESS);
-    const PmStepInfo step{0.01F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
+    const PmStepInfo step{timestep, 1U, {0.0F, 0.0F, 0.0F}, 0U};
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
     PM_CHECK(pmCmdCopyFluidParticles(context.commands, simulation, 0U,

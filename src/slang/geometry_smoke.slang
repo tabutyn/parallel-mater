@@ -493,7 +493,7 @@ void smoke_realtime_particle_density_pressure(
     uniform PMBuffer<uint> candidate_indices,
     uniform uint candidates_per_particle, uniform float dt,
     uniform uint profile_version, uniform PMBuffer<float> densities,
-    uniform PMBuffer<float> pressures,
+    uniform PMBuffer<float> pressures, uniform PMBuffer<Vec3> position_deltas,
     uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -506,7 +506,9 @@ void smoke_realtime_particle_density_pressure(
                 status);
         return;
     }
-    if (particle >= count || particle >= options.capacity) return;
+    if (particle >= options.capacity) return;
+    position_deltas[particle] = {};
+    if (particle >= count) return;
     if (ages[particle] >= options.lifetime)
     {
         densities[particle] = 0.0f;
@@ -577,8 +579,14 @@ void smoke_realtime_particle_position_delta(
     }
     float support = 3.0f * options.particle_radius;
     Vec3 point = positions[particle];
-    Vec3 delta = {};
-    float weightSum = 0.0f;
+    float selfWeight = max(densities[particle] - 1.0f, 1.0e-6f);
+    float geometricMaximumCorrection =
+        kSmokeRealtimeMaximumCorrectionFraction * support;
+    float selfMaximumCorrection = min(geometricMaximumCorrection,
+        max(options.maximum_speed - vector_length(velocities[particle]),
+            0.0f) * dt);
+    float selfRemaining = max(0.0f, selfMaximumCorrection -
+        vector_length(accumulated_corrections[particle]));
     uint base = particle * candidates_per_particle;
     for (uint candidate = 0u; candidate < candidateCount; ++candidate)
     {
@@ -594,30 +602,46 @@ void smoke_realtime_particle_position_delta(
             : (particle < other ? Vec3(-1.0f, 0.0f, 0.0f)
                                 : Vec3(1.0f, 0.0f, 0.0f));
         float weight = smoke_realtime_particle_weight(distance, support);
+        float otherWeight = max(densities[other] - 1.0f, 1.0e-6f);
+        float pairNormalization = 1.0f /
+            sqrt(max(selfWeight * otherWeight, 1.0e-12f));
         float pairPressure = 0.5f *
             (pressures[particle] + pressures[other]);
-        delta = add(delta, multiply(direction,
-            support * weight * pairPressure));
+        Vec3 pairDelta = multiply(direction,
+            support * weight * pairPressure * pairNormalization);
         // XSPH-like viscosity is a bounded displacement in the same Jacobi
         // proposal so the sweep count and correction budget remain exact.
         float viscosityResponse = 1.0f - exp(-options.viscosity * dt);
-        delta = add(delta, multiply(subtract(
+        pairDelta = add(pairDelta, multiply(subtract(
             velocities[other], velocities[particle]),
-            dt * viscosityResponse * weight));
-        weightSum += weight;
+            dt * viscosityResponse * weight * pairNormalization));
+        if (!smoke_realtime_finite_vec3(pairDelta))
+        {
+            pmAtomicOr(status, kSmokeRealtimeNonfiniteState);
+            continue;
+        }
+        uint otherCandidateCount = candidate_counts[other];
+        if (otherCandidateCount > candidates_per_particle)
+        {
+            pmAtomicOr(status, kSmokeRealtimeInvalidMaterial);
+            continue;
+        }
+        float otherMaximumCorrection = min(geometricMaximumCorrection,
+            max(options.maximum_speed - vector_length(velocities[other]),
+                0.0f) * dt);
+        float otherRemaining = max(0.0f, otherMaximumCorrection -
+            vector_length(accumulated_corrections[other]));
+        // Candidate lists are bounded and need not be reciprocal.  Stage
+        // every directed edge as an equal-and-opposite half-pair so closed
+        // particle momentum remains exact even under spatial truncation.
+        float incidentLimit = float(max(count - 1u, 1u) +
+            candidates_per_particle);
+        float pairBudget = min(selfRemaining, otherRemaining) /
+            incidentLimit;
+        Vec3 paired = clamp_length(multiply(pairDelta, 0.5f), pairBudget);
+        pmAtomicAddVec3(position_deltas + particle, paired);
+        pmAtomicAddVec3(position_deltas + other, multiply(paired, -1.0f));
     }
-    if (weightSum > 1.0e-6f) delta = multiply(delta, 1.0f / weightSum);
-    float maximumCorrection =
-        kSmokeRealtimeMaximumCorrectionFraction * support;
-    float remaining = max(0.0f, maximumCorrection -
-        vector_length(accumulated_corrections[particle]));
-    delta = clamp_length(delta, remaining);
-    if (!smoke_realtime_finite_vec3(delta))
-    {
-        pmAtomicOr(status, kSmokeRealtimeNonfiniteState);
-        delta = {};
-    }
-    position_deltas[particle] = delta;
 }
 
 [shader("compute")]
@@ -679,10 +703,12 @@ void smoke_realtime_particle_commit(
     }
     if (particle >= count || particle >= options.capacity ||
         ages[particle] >= options.lifetime) return;
-    Vec3 velocity = multiply(subtract(
+    Vec3 predictedVelocity = velocities[particle];
+    Vec3 projectedVelocity = multiply(subtract(
         positions[particle], previous_positions[particle]), 1.0f / dt);
-    velocity = clamp_length(multiply(velocity,
-        1.0f - kSmokeRealtimeSolverDamping), options.maximum_speed);
+    Vec3 velocity = clamp_length(add(predictedVelocity, multiply(subtract(
+        projectedVelocity, predictedVelocity),
+        1.0f - kSmokeRealtimeSolverDamping)), options.maximum_speed);
     if (!smoke_realtime_finite_vec3(positions[particle]) ||
         !smoke_realtime_finite_vec3(velocity))
     {

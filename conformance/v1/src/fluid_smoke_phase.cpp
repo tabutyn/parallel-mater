@@ -23,7 +23,8 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
+constexpr std::uint32_t quality_steps = 2U;
 constexpr std::uint32_t single_smoke_capacity = 1U;
 constexpr std::uint32_t bounded_smoke_capacity = 2U;
 constexpr std::uint32_t grid_resolution = 16U;
@@ -133,8 +134,8 @@ void require_phase_capability(const Context &context, bool grid) {
     material.particleRadius = 0.025F;
     material.supportRadius = 0.10F;
     material.restParticleVolume = 0.001F;
-    material.pressureStiffness = 1.0F;
-    material.maximumSpeed = 4.0F;
+    material.pressureStiffness = 4.0F;
+    material.maximumSpeed = 2.9F;
     material.densityIterations = 1U;
     return material;
 }
@@ -148,10 +149,10 @@ void require_phase_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 4.0F;
+    material.maximumSpeed = grid ? 3.7F : 4.0F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_vertical_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridPressureTolerance = 1.0e-4F;
     return material;
 }
@@ -348,8 +349,9 @@ void set_fluid(Context &context, const FixtureObjects &fixture,
              PM_SUCCESS);
     PM_CHECK(pmCmdSetCouplings(context.commands, fixture.simulation, 1U,
                               &coupling) == PM_SUCCESS);
-    PM_CHECK(pmCmdStepSimulation(context.commands, fixture.simulation, &step) ==
-             PM_SUCCESS);
+    for (std::uint32_t index = 0U; index < quality_steps; ++index)
+        PM_CHECK(pmCmdStepSimulation(context.commands, fixture.simulation,
+                                    &step) == PM_SUCCESS);
     record_copies(context, fixture);
     submit_status = context.submit();
     if (submit_status != PM_SUCCESS)
@@ -464,6 +466,7 @@ void set_fluid(Context &context, const FixtureObjects &fixture,
     result["id"] = grid ? "grid-phase-transfer" : "particle-phase-transfer";
     result["representation"] = grid ? "SMOKE_GRID" : "SMOKE_PARTICLE";
     result["timestep_seconds"] = static_cast<double>(timestep);
+    result["step_count"] = static_cast<std::uint64_t>(quality_steps);
     result["substeps"] = static_cast<std::uint64_t>(1U);
     result["gravity_m_s2"] = vector_json(PmFloat3{});
     result["fluid_initial_temperature_celsius"] =
@@ -502,7 +505,7 @@ void set_fluid(Context &context, const FixtureObjects &fixture,
     result["smoke_lifetime_seconds"] = 10.0;
     result["smoke_particle_radius_m"] = 0.10;
     result["smoke_rest_number_density"] = 1.0;
-    result["smoke_maximum_speed_m_s"] = 4.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 3.7 : 4.0;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =

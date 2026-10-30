@@ -111,7 +111,8 @@ bool GalleryRuntime::replace(GalleryRuntimeCreateInfo info,
 
     if (!CommandScene::create(next.scene, info.debug_frame_capacity,
                               next.simulation, next.instance, error,
-                              info.backend)) {
+                              info.backend, nullptr,
+                              info.enable_validation)) {
         if (error.empty()) error = "scene creation failed";
         retain_retry();
         return false;

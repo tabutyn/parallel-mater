@@ -42,27 +42,31 @@ def snapshot(definition: dict, position: list[float],
 
 def fixture(definition: dict) -> dict:
     actual = copy.deepcopy(definition)
-    initial_position = [-0.005, 0.08, 0.08]
-    initial_velocity = [1.0, 0.25, 0.0]
-    control_final = [0.005, 0.0825, 0.08]
-    coupled_final = [-0.015, 0.0825, 0.08]
-    redirected = ([0.0, 0.25, 0.0]
-                  if definition["representation"] == "SMOKE_PARTICLE"
-                  else [0.0, 1.025, -0.107])
+    timestep = definition["timestep_seconds"]
+    initial_position = copy.deepcopy(
+        definition["expected_initial_smoke_center_m"])
+    initial_velocity = copy.deepcopy(
+        definition["expected_initial_smoke_velocity_m_s"])
+    control_final = [position + velocity * timestep
+                     for position, velocity in zip(
+                         initial_position, initial_velocity)]
+    coupled_final = [-definition["contact_distance_m"],
+                     control_final[1], control_final[2]]
+    redirected = [0.0, initial_velocity[1], initial_velocity[2]]
     actual["runs"] = [
         {
             "id": "control",
             "initial": snapshot(definition, initial_position,
                                 initial_velocity, 0.0),
             "final": snapshot(definition, control_final,
-                              initial_velocity, 0.01),
+                              initial_velocity, timestep),
         },
         {
             "id": "coupled",
             "initial": snapshot(definition, initial_position,
                                 initial_velocity, 0.0),
             "final": snapshot(definition, coupled_final,
-                              redirected, 0.01),
+                              redirected, timestep),
         },
     ]
     return actual

@@ -48,12 +48,12 @@ void solve_smoke_realtime_density_pressure(
     const std::uint32_t *candidate_indices,
     std::uint32_t candidates_per_particle, float timestep,
     std::uint32_t profile_version, float *densities, float *pressures,
-    std::uint32_t *status) noexcept {
+    void *position_deltas, std::uint32_t *status) noexcept {
     (void)metal::launch(stream,
         "smoke_realtime_particle_density_pressure", grid, positions, ages,
         count, smoke_options(options), candidate_counts, candidate_indices,
         candidates_per_particle, timestep, profile_version, densities,
-        pressures, status);
+        pressures, position_deltas, status);
 }
 
 void solve_smoke_realtime_position_delta(

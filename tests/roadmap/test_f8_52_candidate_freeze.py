@@ -22,9 +22,19 @@ class F863CandidateFreezeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
-    def test_final_candidate_is_frozen_without_drift(self):
+    def test_rejected_candidate_is_immutable_while_refreeze_is_pending(self):
         self.assertEqual(validate_candidate(), [])
         self.assertEqual(self.candidate["task"], "F8-63")
+        rejection = json.loads((
+            ROOT / "conformance/v1/qualification/"
+            "realtime-candidate-v6-rejection.json"
+        ).read_text(encoding="utf-8"))
+        self.assertEqual(
+            rejection["status"],
+            "rejected-required-installed-public-cuda-suite",
+        )
+        self.assertEqual(rejection["replacement"]["freeze_task"], "F8-65")
+        self.assertFalse(rejection["evidence_union_allowed"])
 
     def test_every_required_protected_drift_is_rejected(self):
         closures = {

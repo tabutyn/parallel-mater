@@ -24,7 +24,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 1.0F / 120.0F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t step_count = 120U;
 constexpr std::uint32_t substeps = 1U;
 constexpr float cloth_vertex_mass = 0.25F;
@@ -119,8 +119,8 @@ void require_attachment_capability(const Context &context) {
     PmClothMaterialState material{};
     material.vertexMass = cloth_vertex_mass;
     material.thickness = 0.005F;
-    material.stretchCompliance = 1.0e-7F;
-    material.bendingCompliance = 1.0e-6F;
+    material.stretchCompliance = 4.0e-5F;
+    material.bendingCompliance = 4.0e-5F;
     material.velocityDamping = 0.0F;
     material.contactFriction = 0.0F;
     material.solverIterations = 8U;
@@ -133,11 +133,11 @@ void require_attachment_capability(const Context &context) {
     material.nodeSpacing = rope_spacing;
     material.radius = 0.025F;
     material.mass = rope_mass;
-    material.stretchCompliance = 1.0e-7F;
+    material.stretchCompliance = 4.0e-5F;
     material.velocityDamping = 0.0F;
     material.maximumSubstepTimestep = timestep / substeps;
     material.friction = 0.0F;
-    material.maximumSpeed = 20.0F;
+    material.maximumSpeed = 1.4F;
     material.solverIterations = 8U;
     material.selfCollision = PM_FALSE;
     return material;
@@ -536,7 +536,7 @@ std::string conformance_cloth_rope_attachment_quality(
         for (const auto value : cloth_inverse_masses)
             fixture["cloth_inverse_masses_per_kg"].push_back(
                 static_cast<double>(value));
-        fixture["cloth_stretch_compliance_m_per_n"] = 1.0e-7;
+        fixture["cloth_stretch_compliance_m_per_n"] = 4.0e-5;
         fixture["cloth_velocity_damping_per_s"] = 0.0;
         fixture["cloth_solver_iterations"] = static_cast<std::uint64_t>(8U);
         fixture["rope_centerline_m"] = Json::array();
@@ -545,7 +545,7 @@ std::string conformance_cloth_rope_attachment_quality(
         fixture["rope_node_spacing_m"] = static_cast<double>(rope_spacing);
         fixture["rope_radius_m"] = 0.025;
         fixture["rope_total_mass_kg"] = static_cast<double>(rope_mass);
-        fixture["rope_stretch_compliance_m_per_n"] = 1.0e-7;
+        fixture["rope_stretch_compliance_m_per_n"] = 4.0e-5;
         fixture["rope_velocity_damping_per_s"] = 0.0;
         fixture["rope_solver_iterations"] = static_cast<std::uint64_t>(8U);
         fixture["attached_rope_end"] = "first";

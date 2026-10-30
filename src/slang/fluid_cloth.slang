@@ -13,7 +13,8 @@ import graphics_resources;
 [numthreads(128, 1, 1)]
 void fluid_cloth_containment_forces(
     uniform PMBuffer<Vec3> particle_positions, uniform PMBuffer<Vec3> particle_velocities,
-    uniform PMBuffer<uint> particle_count, uniform PMBuffer<Vec3> particle_accelerations,
+    uniform PMBuffer<uint> particle_count, uniform PMBuffer<Vec3> particle_velocity_deltas,
+    uniform PMBuffer<Vec3> particle_accelerations,
     uniform PMBuffer<float> foam_source, uniform float particle_mass,
     uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
     uniform PMBuffer<uint> cloth_indices, uniform uint triangle_count,
@@ -26,7 +27,10 @@ void fluid_cloth_containment_forces(
     uniform PMBuffer<uint> candidate_sources,
     uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform float cloth_orientation,
-    uniform FluidClothCouplingOptions options, uniform PMBuffer<Vec3> cloth_forces PM_D3D12_DISPATCH_PARAMETER)
+    uniform FluidClothCouplingOptions options, uniform float timestep,
+    uniform float force_average_scale,
+    uniform PMBuffer<Vec3> cloth_step_forces,
+    uniform PMBuffer<Vec3> cloth_average_forces PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
@@ -113,16 +117,23 @@ void fluid_cloth_containment_forces(
     Vec3 force = clamp_length(add(
         multiply(bestNormal, -magnitude),
         multiply(tangent, -options.tangential_drag)), options.maximum_force);
+    particle_velocity_deltas[particle] = add(
+        particle_velocity_deltas[particle],
+        multiply(force, timestep / particle_mass));
     particle_accelerations[particle] = add(
         particle_accelerations[particle],
-        multiply(force, 1.0f / particle_mass));
+        multiply(force, force_average_scale / particle_mass));
     foam_source[particle] = max(foam_source[particle],
         clamp_scalar(magnitude / max(options.maximum_force, 1.0f),
                      0.0f, 1.0f));
     Vec3 reaction = multiply(force, -1.0f);
-    atomic_add(cloth_forces + a, multiply(reaction, bestWeights.x));
-    atomic_add(cloth_forces + b, multiply(reaction, bestWeights.y));
-    atomic_add(cloth_forces + c, multiply(reaction, bestWeights.z));
+    atomic_add(cloth_step_forces + a, multiply(reaction, bestWeights.x));
+    atomic_add(cloth_step_forces + b, multiply(reaction, bestWeights.y));
+    atomic_add(cloth_step_forces + c, multiply(reaction, bestWeights.z));
+    reaction = multiply(reaction, force_average_scale);
+    atomic_add(cloth_average_forces + a, multiply(reaction, bestWeights.x));
+    atomic_add(cloth_average_forces + b, multiply(reaction, bestWeights.y));
+    atomic_add(cloth_average_forces + c, multiply(reaction, bestWeights.z));
 }
 
 [shader("compute")]
@@ -130,17 +141,18 @@ void fluid_cloth_containment_forces(
 void cloth_apply_fluid_forces(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> forces,
-    uniform uint count, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
+    uniform uint count, uniform float impulse_dt,
+    uniform float position_dt PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint vertex = pmThreadIndex();
     if (vertex >= count || inverse_masses[vertex] == 0.0f) return;
     Vec3 velocityChange = clamp_length(
-        multiply(forces[vertex], inverse_masses[vertex] * dt), 2.0f);
+        multiply(forces[vertex], inverse_masses[vertex] * impulse_dt), 2.0f);
     velocities[vertex] = clamp_length(
         add(velocities[vertex], velocityChange), 20.0f);
     positions[vertex] = add(
-        positions[vertex], multiply(velocityChange, dt));
+        positions[vertex], multiply(velocityChange, position_dt));
 }
 
 [shader("compute")]

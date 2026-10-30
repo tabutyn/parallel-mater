@@ -22,7 +22,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t warmup_steps = 4U;
 constexpr std::uint32_t smoke_capacity = 4U;
 constexpr std::uint32_t grid_resolution = 16U;
@@ -30,7 +30,9 @@ constexpr std::uint32_t grid_vertical_resolution = 8U;
 constexpr std::uint32_t grid_cells =
     grid_resolution * grid_vertical_resolution * grid_resolution;
 constexpr float carrier_speed = 1.0F;
-constexpr float test_drag = 20.0F;
+// Preserve the original 0.2 per-tick drag exponent after the fixed 60 Hz
+// migration (20 /s at 0.01 s became 12 /s at 1/60 s).
+constexpr float test_drag = 12.0F;
 constexpr float heater_temperature = 120.0F;
 constexpr float test_heat_transfer_rate = 20.0F;
 
@@ -148,8 +150,8 @@ void require_thermal_capability(const Context &context, bool grid) {
     material.particleRadius = 0.025F;
     material.supportRadius = 0.10F;
     material.restParticleVolume = 0.001F;
-    material.pressureStiffness = 1.0F;
-    material.maximumSpeed = 4.0F;
+    material.pressureStiffness = 4.0F;
+    material.maximumSpeed = 2.9F;
     material.densityIterations = 1U;
     return material;
 }
@@ -163,10 +165,10 @@ void require_thermal_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 4.0F;
+    material.maximumSpeed = grid ? 3.7F : 4.0F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_vertical_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridPressureTolerance = 1.0e-4F;
     return material;
 }
@@ -587,7 +589,7 @@ void set_fluid(Context &context, const FixtureObjects &fixture,
     result["smoke_lifetime_seconds"] = 10.0;
     result["smoke_particle_radius_m"] = 0.10;
     result["smoke_rest_number_density"] = 1.0;
-    result["smoke_maximum_speed_m_s"] = 4.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 3.7 : 4.0;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =
@@ -667,7 +669,7 @@ void set_fluid(Context &context, const FixtureObjects &fixture,
     result["smoke_lifetime_seconds"] = 10.0;
     result["smoke_particle_radius_m"] = 0.10;
     result["smoke_rest_number_density"] = 1.0;
-    result["smoke_maximum_speed_m_s"] = 4.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 3.7 : 4.0;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =

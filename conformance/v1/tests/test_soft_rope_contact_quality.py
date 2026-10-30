@@ -59,6 +59,7 @@ def phase(rope_positions: list[list[float]], rope_velocity: list[float],
 
 def valid_result(profile: dict) -> dict:
     fixture = copy.deepcopy(profile["fixture"])
+    timestep = fixture["timestep_seconds"]
     bindings = fixture["surface_bindings"]
     initial_rope = [[-0.2, 0.0, 0.0], [0.0, 0.0, 0.0],
                     [0.2, 0.0, 0.0]]
@@ -76,8 +77,9 @@ def valid_result(profile: dict) -> dict:
         initial_rope, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0],
         initial_soft, initial_soft_velocity, [0.0, 0.0, 0.0], bindings)
     fixture["contact"] = phase(
-        contact_rope, [0.0, -0.2, 0.0], [0.0, -20.0, 0.0],
-        contact_soft, contact_soft_velocity, [0.0, 60.0, 0.0], bindings)
+        contact_rope, [0.0, -0.2, 0.0], [0.0, -0.2 / timestep, 0.0],
+        contact_soft, contact_soft_velocity, [0.0, 0.6 / timestep, 0.0],
+        bindings)
     fixture["released"] = phase(
         released_rope, [0.0, -0.2, 0.0], [0.0, 0.0, 0.0],
         released_soft, released_soft_velocity, [0.0, 0.0, 0.0], bindings)

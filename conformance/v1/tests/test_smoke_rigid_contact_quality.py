@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import math
 import sys
 import unittest
 from pathlib import Path
@@ -47,19 +48,32 @@ def snapshot(position: list[float], velocity: list[float],
 
 def fixture_result(definition: dict) -> dict:
     result = copy.deepcopy(definition)
-    initial = snapshot([-0.043, 0.0, 0.0], [1.0, 0.25, 0.0], rigid())
+    authored_velocity = definition["smoke_initial_velocity_m_s"]
+    authored_speed = math.sqrt(sum(value * value
+                                   for value in authored_velocity))
+    scale = min(1.0, definition["smoke_maximum_speed_m_s"] / authored_speed)
+    velocity = [value * scale for value in authored_velocity]
+    timestep = definition["timestep_seconds"]
+    initial_position = copy.deepcopy(definition["smoke_emitter_center_m"])
+    if definition["representation"] == "SMOKE_PARTICLE":
+        initial_position = [initial_position[axis] + velocity[axis] * timestep
+                            for axis in range(3)]
+    control_position = [initial_position[axis] + velocity[axis] * timestep
+                        for axis in range(3)]
+    coupled_position = copy.deepcopy(control_position)
+    coupled_position[0] = -0.035
+    initial = snapshot(initial_position, velocity, rigid())
     result["runs"] = [
         {
             "id": "control",
             "initial": copy.deepcopy(initial),
-            "final": snapshot(
-                [-0.033, 0.0025, 0.0], [1.0, 0.25, 0.0], rigid()),
+            "final": snapshot(control_position, velocity, rigid()),
         },
         {
             "id": "coupled",
             "initial": copy.deepcopy(initial),
             "final": snapshot(
-                [-0.035, 0.0025, 0.0], [0.0, 0.25, 0.0],
+                coupled_position, [0.0, velocity[1], velocity[2]],
                 rigid([0.1, 0.0, 0.0])),
         },
     ]

@@ -28,13 +28,15 @@ void detect_soft_body_cloth_contacts(device::DispatchSize grid, device::Dispatch
     float friction, void *contacts, std::uint32_t *contact_counts) noexcept;
 
 void apply_soft_body_cloth_contacts_to_soft_body(device::DispatchSize grid, device::DispatchSize block,
-    device::ExecutionQueue stream, void *positions, void *velocities, void *forces,
+    device::ExecutionQueue stream, void *positions, void *previous_positions,
+    void *velocities, void *forces,
     const float *inverse_masses, std::uint32_t count, const void *contacts,
     const std::uint32_t *contact_counts, float timestep,
     float maximum_speed) noexcept;
 
 void apply_soft_body_cloth_contacts_to_cloth(device::DispatchSize grid, device::DispatchSize block,
-    device::ExecutionQueue stream, void *positions, void *velocities, void *forces,
+    device::ExecutionQueue stream, void *positions, void *previous_positions,
+    void *velocities, void *forces,
     const float *inverse_masses, std::uint32_t count, const void *contacts,
     std::uint32_t contact_count, const std::uint32_t *contact_counts,
     float timestep) noexcept;

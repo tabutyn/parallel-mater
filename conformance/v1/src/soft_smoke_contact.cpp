@@ -25,7 +25,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t warmup_steps = 2U;
 constexpr std::uint32_t quality_steps = 1U;
 constexpr std::uint32_t smoke_capacity = 1U;
@@ -36,7 +36,7 @@ constexpr float grid_edge_length = 0.16F;
 constexpr float grid_spacing = grid_edge_length /
     static_cast<float>(grid_resolution);
 constexpr float contact_distance = 0.015F;
-constexpr float quality_emission_rate = 60.0F;
+constexpr float quality_emission_rate = 30.0F;
 constexpr float soft_node_mass = 0.25F;
 constexpr float soft_node_radius = 0.002F;
 constexpr std::array<PmFloat3, 5U> soft_nodes{{
@@ -178,10 +178,10 @@ void require_contact_capability(const Context &context, bool grid) {
     material.velocityDamping = 0.0F;
     material.springDamping = 0.0F;
     material.contactFriction = 0.0F;
-    material.shapeMatchingStiffness = 1.0F;
+    material.shapeMatchingStiffness = 0.99F;
     material.maximumProjectionFraction = 0.2F;
     material.constraintVelocityResponse = 0.0F;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = 3.4F;
     material.solverIterations = 2U;
     return material;
 }
@@ -195,22 +195,23 @@ void require_contact_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 2.0F;
+    material.maximumSpeed = grid ? 0.59F : 0.44F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridPressureTolerance = 1.0e-5F;
     return material;
 }
 
-[[nodiscard]] PmSmokeInfo smoke_info(float emission_rate,
+[[nodiscard]] PmSmokeInfo smoke_info(bool grid, float emission_rate,
                                      PmFloat3 initial_velocity,
                                      PmFloat3 wind) {
     PmSmokeInfo info{};
     info.active = PM_TRUE;
     info.materialIndex = 0U;
     info.particleCapacity = smoke_capacity;
-    info.emitterCenter = {-0.005F, 0.08F, 0.08F};
+    info.emitterCenter = {
+        grid ? -0.005F : -0.012333333F, 0.08F, 0.08F};
     info.emitterHalfExtents = {0.001F, 0.001F};
     info.initialVelocity = initial_velocity;
     info.wind = wind;
@@ -344,13 +345,13 @@ void record_copies(Context &context, const FixtureObjects &fixture) {
 }
 
 void initialize_endpoints(Context &context, const FixtureObjects &fixture,
-                          const float *inverse_masses,
+                          bool grid, const float *inverse_masses,
                           float emission_rate, PmFloat3 initial_velocity,
                           PmFloat3 wind) {
     const auto bindings = surface_bindings();
     const PmSoftBodyInfo soft = soft_info(inverse_masses, bindings);
     const PmSmokeInfo smoke = smoke_info(
-        emission_rate, initial_velocity, wind);
+        grid, emission_rate, initial_velocity, wind);
     context.begin();
     PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, fixture.pipeline) ==
              PM_SUCCESS);
@@ -367,7 +368,7 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
         throw std::runtime_error("unsupported: soft and smoke features");
     require_contact_capability(context, grid);
     FixtureObjects fixture = create_fixture(context, grid, 1U);
-    initialize_endpoints(context, fixture, dynamic_inverse_masses.data(),
+    initialize_endpoints(context, fixture, grid, dynamic_inverse_masses.data(),
                          quality_emission_rate,
                          {1.0F, 0.25F, 0.0F}, {});
     const PmStepInfo step{timestep, 1U, {0.0F, 0.0F, 0.0F}, 0U};
@@ -505,8 +506,8 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
     result["soft_body_dynamic"] = true;
     result["smoke_particle_capacity"] =
         static_cast<std::uint64_t>(smoke_capacity);
-    result["smoke_emitter_center_m"] =
-        vector_json(PmFloat3{-0.005F, 0.08F, 0.08F});
+    result["smoke_emitter_center_m"] = vector_json(PmFloat3{
+        grid ? -0.005F : -0.012333333F, 0.08F, 0.08F});
     Json half_extents = Json::array();
     half_extents.push_back(0.001);
     half_extents.push_back(0.001);
@@ -515,13 +516,19 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
         static_cast<double>(quality_emission_rate);
     result["smoke_initial_velocity_m_s"] =
         vector_json(PmFloat3{1.0F, 0.25F, 0.0F});
+    result["expected_initial_smoke_center_m"] = vector_json(grid
+        ? PmFloat3{-0.005F, 0.080202453F, 0.080656283F}
+        : PmFloat3{-0.005218955F, 0.081981048F, 0.080656283F});
+    result["expected_initial_smoke_velocity_m_s"] = vector_json(grid
+        ? PmFloat3{0.572384059F, 0.143096015F, 0.0F}
+        : PmFloat3{0.426862657F, 0.106715702F, 0.0F});
     result["smoke_wind_m_s"] = vector_json(PmFloat3{});
     result["smoke_lifetime_seconds"] = 1.0;
     result["smoke_particle_radius_m"] = 0.005;
     result["smoke_rest_number_density"] = 1.0;
     result["smoke_pressure_stiffness_m2_s2"] = 0.0;
     result["smoke_viscosity_m2_s"] = 0.0;
-    result["smoke_maximum_speed_m_s"] = 2.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 0.59 : 0.44;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =
@@ -648,7 +655,8 @@ struct LifecycleRun {
         throw std::runtime_error("unsupported: soft and smoke features");
     require_contact_capability(context, true);
     FixtureObjects fixture = create_fixture(context, true, 1U);
-    initialize_endpoints(context, fixture, dynamic_inverse_masses.data(),
+    initialize_endpoints(context, fixture, true,
+                         dynamic_inverse_masses.data(),
                          quality_emission_rate, {1.0F, 0.0F, 0.0F},
                          {1.0F, 0.0F, 0.0F});
     // Replacement changes CONTACT itself. All clearances remain beyond the

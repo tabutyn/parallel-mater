@@ -69,7 +69,8 @@ def valid_result(profile: dict) -> dict:
         else:
             final_positions = copy.deepcopy(initial_positions)
             for position in final_positions:
-                position[0] += 0.01
+                position[0] += definition["prepared_soft_velocity_m_s"][0] * \
+                    definition["timestep_seconds"]
             final_velocities = copy.deepcopy(initial_velocities)
             rigid_position = [0.0, 0.0, 0.0]
             rigid_velocity = [0.0, 0.0, 0.0]

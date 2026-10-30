@@ -560,6 +560,10 @@ struct FluidOptions {
     // Zero disables the cap. Useful when dense initial packs create a short
     // repulsion spike that would otherwise overwhelm contact resolution.
     float maximum_pair_acceleration{0.0F};
+    // The fixed-tick commit uses one population-wide stabilizer so coupled
+    // fluid domains preserve reciprocal momentum.  Single-particle analytic
+    // fixtures use 1.0; populated production scenes use the shared value.
+    float realtime_commit_velocity_scale{1.0F};
 };
 
 // A finite rectangle. orientation rotates local +Y into the plane normal;

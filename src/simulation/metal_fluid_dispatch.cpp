@@ -23,6 +23,8 @@ FluidOptions options(const FluidDispatchConstants &value) {
     result.maximum_speed = value.maximum_speed;
     result.maximum_pair_acceleration = value.maximum_pair_acceleration;
     result.rest_particle_volume = value.rest_particle_volume;
+    result.realtime_commit_velocity_scale =
+        value.realtime_commit_velocity_scale;
     return result;
 }
 }
@@ -451,6 +453,18 @@ void filter_fluid_spatial_candidates(
         target_owner_generation, target_stable_ids, target_live_count,
         target_capacity, candidate_counts, candidate_sources,
         candidates_per_query, filtered_counts, filtered_sources, status);
+}
+
+PmResult gather_fluid_spatial_payloads(
+    device::DispatchSize grid, device::DispatchSize,
+    device::ExecutionQueue stream,
+    const std::uint32_t *compacted_sources,
+    const std::uint32_t *active_slot_count, const void *metadata,
+    std::uint32_t leaf_capacity, std::uint32_t candidate_slot_capacity,
+    std::uint32_t *active_payloads, std::uint32_t *status) noexcept {
+    return metal::launch(stream, "fluid_gather_spatial_payloads", grid,
+        compacted_sources, active_slot_count, metadata, leaf_capacity,
+        candidate_slot_capacity, active_payloads, status);
 }
 
 void count_fluid_spatial_neighbors(

@@ -25,8 +25,8 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float quality_timestep = 0.005F;
-constexpr std::uint32_t quality_steps = 100U;
+constexpr float quality_timestep = 1.0F / 60.0F;
+constexpr std::uint32_t quality_steps = 30U;
 constexpr float particle_mass = 1.0F;
 constexpr float cloth_vertex_mass = 1.0F;
 constexpr float contact_distance = 0.05F;
@@ -34,9 +34,9 @@ constexpr float contact_stiffness = 200.0F;
 constexpr float contact_damping = 25.0F;
 constexpr float maximum_force = 100.0F;
 constexpr std::array<PmFloat3, 3U> triangle{{
-    {-1.0F, 0.0F, -1.0F},
-    {0.0F, 0.0F, 1.0F},
-    {1.0F, 0.0F, -1.0F}}};
+    {-0.5F, 0.0F, -0.5F},
+    {0.0F, 0.0F, 0.5F},
+    {0.5F, 0.0F, -0.5F}}};
 constexpr std::array<std::uint32_t, 3U> triangle_indices{{0U, 1U, 2U}};
 
 struct Snapshot {
@@ -217,7 +217,8 @@ struct FixtureObjects {
     material.particleRadius = 0.025F;
     material.supportRadius = 0.20F;
     material.restParticleVolume = particle_mass / material.restDensity;
-    material.pressureStiffness = 1.0F;
+    // This one-particle contact fixture has no fluid-fluid pressure solve.
+    material.pressureStiffness = 0.0F;
     material.kinematicViscosity = 0.0F;
     material.normalDamping = 0.0F;
     material.velocityDamping = 0.0F;

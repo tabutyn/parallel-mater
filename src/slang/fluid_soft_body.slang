@@ -425,12 +425,15 @@ void fluid_soft_detect(
 [numthreads(128, 1, 1)]
 void fluid_soft_solve(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
-    uniform PMBuffer<Vec3> accelerations, uniform PMBuffer<float> foam, uniform PMBuffer<uint> count,
+    uniform PMBuffer<Vec3> velocity_deltas,
+    uniform PMBuffer<Vec3> particle_accelerations,
+    uniform PMBuffer<float> foam, uniform PMBuffer<uint> count,
     uniform PMBuffer<FluidSoftContact> contacts, uniform PMBuffer<uint> counts,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> soft_velocities,
     uniform float maximum_soft_speed, uniform float inverse_particle_mass,
     uniform float friction, uniform float maximum_projection,
-    uniform float dt, uniform PMBuffer<Vec3> node_positions,
+    uniform float frame_inverse_dt, uniform float commit_velocity_scale,
+    uniform PMBuffer<Vec3> node_positions,
     uniform PMBuffer<Vec3> node_impulses PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -469,12 +472,21 @@ void fluid_soft_solve(
     }
     impulse = multiply(impulse, scale);
     float lambda = min(contact.penetration, maximum_projection) / denominator;
-    positions[particle] = add(positions[particle],
-        multiply(contact.normal, inverse_particle_mass * lambda));
+    Vec3 positionChange = multiply(
+        contact.normal, inverse_particle_mass * lambda);
+    positions[particle] = add(positions[particle], positionChange);
     Vec3 velocityDelta = multiply(impulse, inverse_particle_mass);
     velocities[particle] = add(velocities[particle], velocityDelta);
-    accelerations[particle] = add(accelerations[particle],
-        multiply(velocityDelta, 1.0f / dt));
+    particle_accelerations[particle] = add(
+        particle_accelerations[particle],
+        multiply(velocityDelta, frame_inverse_dt));
+    // Commit damps only many-particle fluids.  Convert the requested public
+    // velocity delta through that final scale, while cancelling the
+    // position correction before the scale is applied.
+    float finalVelocityScale = commit_velocity_scale;
+    velocity_deltas[particle] = add(velocity_deltas[particle], subtract(
+        multiply(velocityDelta, 1.0f / finalVelocityScale),
+        multiply(positionChange, frame_inverse_dt)));
     foam[particle] = max(foam[particle],
         min(1.0f, normalImpulse * inverse_particle_mass * 0.1f));
     for (uint index = 0u; index < contact.count; ++index)
@@ -490,7 +502,8 @@ void fluid_soft_solve(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void fluid_soft_apply(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> position_deltas,
     uniform PMBuffer<Vec3> impulses, uniform PMBuffer<Vec3> forces, uniform uint count,
     uniform float inverse_frame_dt PM_D3D12_DISPATCH_PARAMETER)
@@ -498,9 +511,14 @@ void fluid_soft_apply(
     PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
     if (node >= count) return;
-    positions[node] = add(positions[node], position_deltas[node]);
-    velocities[node] = add(velocities[node],
-        multiply(impulses[node], inverse_masses[node]));
+    Vec3 velocityChange = multiply(impulses[node], inverse_masses[node]);
+    // Commit blends staged and position-derived velocities. Move both by the
+    // same impulse delta so the blend preserves reciprocal momentum.
+    positions[node] = add(positions[node], add(position_deltas[node],
+        multiply(velocityChange, 1.0f / inverse_frame_dt)));
+    previous_positions[node] = add(
+        previous_positions[node], position_deltas[node]);
+    velocities[node] = add(velocities[node], velocityChange);
     forces[node] = add(forces[node],
         multiply(impulses[node], inverse_frame_dt));
 }

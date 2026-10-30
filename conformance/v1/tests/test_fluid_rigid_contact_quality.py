@@ -39,7 +39,7 @@ def rigid(linear_velocity: list[float]) -> dict:
 
 def valid_result(profile: dict) -> dict:
     fixture = copy.deepcopy(profile["fixtures"][0])
-    impulse = 11.0 / 15.0
+    impulse = 0.76
     fixture["initial"] = {
         "fluid": fluid([-0.155, 0.0, 0.0], [1.0, 0.0, 0.0]),
         "rigid": rigid([0.0, 0.0, 0.0]),
@@ -87,7 +87,7 @@ class FluidRigidContactQualityTests(unittest.TestCase):
         self.assertEqual(report["sample_count"], 1)
         observation = report["observations"]["centered-exterior-cube-impact"]
         self.assertAlmostEqual(observation["expected_normal_impulse_n_s"],
-                               11.0 / 15.0)
+                               0.76)
         self.assertAlmostEqual(observation[
             "reciprocal_impulse_residual_n_s"], 0.0)
 

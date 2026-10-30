@@ -46,26 +46,30 @@ def valid_result(profile: dict, impulse: float | None = None) -> dict:
     initial_nodes = copy.deepcopy(fixture["prepared_soft_nodes_m"])
     final_nodes = copy.deepcopy(initial_nodes)
     final_nodes[0][1] = 0.1
-    initial_velocity = fixture["prepared_soft_velocity_m_s"]
+    initial_velocities = fixture["prepared_soft_velocities_m_s"]
+    inverse_timestep = 1.0 / fixture["timestep_seconds"]
     fixture["initial_cloth_state"] = [
         endpoint_state(index, position, [0.0, 0.0, 0.0],
                        [0.0, 0.0, 0.0], "soft_body_contact_force_n")
         for index, position in enumerate(fixture["cloth_vertices_m"])]
     fixture["final_cloth_state"] = [
         endpoint_state(index, position, [0.0, -weight * impulse, 0.0],
-                       [0.0, -100.0 * weight * impulse, 0.0],
+                       [0.0, -inverse_timestep * weight * impulse, 0.0],
                        "soft_body_contact_force_n")
         for index, (position, weight) in enumerate(zip(
             fixture["cloth_vertices_m"], weights))]
     fixture["initial_soft_node_state"] = [
-        endpoint_state(index, position, initial_velocity,
+        endpoint_state(index, position, initial_velocities[index],
                        [0.0, 0.0, 0.0], "cloth_contact_force_n")
         for index, position in enumerate(initial_nodes)]
     fixture["final_soft_node_state"] = [
         endpoint_state(index, position,
-                       [1.0, -1.0 + (0.5 * impulse if index == 0 else 0.0),
-                        0.0],
-                       [0.0, 100.0 * impulse if index == 0 else 0.0, 0.0],
+                       [initial_velocities[index][0],
+                        initial_velocities[index][1] +
+                        (0.5 * impulse if index == 0 else 0.0),
+                        initial_velocities[index][2]],
+                       [0.0, inverse_timestep * impulse
+                        if index == 0 else 0.0, 0.0],
                        "cloth_contact_force_n")
         for index, position in enumerate(final_nodes)]
     fixture["initial_surface_state_m"] = reconstruct_surface(

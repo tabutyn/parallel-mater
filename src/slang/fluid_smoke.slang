@@ -1,5 +1,6 @@
 #include "dispatch_entry.slang"
 #include "dispatch_shape.slangh"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Shared fluid-smoke coupling kernels.
 
@@ -9,6 +10,8 @@ import device_intrinsics;
 import geometry_smoke;
 import smoke_grid;
 import graphics_resources;
+
+#include "smoke_coupling_candidates.slangh"
 
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
@@ -32,6 +35,56 @@ void fluid_smoke_drag(
     velocities[index] = clamp_length(add(velocity, multiply(
         subtract(local.velocity, velocity), response)),
         max(smoke.maximum_speed, sqrt(length_squared(velocity))));
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(256), 1, 1)]
+void fluid_smoke_realtime_drag(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> current_velocities,
+    uniform PMBuffer<Vec3> velocity_deltas, uniform PMBuffer<uint> water_count,
+    uniform FluidSmokeCouplingOptions coupling, uniform SmokeOptions smoke,
+    uniform PMBuffer<Vec3> smoke_positions,
+    uniform PMBuffer<Vec3> smoke_velocities, uniform uint smoke_owner_slot,
+    uniform uint smoke_owner_generation, uniform uint smoke_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
+    uniform SmokeGridField grid, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint index = pmThreadIndex();
+    if (index >= *water_count) return;
+    Vec3 air = {};
+    float occupancy = 0.0f;
+    if (grid.n != 0u && smoke_grid_contains(positions[index], grid))
+    {
+        float density = 0.0f;
+        smoke_grid_sample(positions[index], grid, air, density);
+        occupancy = clamp_scalar(
+            density * smoke.rest_number_density, 0.0f, 1.0f);
+    }
+    else
+    {
+        SmokeFlowSample local = smoke_coupling_sample_candidates(
+            positions[index], smoke_positions, smoke_velocities, smoke,
+            smoke_owner_slot, smoke_owner_generation,
+            smoke_topology_revision, spatial_metadata, spatial_admission,
+            spatial_leaf_capacity, candidate_counts, candidate_sources,
+            candidates_per_query, spatial_status, index);
+        if (local.number_density <= 1.0e-6f) return;
+        air = local.velocity;
+        occupancy = min(
+            1.0f, local.number_density / smoke.rest_number_density);
+    }
+    float response = 1.0f - exp(-coupling.wind_drag * occupancy * dt);
+    Vec3 current = add(current_velocities[index], velocity_deltas[index]);
+    Vec3 updated = clamp_length(add(current, multiply(
+        subtract(air, current), response)),
+        max(smoke.maximum_speed, sqrt(length_squared(current))));
+    velocity_deltas[index] = subtract(updated, current_velocities[index]);
 }
 
 [shader("compute")]
@@ -60,7 +113,9 @@ void fluid_smoke_grid_drag(
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
 void fluid_smoke_exchange(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> base_velocities,
+    uniform PMBuffer<Vec3> velocity_deltas,
     uniform PMBuffer<float> temperatures, uniform PMBuffer<uint> water_count,
     uniform float water_radius, uniform FluidSmokeCouplingOptions coupling,
     uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
@@ -79,7 +134,7 @@ void fluid_smoke_exchange(
     bool stageProposal = first_smoke_slot == 0xffffffffu;
     if (!stageProposal) keep[index] = 1u;
     Vec3 position = positions[index];
-    Vec3 velocity = velocities[index];
+    Vec3 velocity = add(base_velocities[index], velocity_deltas[index]);
     Vec3 local = inverse_rotate(coupling.heater.orientation,
         subtract(position, coupling.heater.center));
     bool heated = abs(local.x) <= coupling.heater.half_extents.x &&
@@ -94,7 +149,11 @@ void fluid_smoke_exchange(
     if (temperature < coupling.boiling_temperature) return;
     if (stageProposal && keep[index] == 0u) return;
     uint ordinal = pmAtomicAdd(converted, 1u);
-    if (ordinal >= smoke.capacity) return;
+    if (ordinal >= smoke.capacity)
+    {
+        pmAtomicAdd(converted, uint(-1));
+        return;
+    }
     uint slot = stageProposal ? ordinal :
         (first_smoke_slot + ordinal) % smoke.capacity;
     smoke_positions[slot] = position;

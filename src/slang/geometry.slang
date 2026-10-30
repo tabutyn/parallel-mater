@@ -42,12 +42,12 @@ struct RigidAvbdRow
     float reference_force;
 };
 
-struct BodyAccumulator
+public struct BodyAccumulator
 {
-    Vec3 force;
-    Vec3 torque;
-    Vec3 impulse;
-    Vec3 angular_impulse;
+    public Vec3 force;
+    public Vec3 torque;
+    public Vec3 impulse;
+    public Vec3 angular_impulse;
 };
 
 struct KinematicTarget

@@ -75,13 +75,15 @@ class CommandScene {
                                      std::string &error,
                                      std::optional<PmNativeBackend> backend =
                                          std::nullopt,
-                                     PmResult *creation_category = nullptr);
+                                     PmResult *creation_category = nullptr,
+                                     bool enable_validation = false);
 
     [[nodiscard]] bool step(float timestep, std::uint32_t substeps,
                             Vec3 gravity, CommandSceneFrame &frame,
                             std::string &error,
                             bool collect_contacts = false,
-                            bool read_deformables = true, bool read_host = true);
+                            bool read_deformables = true, bool read_host = true,
+                            PmResult expected_result = PM_SUCCESS);
     // Explicit diagnostics/capture readback, including while the viewer is paused.
     [[nodiscard]] bool read_output(CommandSceneFrame &frame, std::string &error,
                                    bool read_deformables = true);
@@ -93,6 +95,24 @@ class CommandScene {
                                             std::string &error);
     [[nodiscard]] bool apply_rigid_inputs(const std::vector<PmRigidInput> &inputs,
                                           std::string &error);
+    [[nodiscard]] bool set_fluid_particles(
+        const std::vector<FluidParticle> &particles, std::string &error);
+    [[nodiscard]] bool set_particle_emitters_active(bool active,
+                                                    std::string &error);
+    [[nodiscard]] bool set_rigid_active(std::uint32_t body, bool active,
+                                        std::string &error);
+    [[nodiscard]] bool set_cloth_active(std::uint32_t cloth, bool active,
+                                        std::string &error);
+    [[nodiscard]] bool set_soft_body_active(std::uint32_t soft_body,
+                                            bool active, std::string &error);
+    [[nodiscard]] bool set_rope_active(std::uint32_t rope, bool active,
+                                       std::string &error);
+    [[nodiscard]] bool set_smoke_active(bool active, std::string &error);
+    [[nodiscard]] bool set_smoke_emitter_active(bool active,
+                                                std::string &error);
+    [[nodiscard]] bool write_rope(std::uint32_t rope,
+                                  const RopeDefinition &definition,
+                                  std::string &error);
     [[nodiscard]] bool write_constraint(
         std::uint32_t constraint, const RigidConstraintDefinition &definition,
         std::string &error);

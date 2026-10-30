@@ -7,6 +7,7 @@ endif()
 
 add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/command_runner.cpp
+    conformance/v1/src/realtime_workload.cpp
     conformance/v1/src/rigid_quality.cpp
     conformance/v1/src/rope_quality.cpp
     conformance/v1/src/fluid_cloth_containment_quality.cpp
@@ -115,7 +116,9 @@ install(DIRECTORY conformance/v1/cases conformance/v1/lifecycle
 install(FILES conformance/v1/manifest.json conformance/v1/compare.py
     conformance/v1/lifecycle.py conformance/v1/quality.py
     conformance/v1/qualification.py
+    conformance/v1/realtime_device_capture.py
     conformance/v1/realtime_device_suite.py
+    conformance/v1/realtime_oracle.py
     conformance/v1/realtime_scenario_fixtures.py
     conformance/v1/README.md conformance/v1/SCHEMA.md
     DESTINATION "${corpus_install_root}/conformance/v1"

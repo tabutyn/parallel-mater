@@ -143,14 +143,14 @@ void require_attachment_capability(const Context &context) {
     PmSoftBodyMaterialState material{};
     material.nodeMass = soft_node_mass;
     material.nodeRadius = 0.025F;
-    material.stretchCompliance = 1.0e-7F;
+    material.stretchCompliance = 1.2e-5F;
     material.velocityDamping = 0.0F;
     material.springDamping = 0.0F;
     material.contactFriction = 0.0F;
     material.shapeMatchingStiffness = 0.0F;
     material.maximumProjectionFraction = 0.2F;
     material.constraintVelocityResponse = 0.0F;
-    material.maximumSpeed = 20.0F;
+    material.maximumSpeed = 1.5F;
     material.solverIterations = 8U;
     return material;
 }
@@ -160,11 +160,11 @@ void require_attachment_capability(const Context &context) {
     material.nodeSpacing = rope_spacing;
     material.radius = 0.025F;
     material.mass = rope_mass;
-    material.stretchCompliance = 1.0e-7F;
+    material.stretchCompliance = 3.0e-5F;
     material.velocityDamping = 0.0F;
     material.maximumSubstepTimestep = timestep / substeps;
     material.friction = 0.0F;
-    material.maximumSpeed = 20.0F;
+    material.maximumSpeed = 1.49F;
     material.solverIterations = 8U;
     material.selfCollision = PM_FALSE;
     return material;
@@ -185,7 +185,7 @@ void require_attachment_capability(const Context &context) {
     edge.parameters.mechanical.friction = 0.0F;
     edge.parameters.attachment.supportRadiusScale = 0.0F;
     edge.parameters.attachment.contactSupportRadiusScale = 0.0F;
-    edge.parameters.attachment.maximumAcceleration = 500.0F;
+    edge.parameters.attachment.maximumAcceleration = 30.0F;
     edge.parameters.attachment.attachFirst = PM_TRUE;
     return edge;
 }
@@ -464,7 +464,7 @@ std::string conformance_soft_rope_attachment_quality(
             fixture["surface_triangle_indices"].push_back(
                 static_cast<std::uint64_t>(index));
         fixture["soft_node_radius_m"] = 0.025;
-        fixture["soft_stretch_compliance_m_per_n"] = 1.0e-7;
+        fixture["soft_stretch_compliance_m_per_n"] = 1.2e-5;
         fixture["soft_velocity_damping_per_s"] = 0.0;
         fixture["soft_solver_iterations"] = static_cast<std::uint64_t>(8U);
         fixture["rope_centerline_m"] = Json::array();
@@ -473,7 +473,7 @@ std::string conformance_soft_rope_attachment_quality(
         fixture["rope_node_spacing_m"] = static_cast<double>(rope_spacing);
         fixture["rope_radius_m"] = 0.025;
         fixture["rope_total_mass_kg"] = static_cast<double>(rope_mass);
-        fixture["rope_stretch_compliance_m_per_n"] = 1.0e-7;
+        fixture["rope_stretch_compliance_m_per_n"] = 3.0e-5;
         fixture["rope_velocity_damping_per_s"] = 0.0;
         fixture["rope_solver_iterations"] = static_cast<std::uint64_t>(8U);
         fixture["attached_rope_end"] = "first";
@@ -483,7 +483,7 @@ std::string conformance_soft_rope_attachment_quality(
                 static_cast<std::uint64_t>(index));
         fixture["anchor_support_radius_scale"] = 0.0;
         fixture["anchor_contact_support_radius_scale"] = 0.0;
-        fixture["maximum_soft_body_acceleration_m_s2"] = 500.0;
+        fixture["maximum_soft_body_acceleration_m_s2"] = 30.0;
         fixture["oracle"] =
             "public-surface-drift-momentum-reaction-and-inactive-contact";
         fixture["initial"] = snapshot_json(run.initial);

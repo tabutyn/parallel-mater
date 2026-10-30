@@ -88,6 +88,7 @@ struct GalleryRuntimeCreateInfo {
     std::uint32_t width{1U};
     std::uint32_t height{1U};
     bool create_host_renderer{true};
+    bool enable_validation{};
     GalleryReplacementPolicy replacement{
         GalleryReplacementPolicy::preserve_until_ready};
     std::function<bool(SceneDefinition &, std::string &)> configure_scene;

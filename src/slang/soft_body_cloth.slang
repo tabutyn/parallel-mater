@@ -223,7 +223,9 @@ float soft_cloth_relaxation(SoftClothContact contact, PMBuffer<uint> counts)
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
 void soft_cloth_apply_soft(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform PMBuffer<SoftClothContact> contacts,
     uniform PMBuffer<uint> counts, uniform float dt, uniform float maximum_speed PM_D3D12_DISPATCH_PARAMETER)
@@ -233,18 +235,24 @@ void soft_cloth_apply_soft(
     if (node >= count || !contacts[node].active) return;
     SoftClothContact contact = contacts[node];
     float relaxation = soft_cloth_relaxation(contact, counts);
-    positions[node] = add(positions[node], multiply(
-        contact.position_impulse, relaxation * inverse_masses[node]));
+    Vec3 positionDelta = multiply(
+        contact.position_impulse, relaxation * inverse_masses[node]);
     Vec3 impulse = multiply(contact.velocity_impulse, relaxation);
-    velocities[node] = clamp_length(add(velocities[node],
-        multiply(impulse, inverse_masses[node])), maximum_speed);
+    Vec3 velocityDelta = multiply(impulse, inverse_masses[node]);
+    positions[node] = add(add(positions[node], positionDelta),
+        multiply(velocityDelta, dt));
+    previous_positions[node] = add(previous_positions[node], positionDelta);
+    velocities[node] = clamp_length(add(
+        velocities[node], velocityDelta), maximum_speed);
     forces[node] = add(forces[node], multiply(impulse, 1.0f / dt));
 }
 
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
 void soft_cloth_apply_cloth(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
     uniform uint count, uniform PMBuffer<SoftClothContact> contacts,
     uniform uint contact_count, uniform PMBuffer<uint> counts, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
@@ -269,10 +277,16 @@ void soft_cloth_apply_cloth(
                 multiply(contact.velocity_impulse, scale));
         }
     }
-    positions[vertex] = add(positions[vertex],
-        multiply(positionImpulse, inverse_masses[vertex]));
-    velocities[vertex] = clamp_length(add(velocities[vertex],
-        multiply(velocityImpulse, inverse_masses[vertex])), 20.0f);
+    Vec3 positionDelta = multiply(
+        positionImpulse, inverse_masses[vertex]);
+    Vec3 velocityDelta = multiply(
+        velocityImpulse, inverse_masses[vertex]);
+    positions[vertex] = add(add(positions[vertex], positionDelta),
+        multiply(velocityDelta, dt));
+    previous_positions[vertex] = add(
+        previous_positions[vertex], positionDelta);
+    velocities[vertex] = clamp_length(add(
+        velocities[vertex], velocityDelta), 20.0f);
     forces[vertex] = add(forces[vertex],
         multiply(velocityImpulse, 1.0f / dt));
 }

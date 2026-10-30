@@ -239,6 +239,7 @@ struct Fixture {
                 reinterpret_cast<Vec3_0 *>(second_impulses), status);
             deformable_smoke_coupling_apply_first<<<1U, threads>>>(
                 reinterpret_cast<Vec3_0 *>(first_positions),
+                reinterpret_cast<Vec3_0 *>(first_previous),
                 reinterpret_cast<Vec3_0 *>(first_velocities),
                 first_inverse_masses, first_correction_used,
                 first_generations, count, constraint_first,
@@ -248,6 +249,7 @@ struct Fixture {
                 dt, profile, sweep, status);
             deformable_smoke_coupling_apply_second<<<1U, threads>>>(
                 reinterpret_cast<Vec3_0 *>(second_positions),
+                reinterpret_cast<Vec3_0 *>(second_previous),
                 reinterpret_cast<Vec3_0 *>(second_velocities),
                 second_inverse_masses, second_correction_used,
                 second_generations, count, constraint_second,

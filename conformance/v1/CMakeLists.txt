@@ -11,6 +11,7 @@ set(PARALLEL_MATER_CONFORMANCE_DATA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.."
 set(PARALLEL_MATER_CONFORMANCE_REVISION "unknown" CACHE STRING "Conformance source revision")
 add_library(parallel-mater-conformance-runner STATIC
     src/command_runner.cpp
+    src/realtime_workload.cpp
     src/case_registry.cpp
     src/rigid_quality.cpp
     src/rope_quality.cpp
@@ -69,3 +70,8 @@ if(BUILD_TESTING)
         WILL_FAIL TRUE)
 endif()
 install(TARGETS parallel-mater-conformance RUNTIME DESTINATION bin)
+install(FILES realtime_device_capture.py realtime_device_suite.py
+    realtime_oracle.py realtime_scenario_fixtures.py
+    DESTINATION share/parallel-mater/conformance/v1)
+install(DIRECTORY realtime qualification
+    DESTINATION share/parallel-mater/conformance/v1)

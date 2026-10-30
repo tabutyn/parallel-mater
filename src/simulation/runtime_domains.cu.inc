@@ -524,6 +524,33 @@ Status SimulationRuntime::remove_smoke(SmokeId id) noexcept {
     return success();
 }
 
+Status SimulationRuntime::disable_smoke_source(SmokeId id) noexcept {
+    if (!impl_)
+        return failure(StatusCode::invalid_argument,
+                       "simulation is not initialized");
+    Status status = impl_->require_idle();
+    if (!status) return status;
+    if (id.index >= impl_->smokes.size() || !impl_->smokes[id.index] ||
+        !impl_->smokes[id.index]->alive ||
+        impl_->smokes[id.index]->generation != id.generation)
+        return failure(StatusCode::invalid_handle, "smoke handle is stale");
+    SmokeStorage &smoke = *impl_->smokes[id.index];
+    smoke.options.particles_per_second = 0.0F;
+    if (smoke.options.grid_resolution != 0U) {
+        auto &grid = smoke.grid;
+        PmResult error = clear_bytes(grid.realtime_density_rate, 0,
+            grid.cell_count * sizeof(float), impl_->execution);
+        if (error == PM_SUCCESS)
+            error = clear_bytes(grid.realtime_temperature_rate, 0,
+                grid.cell_count * sizeof(float), impl_->execution);
+        if (error == PM_SUCCESS) error = wait_queue(impl_->execution);
+        if (error != PM_SUCCESS)
+            return backend_failure(error, "disable smoke source failed");
+    }
+    ++impl_->revision;
+    return success();
+}
+
 Status SimulationRuntime::smoke_view(SmokeId id, SmokeDeviceView &output) const noexcept {
     output = {};
     if (!impl_) return failure(StatusCode::invalid_argument, "simulation is not initialized");

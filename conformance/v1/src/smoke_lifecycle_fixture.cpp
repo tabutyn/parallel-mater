@@ -122,7 +122,7 @@ void append_vector(std::ostringstream &stream, PmFloat3 value) {
     material.maximumSpeed = 4.0F;
     material.gridResolution = resolution;
     material.gridVerticalResolution = 8U;
-    material.gridPressureIterations = 8U;
+    material.gridPressureIterations = 12U;
     material.gridKinematicViscosity = 0.005F;
     material.gridPressureTolerance = 0.001F;
     return material;

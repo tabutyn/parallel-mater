@@ -179,7 +179,7 @@ void predict_rope_realtime(
 
 void project_rope_realtime_constraints(
     device::ExecutionQueue stream, const void *positions,
-    void *position_deltas, float *correction_used,
+    void *position_deltas, void *constraint_forces, float *correction_used,
     const float *inverse_masses, const float *rest_lengths,
     const float *rest_bend_lengths, const std::uint8_t *anchor_active,
     std::uint32_t count, std::uint32_t capacity, float node_spacing,
@@ -188,7 +188,8 @@ void project_rope_realtime_constraints(
     rope_realtime_project_constraints<<<1U, 128U, 0U,
         static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
-        as<Vec3_0>(position_deltas), correction_used,
+        as<Vec3_0>(position_deltas), as<Vec3_0>(constraint_forces),
+        correction_used,
         const_cast<float *>(inverse_masses),
         const_cast<float *>(rest_lengths),
         const_cast<float *>(rest_bend_lengths),
@@ -238,6 +239,28 @@ void project_rope_realtime_contacts(
         const_cast<unsigned char *>(contact_active), count, capacity,
         node_spacing, radius, static_cast<std::uint32_t>(self_collision),
         friction, timestep, profile_version, status);
+}
+
+void finalize_rope_realtime_self_contacts(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions, void *velocities,
+    const void *previous_positions, const void *previous_velocities,
+    const float *inverse_masses, const std::uint8_t *anchor_active,
+    const std::uint8_t *contact_active,
+    std::uint32_t count, std::uint32_t capacity, float node_spacing,
+    float radius, bool self_collision, float maximum_speed, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    rope_realtime_finalize_self_contacts<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<Vec3_0>(positions), as<Vec3_0>(velocities),
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_velocities)),
+        const_cast<float *>(inverse_masses),
+        const_cast<unsigned char *>(anchor_active),
+        const_cast<unsigned char *>(contact_active), count, capacity,
+        node_spacing, radius, static_cast<std::uint32_t>(self_collision),
+        maximum_speed, timestep, profile_version, status);
 }
 
 void commit_rope_realtime(

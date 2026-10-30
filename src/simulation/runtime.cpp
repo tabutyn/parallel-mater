@@ -642,6 +642,7 @@ struct ClothStorage {
     std::uint32_t *realtime_triangle_generations{};
     float *realtime_correction_used{};
     Vec3 *realtime_contact_normals{};
+    Vec3 *realtime_fluid_forces{};
     float *realtime_contact_offsets{};
     std::uint8_t *realtime_contact_active{};
     std::uint32_t *realtime_time_advances{};
@@ -689,6 +690,7 @@ struct ClothStorage {
         release_managed(realtime_triangle_generations);
         release_managed(realtime_correction_used);
         release_managed(realtime_contact_normals);
+        release_managed(realtime_fluid_forces);
         release_managed(realtime_contact_offsets);
         release_managed(realtime_contact_active);
         release_managed(realtime_time_advances);
@@ -1286,7 +1288,8 @@ simulation::FluidDispatchConstants slang_fluid_constants(
             options.maximum_pair_acceleration,
             options.rest_density,
             options.rest_particle_volume,
-            options.maximum_neighbors};
+            options.maximum_neighbors,
+            1.0F};
 }
 
 } // namespace

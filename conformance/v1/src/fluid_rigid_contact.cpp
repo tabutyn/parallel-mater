@@ -25,7 +25,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr float particle_radius = 0.05F;
 constexpr float particle_mass = 1.0F;
 constexpr float rigid_mass = 2.0F;
@@ -139,7 +139,7 @@ void require_contact_capability(const Context &context) {
     material.particleRadius = particle_radius;
     material.supportRadius = 0.2F;
     material.restParticleVolume = particle_mass / material.restDensity;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = 5.0F;
     material.maximumPairAcceleration = 1'000.0F;
     material.densityIterations = 1U;
     return material;
@@ -159,7 +159,7 @@ void require_contact_capability(const Context &context) {
     body.restitution = 0.0F;
     body.linearDamping = 0.0F;
     body.angularDamping = 0.0F;
-    body.maximumLinearSpeed = 10.0F;
+    body.maximumLinearSpeed = 5.0F;
     body.maximumAngularSpeed = 10.0F;
     body.collisionMargin = rigid_collision_margin;
     return body;
@@ -616,7 +616,7 @@ std::string conformance_fluid_rigid_contact_quality(
         fixture["fluid_support_radius_m"] = 0.2;
         fixture["fluid_rest_particle_volume_m3"] = 0.001;
         fixture["fluid_particle_mass_kg"] = static_cast<double>(particle_mass);
-        fixture["fluid_maximum_speed_m_s"] = 10.0;
+        fixture["fluid_maximum_speed_m_s"] = 5.0;
         fixture["particle_initial_position_m"] =
             vector_json(PmFloat3{-0.155F, 0.0F, 0.0F});
         fixture["particle_initial_velocity_m_s"] =
@@ -635,7 +635,7 @@ std::string conformance_fluid_rigid_contact_quality(
         fixture["rigid_restitution"] = 0.0;
         fixture["rigid_linear_damping_per_s"] = 0.0;
         fixture["rigid_angular_damping_per_s"] = 0.0;
-        fixture["rigid_maximum_linear_speed_m_s"] = 10.0;
+        fixture["rigid_maximum_linear_speed_m_s"] = 5.0;
         fixture["rigid_maximum_angular_speed_rad_s"] = 10.0;
         fixture["rigid_collision_margin_m"] =
             static_cast<double>(rigid_collision_margin);
