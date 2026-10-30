@@ -25,9 +25,9 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float preparation_timestep = 0.01F;
-constexpr PmFloat3 preparation_gravity{100.0F, 100.0F, 0.0F};
-constexpr float quality_timestep = 0.01F;
+constexpr float preparation_timestep = 1.0F / 60.0F;
+constexpr PmFloat3 preparation_gravity{60.0F, 60.0F, 0.0F};
+constexpr float quality_timestep = 1.0F / 60.0F;
 constexpr float cloth_vertex_mass = 1.0F;
 constexpr float rigid_mass = 2.0F;
 constexpr float cube_half_extent = 0.1F;
@@ -37,11 +37,11 @@ constexpr float cube_inertia =
     (2.0F * cube_half_extent);
 
 constexpr std::array<PmFloat3, 3U> cloth_vertices{{
-    {-0.125F, -0.02F, 0.0F},
-    {-1.0F, 0.99F, -1.0F},
-    {-1.0F, -1.01F, -1.0F}}};
+    {-0.13166667F, -0.03333334F, 0.0F},
+    {-1.00666667F, 0.98333333F, -1.0F},
+    {-1.00666667F, -1.01666667F, -1.0F}}};
 constexpr std::array<PmFloat3, 3U> prepared_cloth_vertices{{
-    {-0.115F, -0.01F, 0.0F},
+    {-0.115F, -0.01666667F, 0.0F},
     {-0.99F, 1.0F, -1.0F},
     {-0.99F, -1.0F, -1.0F}}};
 constexpr std::array<std::uint32_t, 3U> cloth_indices{{0U, 1U, 2U}};
@@ -199,8 +199,8 @@ template <typename Value, std::size_t Size>
     PmClothMaterialState material{};
     material.vertexMass = cloth_vertex_mass;
     material.thickness = 0.01F;
-    material.stretchCompliance = 1.0F;
-    material.bendingCompliance = 1.0F;
+    material.stretchCompliance = 1.0e-3F;
+    material.bendingCompliance = 1.0e-3F;
     material.velocityDamping = 0.0F;
     material.contactFriction = 0.0F;
     material.solverIterations = 1U;
@@ -224,7 +224,7 @@ template <typename Value, std::size_t Size>
     body.restitution = 0.0F;
     body.linearDamping = 0.0F;
     body.angularDamping = 0.0F;
-    body.maximumLinearSpeed = 10.0F;
+    body.maximumLinearSpeed = 5.0F;
     body.maximumAngularSpeed = 10.0F;
     body.collisionMargin = rigid_collision_margin;
     return body;
@@ -420,7 +420,7 @@ void record_copies(Context &context, const FixtureObjects &fixture,
     result["rigid_restitution"] = 0.0;
     result["rigid_linear_damping_per_s"] = 0.0;
     result["rigid_angular_damping_per_s"] = 0.0;
-    result["rigid_maximum_linear_speed_m_s"] = 10.0;
+    result["rigid_maximum_linear_speed_m_s"] = 5.0;
     result["rigid_maximum_angular_speed_rad_s"] = 10.0;
     result["rigid_collision_margin_m"] = rigid_collision_margin;
     result["two_way"] = true;

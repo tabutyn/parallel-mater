@@ -59,31 +59,33 @@ void detect_fluid_soft_contacts(
 
 void solve_fluid_soft_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
-    void *velocities, void *accelerations, float *foam,
+    void *velocities, void *velocity_deltas, void *accelerations, float *foam,
     const std::uint32_t *particle_count, const void *contacts,
     const std::uint32_t *node_contact_counts, const float *inverse_masses,
     const void *soft_velocities, float maximum_soft_speed,
     float inverse_particle_mass, float friction, float maximum_projection,
-    float timestep, void *node_position_deltas, void *node_impulses) noexcept {
+    float frame_inverse_timestep, float commit_velocity_scale,
+    void *node_position_deltas, void *node_impulses) noexcept {
     (void)metal::launch(stream, "fluid_soft_solve", grid,
         positions, velocities,
-        accelerations, foam,
+        velocity_deltas, accelerations, foam,
         particle_count,
         contacts,
         node_contact_counts,
         inverse_masses,
         soft_velocities, maximum_soft_speed,
-        inverse_particle_mass, friction, maximum_projection, timestep,
+        inverse_particle_mass, friction, maximum_projection,
+        frame_inverse_timestep, commit_velocity_scale,
         node_position_deltas, node_impulses);
 }
 
 void apply_fluid_soft_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
-    void *velocities, const float *inverse_masses,
+    void *previous_positions, void *velocities, const float *inverse_masses,
     const void *position_deltas, const void *impulses, void *forces,
     std::uint32_t node_count, float inverse_frame_timestep) noexcept {
     (void)metal::launch(stream, "fluid_soft_apply", grid,
-        positions, velocities,
+        positions, previous_positions, velocities,
         inverse_masses,
         position_deltas,
         impulses, forces,

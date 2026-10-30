@@ -18,7 +18,8 @@ struct FluidClothDispatchOptions {
 
 void apply_fluid_cloth_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     const void *particle_positions, const void *particle_velocities,
-    const std::uint32_t *particle_count, void *particle_accelerations,
+    const std::uint32_t *particle_count, void *particle_velocity_deltas,
+    void *particle_accelerations,
     float *foam_source, float particle_mass, const void *cloth_positions,
     const void *cloth_velocities, const std::uint32_t *cloth_indices,
     std::uint32_t triangle_count,
@@ -31,11 +32,14 @@ void apply_fluid_cloth_forces(device::DispatchSize grid, device::DispatchSize bl
     const std::uint32_t *candidate_sources,
     std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     float cloth_orientation,
-    const FluidClothDispatchOptions &options, void *cloth_forces) noexcept;
+    const FluidClothDispatchOptions &options, float timestep,
+    float force_average_scale, void *cloth_step_forces,
+    void *cloth_average_forces) noexcept;
 
 void apply_fluid_forces_to_cloth(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *positions, void *velocities, const float *inverse_masses,
-    const void *forces, std::uint32_t count, float timestep) noexcept;
+    const void *forces, std::uint32_t count, float impulse_timestep,
+    float position_timestep) noexcept;
 
 void project_fluid_inside_cloth(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *particle_positions, void *particle_velocities,

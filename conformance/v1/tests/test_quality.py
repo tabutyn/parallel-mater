@@ -766,10 +766,10 @@ class RopeSelfContactQualityTests(unittest.TestCase):
             for index, position in enumerate(initial_positions)
         ]
         fixture["final_nodes"] = [
-            self.node(0, [-0.05, 0.0, 0.0], [-5.0, 0.0, 0.0]),
+            self.node(0, [-0.05, 0.0, 0.0], [-2.5, 0.0, 0.0]),
             self.node(1, [0.1, 0.0, 0.0], [0.0, 0.0, 0.0]),
             self.node(2, [0.06, 0.091651514, 0.0], [0.0, 0.0, 0.0]),
-            self.node(3, [0.07, 0.0, 0.0], [5.0, 0.0, 0.0]),
+            self.node(3, [0.07, 0.0, 0.0], [2.5, 0.0, 0.0]),
         ]
         return {
             "schema": quality.RESULT_SCHEMA,
@@ -887,10 +887,10 @@ class RopeSelfContactAuditQualityTests(unittest.TestCase):
                     [0.07, 0.0, 0.0],
                 ]
                 final_velocities = [
-                    [-5.0, 0.0, 0.0],
+                    [-2.5, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
-                    [5.0, 0.0, 0.0],
+                    [2.5, 0.0, 0.0],
                 ]
             elif definition["id"] == "fixed-endpoint-folded-six-node":
                 final_positions = [
@@ -903,10 +903,10 @@ class RopeSelfContactAuditQualityTests(unittest.TestCase):
                 ]
                 final_velocities = [
                     [0.0, 0.0, 0.0],
-                    [-5.0, 0.0, 0.0],
-                    [-10.0, 0.0, 0.0],
+                    [-1.0, 0.0, 0.0],
+                    [-2.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
-                    [5.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
                 ]
             else:

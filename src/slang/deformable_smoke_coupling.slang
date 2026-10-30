@@ -303,7 +303,9 @@ void deformable_smoke_coupling_project(
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void deformable_smoke_coupling_apply_first(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses,
     uniform PMBuffer<float> correction_used,
     uniform PMBuffer<uint> generations, uniform uint endpoint_count,
@@ -341,25 +343,35 @@ void deformable_smoke_coupling_apply_first(
         0.25f * characteristic_length - correction_used[endpoint]);
     Vec3 applied = clamp_length(correction, allowance);
     if (vector_length(correction) > allowance + 1.0e-6f)
+    {
         pmAtomicOr(status, kCorrectionExceeded);
+        return;
+    }
     correction_used[endpoint] += vector_length(applied);
-    Vec3 position = add(positions[endpoint], applied);
-    Vec3 velocity = clamp_length(add(velocities[endpoint],
-        multiply(impulse, inverse_masses[endpoint])), maximum_speed);
+    Vec3 velocityDelta = multiply(impulse, inverse_masses[endpoint]);
+    Vec3 position = add(add(positions[endpoint], applied),
+        multiply(velocityDelta, dt));
+    Vec3 previousPosition = add(previous_positions[endpoint], applied);
+    Vec3 velocity = clamp_length(add(
+        velocities[endpoint], velocityDelta), maximum_speed);
     if (!deformable_smoke_finite_vec3(position) ||
+        !deformable_smoke_finite_vec3(previousPosition) ||
         !deformable_smoke_finite_vec3(velocity))
     {
         pmAtomicOr(status, kInvalidMaterial);
         return;
     }
     positions[endpoint] = position;
+    previous_positions[endpoint] = previousPosition;
     velocities[endpoint] = velocity;
 }
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void deformable_smoke_coupling_apply_second(
-    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses,
     uniform PMBuffer<float> correction_used,
     uniform PMBuffer<uint> generations, uniform uint endpoint_count,
@@ -397,17 +409,25 @@ void deformable_smoke_coupling_apply_second(
         0.25f * characteristic_length - correction_used[endpoint]);
     Vec3 applied = clamp_length(correction, allowance);
     if (vector_length(correction) > allowance + 1.0e-6f)
+    {
         pmAtomicOr(status, kCorrectionExceeded);
+        return;
+    }
     correction_used[endpoint] += vector_length(applied);
-    Vec3 position = add(positions[endpoint], applied);
-    Vec3 velocity = clamp_length(add(velocities[endpoint],
-        multiply(impulse, inverse_masses[endpoint])), maximum_speed);
+    Vec3 velocityDelta = multiply(impulse, inverse_masses[endpoint]);
+    Vec3 position = add(add(positions[endpoint], applied),
+        multiply(velocityDelta, dt));
+    Vec3 previousPosition = add(previous_positions[endpoint], applied);
+    Vec3 velocity = clamp_length(add(
+        velocities[endpoint], velocityDelta), maximum_speed);
     if (!deformable_smoke_finite_vec3(position) ||
+        !deformable_smoke_finite_vec3(previousPosition) ||
         !deformable_smoke_finite_vec3(velocity))
     {
         pmAtomicOr(status, kInvalidMaterial);
         return;
     }
     positions[endpoint] = position;
+    previous_positions[endpoint] = previousPosition;
     velocities[endpoint] = velocity;
 }

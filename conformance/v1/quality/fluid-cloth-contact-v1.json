@@ -14,13 +14,13 @@
   "fixtures": [
     {
       "id": "fluid-cloth-open-triangle-contact",
-      "timestep_seconds": 0.005,
-      "step_count": 100,
+      "timestep_seconds": 0.016666666666666666,
+      "step_count": 30,
       "substeps": 1,
       "gravity_m_s2": [0.0, 0.0, 0.0],
       "mode_flags": ["CONTACT"],
       "cloth_preserve_volume": false,
-      "cloth_vertices_m": [[-1.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]],
+      "cloth_vertices_m": [[-0.5, 0.0, -0.5], [0.0, 0.0, 0.5], [0.5, 0.0, -0.5]],
       "cloth_triangle_indices": [0, 1, 2],
       "cloth_vertex_mass_kg": 1.0,
       "particle_initial_position_m": [0.0, 0.01, 0.0],

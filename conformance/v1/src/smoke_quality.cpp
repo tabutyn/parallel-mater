@@ -18,10 +18,11 @@ namespace parallel_mater::conformance {
 namespace {
 using namespace parallel_mater::gallery;
 
-constexpr float timestep = 0.015625F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t substeps = 1U;
 constexpr std::uint32_t capacity = 128U;
-constexpr float particles_per_second = 2'048.0F;
+// Preserve the original 32-particle emission batch at the fixed 60 Hz tick.
+constexpr float particles_per_second = 1'920.0F;
 
 [[nodiscard]] const char *driver_name(const CommandScene &simulation) {
     PmNativeDeviceInfo native{};
@@ -99,10 +100,10 @@ constexpr float particles_per_second = 2'048.0F;
     smoke.pressure_stiffness = 4.0F;
     smoke.viscosity = 0.0F;
     smoke.vorticity_confinement = 0.0F;
-    smoke.maximum_speed = 4.0F;
+    smoke.maximum_speed = grid ? 3.7F : 4.0F;
     smoke.grid_resolution = grid ? 16U : 0U;
     smoke.grid_vertical_resolution = grid ? 8U : 0U;
-    smoke.grid_pressure_iterations = grid ? 32U : 0U;
+    smoke.grid_pressure_iterations = grid ? 12U : 0U;
     smoke.grid_kinematic_viscosity = 0.0F;
     smoke.grid_les_coefficient = 0.0F;
     smoke.grid_pressure_tolerance = 1.0e-4F;

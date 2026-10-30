@@ -2980,7 +2980,7 @@ def _evaluate_cloth_soft_contact(
 
     compare_vector("preparation_gravity_m_s2")
     compare_vector("gravity_m_s2")
-    prepared_velocity = compare_vector("prepared_soft_velocity_m_s")
+    prepared_velocities = compare_vectors("prepared_soft_velocities_m_s")
     cloth_vertices = compare_vectors("cloth_vertices_m")
     authored_nodes = compare_vectors("authored_soft_nodes_m")
     prepared_nodes = compare_vectors("prepared_soft_nodes_m")
@@ -3223,20 +3223,20 @@ def _evaluate_cloth_soft_contact(
                     "initial cloth contact force must be zero",
                     list(state["force"]), 0.0))
     if (len(initial_soft) == len(prepared_nodes) and
-            prepared_velocity is not None):
-        for index, (state, wanted) in enumerate(zip(initial_soft,
-                                                     prepared_nodes)):
+            len(prepared_velocities) == len(prepared_nodes)):
+        for index, (state, wanted, wanted_velocity) in enumerate(zip(
+                initial_soft, prepared_nodes, prepared_velocities)):
             if _norm(_subtract(state["position"], wanted)) > state_tolerance:
                 failures.append(Failure(
                     f"$.fixture.initial_soft_node_state[{index}].position_m",
                     "prepared soft-node state differs from profile",
                     list(state["position"]), list(wanted)))
-            if (_norm(_subtract(state["velocity"], prepared_velocity)) >
+            if (_norm(_subtract(state["velocity"], wanted_velocity)) >
                     state_tolerance):
                 failures.append(Failure(
                     f"$.fixture.initial_soft_node_state[{index}].velocity_m_s",
                     "prepared soft-node velocity differs from profile",
-                    list(state["velocity"]), list(prepared_velocity)))
+                    list(state["velocity"]), list(wanted_velocity)))
             if _norm(state["force"]) > state_tolerance:
                 failures.append(Failure(
                     f"$.fixture.initial_soft_node_state[{index}].cloth_contact_force_n",
@@ -4951,23 +4951,21 @@ def _evaluate_smoke_self_pressure(
         maximum_speed = float(definition.get("maximum_speed_m_s", 0.0)) + float(
             tolerances.get("maximum_speed_slack_m_s", 0.0))
         timestep = float(definition.get("timestep_seconds", 0.0))
+        first_age = (timestep if definition.get("representation") ==
+                     "particle" else 0.0)
         maximum_pressure = 0.0
         maximum_equation_error = 0.0
         for index, particle in enumerate(first):
             age = float(particle["age_seconds"])
             pressure = float(particle["pressure"])
-            density = float(particle["number_density"])
-            if abs(age) > age_tolerance:
+            if abs(age - first_age) > age_tolerance:
                 failures.append(Failure(
                     f"{base}.first_particles[{index}].age_seconds",
-                    "new particle age must be zero", age, 0.0))
-            if abs(pressure) > state_tolerance or abs(density) > state_tolerance:
-                failures.append(Failure(
-                    f"{base}.first_particles[{index}]",
-                    "new particle pressure state must be zero",
-                    {"pressure": pressure, "number_density": density}, 0.0))
+                    "first-tick particle age is incorrect", age, first_age))
+            maximum_pressure = max(maximum_pressure, abs(pressure))
         for index, particle in enumerate(second):
-            expected_age = timestep if index < expected_per_step else 0.0
+            expected_age = (first_age + timestep
+                            if index < expected_per_step else first_age)
             age = float(particle["age_seconds"])
             if abs(age - expected_age) > age_tolerance:
                 failures.append(Failure(
@@ -4990,21 +4988,29 @@ def _evaluate_smoke_self_pressure(
                     "particle speed exceeds authored maximum",
                     _norm(velocity), maximum_speed))
             if index < 2 * expected_per_step:
-                expected_age = (2 * timestep if index < expected_per_step
-                                else timestep)
+                expected_age = (first_age + 2 * timestep
+                                if index < expected_per_step
+                                else first_age + timestep)
                 if abs(age - expected_age) > age_tolerance:
                     failures.append(Failure(
                         f"{base}.final_particles[{index}].age_seconds",
                         "aged particle did not advance to its checkpoint age",
                         age, expected_age))
-                if (definition.get("representation") == "particle" or
-                        index < expected_per_step):
-                    maximum_pressure = max(maximum_pressure, abs(pressure))
-                    sample_count += 1
-            elif abs(age) > age_tolerance:
+            else:
+                expected_age = first_age
+                if abs(age - expected_age) > age_tolerance:
+                    failures.append(Failure(
+                        f"{base}.final_particles[{index}].age_seconds",
+                        "latest emission did not complete its fixed tick",
+                        age, expected_age))
+            if (definition.get("representation") == "particle" or
+                    index < expected_per_step):
+                maximum_pressure = max(maximum_pressure, abs(pressure))
+                sample_count += 1
+            if age < -age_tolerance:
                 failures.append(Failure(
                     f"{base}.final_particles[{index}].age_seconds",
-                    "second emission must remain new", age, 0.0))
+                    "particle age must be nonnegative", age, 0.0))
 
         mean_velocity_drift = 0.0
         if (definition.get("representation") == "particle" and final):
@@ -5024,18 +5030,15 @@ def _evaluate_smoke_self_pressure(
                     "closed particle pressure introduced net velocity drift",
                     mean_velocity_drift, drift_tolerance))
 
-        if (definition.get("representation") == "particle" and second and
-                final):
+        if definition.get("representation") == "particle" and final:
             rest = float(definition.get("rest_number_density", 0.0))
             stiffness = float(definition.get("pressure_stiffness", 0.0))
             equation_tolerance = float(tolerances.get(
                 "particle_pressure_equation_absolute", 0.0))
-            for index in range(min(2 * expected_per_step, len(second),
-                                   len(final))):
+            response = 1.0 - math.exp(-stiffness)
+            for index in range(len(final)):
                 density = float(final[index]["number_density"])
-                previous = float(second[index]["pressure"])
-                expected = min(100.0, stiffness * max(0.0, density / rest - 1.0) +
-                               previous * math.exp(-timestep / 0.05))
+                expected = response * max(0.0, density / rest - 1.0)
                 actual_pressure = float(final[index]["pressure"])
                 error = abs(actual_pressure - expected)
                 maximum_equation_error = max(maximum_equation_error, error)
@@ -5268,7 +5271,7 @@ def _evaluate_fluid_smoke_phase(
         if actual is None:
             continue
         base = f"$.fixtures[{identity}]"
-        for field in ("id", "representation", "substeps",
+        for field in ("id", "representation", "step_count", "substeps",
                       "single_smoke_particle_capacity",
                       "bounded_fluid_particle_count",
                       "bounded_smoke_particle_capacity",
@@ -8108,7 +8111,9 @@ def _evaluate_cloth_smoke_contact(
                          base + "." + field)
         for field in ("gravity_m_s2", "smoke_emitter_center_m",
                       "smoke_initial_velocity_m_s", "smoke_wind_m_s",
-                      "smoke_grid_minimum_m"):
+                      "smoke_grid_minimum_m",
+                      "expected_initial_smoke_center_m",
+                      "expected_initial_smoke_velocity_m_s"):
             close_vector(actual.get(field), definition.get(field),
                          base + "." + field)
         close_pair(actual.get("smoke_emitter_half_extents_m"),
@@ -8194,10 +8199,12 @@ def _evaluate_cloth_smoke_contact(
                             f"{base}.runs.{label}.cloth_vertices_m[{index}]",
                             "initial cloth state differs from canonical input",
                             list(value), list(reference)))
-        expected_position = _vector(definition.get("smoke_emitter_center_m"),
-                                    "$.profile.smoke_emitter_center_m", failures)
-        expected_velocity = _vector(definition.get("smoke_initial_velocity_m_s"),
-                                    "$.profile.smoke_initial_velocity_m_s",
+        expected_position = _vector(
+            definition.get("expected_initial_smoke_center_m"),
+            "$.profile.expected_initial_smoke_center_m", failures)
+        expected_velocity = _vector(
+            definition.get("expected_initial_smoke_velocity_m_s"),
+            "$.profile.expected_initial_smoke_velocity_m_s",
                                     failures)
         half_extents = definition.get("smoke_emitter_half_extents_m")
         if (expected_position is not None and isinstance(half_extents, list) and

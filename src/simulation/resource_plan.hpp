@@ -526,6 +526,7 @@ Status visit_cloth_storage(State &state, std::size_t rigid, bool fracture,
     PM_STORAGE(realtime_triangle_generations, indices / 3U);
     PM_SCRATCH(realtime_correction_used, vertices);
     PM_SCRATCH(realtime_contact_normals, vertices);
+    if (fluid) PM_SCRATCH(realtime_fluid_forces, vertices);
     PM_SCRATCH(realtime_contact_offsets, vertices);
     PM_SCRATCH(realtime_contact_active, vertices);
     PM_SCRATCH(realtime_time_advances, 1U);

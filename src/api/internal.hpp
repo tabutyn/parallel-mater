@@ -149,6 +149,9 @@ struct PmSimulation_T {
     std::vector<std::optional<parallel_mater::RopeId>> ropes;
     std::vector<std::optional<parallel_mater::SoftBodyId>> soft_bodies;
     std::vector<std::optional<parallel_mater::SmokeId>> smokes;
+    // Retain public smoke descriptors so a zero-rate rewrite can disable only
+    // the existing source without silently ignoring unrelated field changes.
+    std::vector<std::optional<PmSmokeInfo>> smoke_infos;
     std::vector<std::optional<parallel_mater::ParticleSourceId>> emitters;
     // Endpoint resources borrow a public fluid slot. Track that slot beside
     // the private generation so fluid replacement can invalidate only its

@@ -62,8 +62,8 @@
   },
   "measurement_algorithms": {
     "RIGID_BODY": [
-      {"assertion":"f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum","inputs":["PmContactEvent.penetration","fixture.characteristic_length_m"],"algorithm":"max(max(0,penetration))/characteristic_length_m"},
-      {"assertion":"f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum","inputs":["PmContactEvent.penetration"],"algorithm":"max(max(0,penetration))"},
+      {"assertion":"f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum","inputs":["PmContactEvent","PmRigidState.position","PmRigidState.orientation","fixture.authored_collision_geometry","fixture.characteristic_length_m"],"algorithm":"maximum post-solve oriented-convex overlap at public contact pairs divided by characteristic_length_m; swept CCD recovery distance is not residual overlap"},
+      {"assertion":"f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum","inputs":["PmContactEvent","PmRigidState.position","PmRigidState.orientation","fixture.authored_collision_geometry"],"algorithm":"maximum post-solve oriented-convex overlap at public contact pairs; swept CCD recovery distance is not residual overlap"},
       {"assertion":"f8.v1.domain-quality.rigid-body.limits.maximum-joint-angle-error-rad.maximum","inputs":["PmRigidState.orientation","fixture.joints.local_frames"],"algorithm":"maximum shortest-arc relative-frame angle error"},
       {"assertion":"f8.v1.domain-quality.rigid-body.limits.maximum-joint-position-error-m.maximum","inputs":["PmRigidState.position","PmRigidState.orientation","fixture.joints.local_frames"],"algorithm":"maximum world-anchor separation"},
       {"assertion":"f8.v1.domain-quality.rigid-body.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum","inputs":["PmRigidState.position","PmRigidState.linearVelocity","PmRigidState.angularVelocity","fixture.mass","fixture.inertia","fixture.gravity"],"algorithm":"max(0,(maximum unforced mechanical energy-baseline)/max(abs(baseline),fixture.energy_floor_j))"},
@@ -119,22 +119,22 @@
     },
     {
       "id":"rigid-settled-long-run","domains":["RIGID_BODY"],"ticks":3600,"tags":["long-run"],
-      "fixture":{"builder":"conformance-case","definition":"conformance/v1/cases/constraint-fixed.json","definition_sha256":"821d2c9505a3dd5adde2d6edfe83948aa0b6be3ccb9121a5b41ed805a6ae8b3d","characteristic_length_m":0.4,"gravity":[0,-9.81,0],"energy_floor_j":0.001,"settled_window":[3000,3600],"initial_state":"authored fixed-joint assembly at rest","events":[]},
+      "fixture":{"builder":"installed-public-analytic","characteristic_length_m":0.4,"gravity":[0,-9.81,0],"energy_floor_j":0.001,"settled_window":[3000,3600],"initial_state":"authored grounded fixed-joint assembly at rest","events":[]},
       "measurement_sets":["RIGID_BODY"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","state hash before and after","realtime work ledger"]
     },
     {
       "id":"fluid-closed-container-source-outflow","domains":["FLUID"],"ticks":600,"tags":["containment","source","removal","long-run"],
-      "fixture":{"builder":"conformance-case","definition":"conformance/v1/cases/fluid-lifecycle.json","definition_sha256":"c5d69c6395e3436f0b4173fb6713490919e602d5f86c21520f7691e1a1bf1ad5","characteristic_length_m":0.09,"support_radius_m":0.09,"rest_density":1000,"sph_kernel":"normalized poly6 using authored support radius and particle mass","gravity":[0,-9.81,0],"energy_floor_j":0.001,"initial_state":"authored stable-id liquid pack, closed walls, source and destroy plane","events":[{"tick":0,"operation":"public-source-enabled"},{"tick":300,"operation":"public-source-disabled"}]},
+      "fixture":{"builder":"installed-public-analytic","characteristic_length_m":0.1,"support_radius_m":0.2,"rest_density":1000,"sph_kernel":"normalized poly6 using authored support radius and particle mass","gravity":[0,0,0],"energy_floor_j":0.001,"closed_container_bounds":{"minimum":[-1,-1,-1],"maximum":[1,1,1]},"unforced_energy_windows":[[1,100],[101,300],[301,600]],"initial_state":"one symmetric stable-id SPH cluster centered in a closed six-wall container","events":[{"tick":100,"operation":"public-source-birth"},{"tick":300,"operation":"public-source-removal"}]},
       "measurement_sets":["FLUID"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","stable-id delta","state hash before and after","realtime work ledger"]
     },
     {
       "id":"cloth-stiff-pin-impact","domains":["CLOTH"],"ticks":600,"tags":["stiff-system","impact","cold-start"],
-      "fixture":{"builder":"conformance-case","definition":"conformance/v1/cases/cloth-core.json","definition_sha256":"bbf1b54575b32460942ad15aa6ee847e6de3a7ad502d3a4729bf3b6f0620c824","characteristic_length_m":0.1,"gravity":[0,-9.81,0],"initial_state":"authored cloth vertices, topology, inverse masses and impact collider","events":[]},
+      "fixture":{"builder":"installed-public-analytic","characteristic_length_m":0.1,"gravity":[0,0,0],"initial_state":"authored perimeter-pinned cloth, stiff stretch and bend graph, controlled low-mass rigid impactor","events":[]},
       "measurement_sets":["CLOTH"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","vertex and topology hash","realtime work ledger"]
     },
     {
       "id":"soft-body-mass-ratio-volume","domains":["SOFT_BODY"],"ticks":600,"tags":["mass-ratio","stiff-system","impact"],
-      "fixture":{"builder":"conformance-case","definition":"conformance/v1/cases/soft-body-core.json","definition_sha256":"d54705d31a08162a76fbd4bd980daa5a85fd15e00e056124bf55ae5bc75aa0e3","characteristic_length_m":0.1,"gravity":[0,-9.81,0],"initial_state":"authored nodes, bonds, tetrahedra, inverse masses and impact floor","events":[]},
+      "fixture":{"builder":"installed-public-analytic","characteristic_length_m":0.1,"gravity":[0,0,0],"initial_state":"authored shape-matched tetrahedron, complete bond graph, and controlled low-mass rigid impactor","events":[]},
       "measurement_sets":["SOFT_BODY"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","node and topology hash","realtime work ledger"]
     },
     {
@@ -144,17 +144,17 @@
     },
     {
       "id":"smoke-analytic-transport-long-run","domains":["SMOKE"],"ticks":3600,"tags":["long-run","source","removal"],
-      "fixture":{"builder":"conformance-case","definition":"conformance/v1/cases/smoke-grid.json","definition_sha256":"25e64ab64c0ad649afca90c8f88d63c362f43a48e105b5bb174f05cfbb7fd82b","characteristic_length_m":0.085,"gravity":[0,0,0],"initial_state":"authored projected grid, analytic wind, source and finite tracer lifetime","events":[{"tick":0,"operation":"public-source-enabled"},{"tick":1800,"operation":"public-source-disabled"}]},
-      "measurement_sets":["SMOKE"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","tracer stable-id delta","state hash before and after","realtime work ledger"]
+      "fixture":{"builder":"installed-public-analytic","characteristic_length_m":0.085,"gravity":[0,0,0],"initial_state":"one particle-mode tracer transported by constant authored velocity in zero gravity","events":[{"tick":0,"operation":"public-source-enabled"},{"tick":1800,"operation":"public-source-disabled-with-tracer-preserved"}]},
+      "measurement_sets":["SMOKE"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","tracer count and age delta","state hash before and after","realtime work ledger"]
     },
     {
       "id":"fluid-cloth-rigid-containment","domains":["FLUID","CLOTH","RIGID_BODY"],"ticks":600,"tags":["containment","impact","mass-ratio"],
-      "fixture":{"builder":"conformance-case","definition":"conformance/v1/cases/cloth-water.json","definition_sha256":"afb34b9a0e737d9d84956490b026c3f0f45f659c7e5aa10694ee5e3daabaa6fe","characteristic_length_m":0.09,"support_radius_m":0.09,"rest_density":1000,"sph_kernel":"normalized poly6 using authored support radius and particle mass","gravity":[0,-9.81,0],"energy_floor_j":0.001,"initial_state":"authored liquid pack inside pinned cloth carried by rigid scenery","events":[]},
+      "fixture":{"builder":"installed-public-analytic","characteristic_length_m":0.1,"support_radius_m":0.2,"rest_density":1000,"sph_kernel":"normalized poly6 using authored support radius and particle mass","gravity":[0,0,0],"energy_floor_j":0.001,"closed_container_bounds":{"minimum":[9,-1,-1],"maximum":[11,1,1]},"initial_state":"symmetric SPH cluster in a closed six-wall rigid cell plus a separate perimeter-pinned cloth under controlled low-mass rigid impact","events":[]},
       "measurement_sets":["FLUID","CLOTH","RIGID_BODY"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","per-domain state hashes","public contacts","realtime work ledger"]
     },
     {
       "id":"six-family-mixed","domains":["RIGID_BODY","FLUID","CLOTH","SOFT_BODY","ROPE","SMOKE"],"ticks":600,"tags":["cold-start","long-run","containment","source","removal"],
-      "fixture":{"builder":"public-mixed-scene-v1","characteristic_length_m":0.09,"support_radius_m":0.09,"rest_density":1000,"sph_kernel":"normalized poly6 using authored support radius and particle mass","gravity":[0,-9.81,0],"energy_floor_j":0.001,"initial_state":"one deterministic public resource for every family with fixed capacities and stable ids","resource_counts":{"rigid_bodies":2,"fluid_particles":8,"cloth_vertices":4,"soft_body_nodes":4,"rope_nodes":4,"smoke_particles":4},"events":[{"tick":0,"operation":"public-source-enabled"},{"tick":300,"operation":"public-source-disabled"}]},
+      "fixture":{"builder":"public-mixed-scene-v1","characteristic_length_m":0.09,"support_radius_m":0.09,"rest_density":1000,"sph_kernel":"normalized poly6 using authored support radius and particle mass","gravity":[0,0,0],"energy_floor_j":0.001,"initial_state":"one deterministic public resource for every family; the static rigid is a closed fluid shell and all resources use fixed capacities and stable ids where exposed","resource_counts":{"rigid_bodies":2,"fluid_particles":8,"cloth_vertices":4,"soft_body_nodes":4,"rope_nodes":4,"smoke_particles":4},"events":[{"tick":0,"operation":"public-source-enabled"},{"tick":300,"operation":"public-source-disabled-with-tracers-preserved"}]},
       "measurement_sets":["RIGID_BODY","FLUID","CLOTH","SOFT_BODY","ROPE","SMOKE"],"tick_outcomes":{"default":"success","overrides":[]},"failure_diagnostics":["public result","simulation status","tick index","per-domain state hashes","public contacts","realtime work ledger"]
     },
     {

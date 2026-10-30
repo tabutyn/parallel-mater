@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: MIT
 #include "rigid_coupling_dispatch.hpp"
 
+#include "types.hpp"
 #include "driver/metal/resource_records.hpp"
 
 namespace parallel_mater::simulation {
+namespace {
+Vec3 vector(const float value[3]) noexcept {
+    return {value[0], value[1], value[2]};
+}
+} // namespace
 
 void project_rigid_couplings(device::DispatchSize grid,
     device::DispatchSize, device::ExecutionQueue stream,
@@ -63,6 +69,51 @@ void apply_rigid_coupling_bodies(device::DispatchSize grid,
         scratch.body_position_deltas, scratch.endpoint_impulses,
         scratch.body_angular_impulses, characteristic_length, timestep,
         profile_version, sweep, status);
+}
+
+void sync_rigid_rope_attachments(
+    device::DispatchSize grid, device::DispatchSize,
+    device::ExecutionQueue stream, void *rope_positions,
+    void *rope_previous_positions, void *rope_velocities,
+    std::uint32_t rope_count, const float *rope_rest_lengths,
+    void *rope_anchor_targets,
+    const RigidCouplingBodyBuffers &bodies,
+    const RigidCouplingConstraintBuffers &constraints,
+    float timestep) noexcept {
+    (void)metal::launch(stream, "rigid_rope_sync_attachments", grid,
+        rope_positions, rope_previous_positions, rope_velocities, rope_count,
+        rope_rest_lengths, rope_anchor_targets, bodies.parameters, bodies.states,
+        bodies.generations, bodies.count, constraints.endpoints,
+        constraints.bodies, constraints.body_generations,
+        constraints.body_local_points, constraints.active, constraints.count,
+        timestep);
+}
+
+void apply_rigid_rope_attachment_reactions(
+    device::DispatchSize grid, device::DispatchSize,
+    device::ExecutionQueue stream,
+    const void *previous_rope_velocities,
+    const void *current_rope_velocities,
+    const float *rope_inverse_masses, std::uint32_t rope_count,
+    const float *rope_rest_lengths, float rope_maximum_speed,
+    std::uint32_t attached_end_mask, std::uint32_t attached_end_count,
+    const float gravity[3], float timestep, void *rope_positions,
+    void *rope_velocities, void *rope_constraint_forces,
+    void *rope_anchor_targets, const void *body_accumulators,
+    const RigidCouplingBodyBuffers &bodies,
+    const RigidCouplingConstraintBuffers &constraints) noexcept {
+    (void)metal::launch(stream,
+        "rigid_rope_apply_attachment_reactions", grid,
+        previous_rope_velocities, current_rope_velocities,
+        rope_inverse_masses, rope_count, rope_rest_lengths,
+        rope_maximum_speed, attached_end_mask,
+        attached_end_count, vector(gravity), timestep, rope_positions,
+        rope_velocities, rope_constraint_forces, rope_anchor_targets,
+        bodies.parameters, body_accumulators, bodies.previous_states,
+        bodies.states, bodies.generations, bodies.count,
+        constraints.endpoints, constraints.bodies,
+        constraints.body_generations, constraints.body_local_points,
+        constraints.active, constraints.count);
 }
 
 } // namespace parallel_mater::simulation

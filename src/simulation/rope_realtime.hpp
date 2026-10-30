@@ -154,15 +154,15 @@ struct RopeRealtimeWorkBudget {
     result.time_advances = 1U;
     result.spatial_updates_during_solve = 0U;
     // Predict + eight (constraint proposal, apply) + four contact passes +
-    // velocity commit.
-    result.domain_dispatches = 2U + 2U * rope_realtime_constraint_sweeps +
+    // final self-contact reconciliation + velocity commit.
+    result.domain_dispatches = 3U + 2U * rope_realtime_constraint_sweeps +
         rope_realtime_contact_passes;
     const std::uint64_t node_groups =
         (std::uint64_t{live_nodes} + 127U) / 128U;
     // The eight chain-wide tridiagonal solves each use one cooperative group.
     // Predictor, delta apply, contact and commit remain node-parallel.
     result.domain_workgroups =
-        rope_realtime_constraint_sweeps + node_groups *
+        1U + rope_realtime_constraint_sweeps + node_groups *
             (2U + rope_realtime_constraint_sweeps +
              rope_realtime_contact_passes);
     result.stretch_constraint_visits =
@@ -196,7 +196,7 @@ public:
             budget.contact_passes != rope_realtime_contact_passes ||
             budget.time_advances != 1U ||
             budget.spatial_updates_during_solve != 0U ||
-            budget.domain_dispatches != 22U)
+            budget.domain_dispatches != 23U)
             return PM_ERROR_INVALID_STATE;
         const auto result = spatial_.begin(
             token, counters, rope_realtime_contact_passes);

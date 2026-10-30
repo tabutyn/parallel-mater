@@ -1346,6 +1346,26 @@ void smoke_grid_raster_soft(
         triangle, resolve_metadata);
 }
 
+void smoke_grid_accumulate_face_delta(
+    Vec3 point, SmokeGridField grid, Vec3 delta)
+{
+    Vec3 cell = multiply(subtract(point, grid.minimum), 1.0f / grid.spacing);
+    int n = int(grid.n);
+    int h = int(grid.height);
+    int x = clamp(int(floor(cell.x)), 0, n - 1);
+    int y = clamp(int(floor(cell.y)), 0, h - 1);
+    int z = clamp(int(floor(cell.z)), 0, n - 1);
+    int faceX = clamp(int(floor(cell.x + 0.5f)), 0, n);
+    int faceY = clamp(int(floor(cell.y + 0.5f)), 0, h);
+    int faceZ = clamp(int(floor(cell.z + 0.5f)), 0, n);
+    pmAtomicAdd(grid.face[0] + smoke_grid_face_index(
+        0, faceX, y, z, n, h), delta.x);
+    pmAtomicAdd(grid.face[1] + smoke_grid_face_index(
+        1, x, faceY, z, n, h), delta.y);
+    pmAtomicAdd(grid.face[2] + smoke_grid_face_index(
+        2, x, y, faceZ, n, h), delta.z);
+}
+
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void smoke_grid_rigid_force(
@@ -1362,6 +1382,9 @@ void smoke_grid_rigid_force(
     uint lane = pmGroupThreadIndex().x;
     Vec3 localLinear = {};
     Vec3 localAngular = {};
+    Vec3 localAirDelta = {};
+    Vec3 localAirPoint = {};
+    float localAirWeight = 0.0f;
     RigidBodyState state = states[body_index];
     for (uint triangle = lane; triangle < mesh.index_count / 3u;
          triangle += pmGroupSize().x)
@@ -1408,9 +1431,29 @@ void smoke_grid_rigid_force(
                 drag_coefficient * viscosity / offset)), air_density * area);
         localLinear = add(localLinear, force);
         localAngular = add(localAngular, cross(arm, force));
+        // The rigid response above removes momentum from the staged grid.
+        // Apply the equal-direction field reaction only after every lane has
+        // sampled the pre-reaction field, so triangle order cannot affect the
+        // force.  The exponential viscosity response is bounded per sweep.
+        float density = plusDensity + minusDensity;
+        float response = 1.0f - exp(-drag_coefficient * viscosity * dt);
+        Vec3 airDelta = multiply(add(multiply(plusTangent, plusDensity),
+            multiply(minusTangent, minusDensity)),
+            -response / max(density, 1.0e-6f));
+        float airWeight = vector_length(airDelta);
+        localAirDelta = add(localAirDelta, airDelta);
+        localAirPoint = add(localAirPoint, multiply(add(
+            multiply(plus, plusDensity), multiply(minus, minusDensity)),
+            airWeight / max(density, 1.0e-6f)));
+        localAirWeight += airWeight;
     }
     smoke_grid_rigid_linear[lane] = localLinear;
     smoke_grid_rigid_angular[lane] = localAngular;
+    pmGroupBarrier();
+    if (localAirWeight > 1.0e-9f)
+        smoke_grid_accumulate_face_delta(
+            multiply(localAirPoint, 1.0f / localAirWeight), grid,
+            localAirDelta);
     pmGroupBarrier();
     for (uint stride = pmGroupSize().x / 2u; stride != 0u; stride /= 2u)
     {
@@ -1970,6 +2013,22 @@ void smoke_realtime_grid_trace(
     Vec3 point = positions[particle];
     previous_positions[particle] = point;
     Vec3 velocity = velocities[particle];
+    // Phase proposals enter with zero diagnostic density.  Preserve their
+    // source-tagging velocity for the one-step admission boundary before the
+    // tracer begins following the projected Eulerian field.
+    if (ages[particle] == 0.0f && number_densities[particle] == 0.0f)
+    {
+        velocity = clamp_length(velocity, options.maximum_speed);
+        if (!smoke_grid_realtime_finite_vec3(velocity))
+        {
+            pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+            return;
+        }
+        velocities[particle] = velocity;
+        ages[particle] += dt;
+        thermal_lift[particle] *= exp(-dt / 3.0f);
+        return;
+    }
     if (smoke_grid_contains(point, grid))
     {
         Vec3 v0 = smoke_grid_sample_velocity(point, grid);

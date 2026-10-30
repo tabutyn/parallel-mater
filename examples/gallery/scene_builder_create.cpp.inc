@@ -5,19 +5,21 @@ bool CommandScene::create(const SceneDefinition &scene,
                           CommandSceneInstance &instance,
                           std::string &error,
                           std::optional<PmNativeBackend> backend,
-                          PmResult *creation_category) {
+                          PmResult *creation_category,
+                          bool enable_validation) {
     if (creation_category) *creation_category = PM_ERROR_INVALID_STATE;
     error.clear();
     output = {};
     instance = {};
     auto next = std::make_unique<Impl>();
     next->selected_backend = backend;
+    next->validation_enabled = enable_validation;
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.pApplicationName = "parallel-mater-gallery";
-    instance_info.enableValidation = PM_TRUE;
+    instance_info.enableValidation = enable_validation ? PM_TRUE : PM_FALSE;
     if (!checked(pmCreateInstance(&instance_info, nullptr, &next->instance),
                  "create Parallel Mater instance", error))
         return false;
@@ -269,6 +271,7 @@ bool CommandScene::create(const SceneDefinition &scene,
     };
     // Explicit scene/corpus defaults, independent of private solver options.
     try {
+        if (scene.create_default_couplings) {
         if (requires_fluid)
             add_mechanical(PM_COUPLING_LIQUID_RIGID, 0U, 0U);
         for (std::uint32_t cloth = 0U; cloth < scene.cloths.size(); ++cloth) {
@@ -432,6 +435,7 @@ bool CommandScene::create(const SceneDefinition &scene,
                     PM_TRUE};
                 couplings.push_back(state);
             }
+        }
         }
     } catch (const std::bad_alloc &) {
         error = "build coupling pipeline: out of host memory";
@@ -802,6 +806,11 @@ bool CommandScene::create(const SceneDefinition &scene,
             rule.brushRadius = paint.brush_radius;
         }
         next->original_scene = scene;
+        next->rigid_bodies = rigid_bodies;
+        next->cloth_active.assign(scene.cloths.size(), 1U);
+        next->rope_active.assign(scene.ropes.size(), 1U);
+        next->soft_body_active.assign(scene.soft_bodies.size(), 1U);
+        next->smoke_active = scene.has_smoke;
         next->debug_frame_capacity = debug_frame_capacity;
     } catch (const std::bad_alloc &) {
         error = "assemble scene resources: out of host memory";
@@ -811,7 +820,8 @@ bool CommandScene::create(const SceneDefinition &scene,
     if (requires_fluid) {
         const PmDeviceSize bytes = std::max<PmDeviceSize>(
             sizeof(PmParticleState),
-            initial_particles.size() * sizeof(PmParticleState));
+            static_cast<PmDeviceSize>(scene.fluid_options.capacity) *
+                sizeof(PmParticleState));
         if (!next->create_buffer(bytes, next->particle_input, error)) return false;
         if (!initial_particles.empty())
             std::memcpy(next->particle_input.mapped, initial_particles.data(),

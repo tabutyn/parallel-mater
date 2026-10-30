@@ -22,7 +22,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t step_count = 4U;
 constexpr std::uint32_t substeps = 1U;
 constexpr float cube_half_extent = 0.05F;
@@ -179,7 +179,7 @@ template <typename Value, std::size_t Size>
     material.velocityDamping = 0.0F;
     material.maximumSubstepTimestep = timestep;
     material.friction = 0.0F;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = 1.49F;
     material.solverIterations = 8U;
     material.selfCollision = PM_FALSE;
     return material;

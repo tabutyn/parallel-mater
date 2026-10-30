@@ -114,15 +114,17 @@ void fluid_rope_contacts(
         multiply(tangent, -friction), multiply(normal, approach));
     Vec3 targetVelocity = add(velocities[particle], velocityChange);
     velocities[particle] = targetVelocity;
-    // Commit derives velocity from the corrected position. Encode the
-    // coupling target into its existing velocity-delta scratch so projection
-    // does not invent an unpaired impulse and commit does not erase contact.
-    Vec3 positionalVelocity = multiply(
-        subtract(correctedPosition, previous_positions[particle]),
-        frame_inverse_dt);
-    velocity_deltas[particle] = subtract(
-        multiply(targetVelocity, 1.0f / commit_velocity_scale),
-        positionalVelocity);
+    // Cancel only the velocity that commit would infer from positional
+    // correction. The direct velocity change remains the physical impulse.
+    Vec3 correctionVelocity = multiply(
+        subtract(correctedPosition, position), frame_inverse_dt);
+    // Commit damps only many-particle fluids.  Convert the requested public
+    // velocity change through that final scale, while cancelling the
+    // position correction before the scale is applied.
+    float finalVelocityScale = commit_velocity_scale;
+    velocity_deltas[particle] = add(velocity_deltas[particle], subtract(
+        multiply(velocityChange, 1.0f / finalVelocityScale),
+        correctionVelocity));
     if (!transfer_impulse) return;
     pmAtomicAdd(contact_count, 1u);
     pmAtomicMaxPositiveFloat(maximum_penetration, penetration);
@@ -173,15 +175,12 @@ void fluid_rope_apply(
     Vec3 velocityChange = clamp_length(
         multiply(reaction, 1.0f / mass),
         maximum_acceleration * dt);
-    Vec3 committedVelocity = multiply(subtract(
-        rope_positions[node], rope_previous_positions[node]),
-        frame_inverse_dt * commit_velocity_scale);
+    Vec3 currentVelocity = rope_velocities[node];
     Vec3 targetVelocity = clamp_length(
-        add(committedVelocity, velocityChange), rope_maximum_speed);
-    Vec3 appliedVelocityChange = subtract(targetVelocity, committedVelocity);
+        add(currentVelocity, velocityChange), rope_maximum_speed);
+    Vec3 appliedVelocityChange = subtract(targetVelocity, currentVelocity);
     rope_positions[node] = add(rope_positions[node], multiply(
-        appliedVelocityChange,
-        1.0f / (frame_inverse_dt * commit_velocity_scale)));
+        appliedVelocityChange, 1.0f / frame_inverse_dt));
     rope_velocities[node] = targetVelocity;
     fluid_contact_forces[node] = add(
         fluid_contact_forces[node],

@@ -25,7 +25,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t warmup_steps = 2U;
 constexpr std::uint32_t quality_steps = 1U;
 constexpr std::uint32_t smoke_capacity = 1U;
@@ -37,7 +37,16 @@ constexpr float grid_spacing = grid_edge_length /
     static_cast<float>(grid_resolution);
 constexpr float authored_contact_distance = 0.015F;
 constexpr float contact_clearance = 0.015F;
-constexpr float quality_emission_rate = 60.0F;
+// Preserve the historical cadence under the sole 60 Hz schedule: no tracer
+// on warmup tick 1, one tracer on warmup tick 2, and no replacement on the
+// contact probe tick. The former 60/s value encoded that cadence at 100 Hz.
+constexpr float quality_emission_rate = 30.0F;
+// Particle smoke advances a newly emitted tracer in its admission tick while
+// grid smoke exposes the source point. Pre-offset the particle source by that
+// one fixed-tick displacement so both representations reach the historical
+// -0.020 m warmup boundary without changing production emission semantics.
+constexpr float particle_quality_emitter_x = -0.0271144F;
+constexpr float grid_quality_emitter_x = -0.020F;
 constexpr float rope_mass = 0.5F;
 constexpr float rope_radius = 0.015F;
 constexpr float rope_node_spacing = 0.030F;
@@ -153,7 +162,7 @@ void require_contact_capability(const Context &context, bool grid) {
     material.velocityDamping = 0.0F;
     material.maximumSubstepTimestep = timestep;
     material.friction = 0.0F;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = 0.89F;
     material.solverIterations = 2U;
     return material;
 }
@@ -168,10 +177,10 @@ void require_contact_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 2.0F;
+    material.maximumSpeed = grid ? 0.59F : 0.44F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridPressureTolerance = 1.0e-5F;
     return material;
 }
@@ -323,7 +332,9 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
     require_contact_capability(context, grid);
     FixtureObjects fixture = create_fixture(context, grid, 1U);
     initialize_endpoints(context, fixture, quality_emission_rate,
-                         {1.0F, 0.25F, 0.0F}, {}, -0.020F);
+                         {1.0F, 0.25F, 0.0F}, {},
+                         grid ? grid_quality_emitter_x
+                              : particle_quality_emitter_x);
     const PmStepInfo step{timestep, 1U, {0.0F, 0.0F, 0.0F}, 0U};
     for (std::uint32_t index = 0U; index < warmup_steps; ++index) {
         context.begin();
@@ -455,7 +466,9 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
     result["smoke_particle_capacity"] =
         static_cast<std::uint64_t>(smoke_capacity);
     result["smoke_emitter_center_m"] =
-        vector_json(PmFloat3{-0.020F, 0.015F, 0.0F});
+        vector_json(PmFloat3{grid ? grid_quality_emitter_x
+                                  : particle_quality_emitter_x,
+                             0.015F, 0.0F});
     Json half_extents = Json::array();
     half_extents.push_back(0.001);
     half_extents.push_back(0.001);
@@ -470,7 +483,7 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
     result["smoke_rest_number_density"] = 1.0;
     result["smoke_pressure_stiffness_m2_s2"] = 0.0;
     result["smoke_viscosity_m2_s"] = 0.0;
-    result["smoke_maximum_speed_m_s"] = 2.0;
+    result["smoke_maximum_speed_m_s"] = grid ? 0.59 : 0.44;
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =

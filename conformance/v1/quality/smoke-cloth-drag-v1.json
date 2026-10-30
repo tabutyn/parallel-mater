@@ -14,7 +14,7 @@
     {
       "id": "particle-smoke-cloth-drag",
       "representation": "SMOKE_PARTICLE",
-      "timestep_seconds": 0.01,
+      "timestep_seconds": 0.016666666666666666,
       "warmup_step_count": 6,
       "substeps": 1,
       "gravity_m_s2": [0.0, 0.0, 0.0],
@@ -52,7 +52,7 @@
     {
       "id": "grid-smoke-cloth-drag",
       "representation": "SMOKE_GRID",
-      "timestep_seconds": 0.01,
+      "timestep_seconds": 0.016666666666666666,
       "warmup_step_count": 6,
       "substeps": 1,
       "gravity_m_s2": [0.0, 0.0, 0.0],
@@ -69,7 +69,7 @@
       "smoke_lifetime_seconds": 10.0,
       "smoke_particle_radius_m": 0.1,
       "smoke_rest_number_density": 1.0,
-      "smoke_maximum_speed_m_s": 4.0,
+      "smoke_maximum_speed_m_s": 3.7,
       "smoke_grid_resolution": 16,
       "smoke_grid_vertical_resolution": 8,
       "smoke_grid_kinematic_viscosity_m2_s": 0.1,

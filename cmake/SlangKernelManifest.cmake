@@ -53,7 +53,8 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_filter_spatial_candidates fluid_count_spatial_neighbors
     fluid_realtime_predict fluid_realtime_density_lambda
     fluid_realtime_position_delta fluid_realtime_apply_position_delta
-    fluid_realtime_viscosity_delta fluid_realtime_commit)
+    fluid_realtime_viscosity_delta fluid_realtime_commit
+    fluid_gather_spatial_payloads)
 
 set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
     prepare_avbd_kernel solve_avbd_kernel solve_avbd_stage_kernel)
@@ -146,16 +147,20 @@ set(PARALLEL_MATER_SLANG_soft_body_METAL_ENTRIES
 set(PARALLEL_MATER_SLANG_soft_body_cloth_ENTRIES
     soft_cloth_detect soft_cloth_apply_soft soft_cloth_apply_cloth)
 set(PARALLEL_MATER_SLANG_cloth_rope_ENTRIES
-    rope_cloth_sample_anchor rope_cloth_apply_anchor)
+    rope_cloth_sample_anchor rope_cloth_apply_anchor
+    rope_cloth_accumulate_reaction)
 set(PARALLEL_MATER_SLANG_soft_body_rope_ENTRIES
-    rope_soft_sample_anchor rope_soft_scatter_anchor rope_soft_apply)
+    rope_soft_realtime_contact rope_soft_sample_anchor
+    rope_soft_scatter_anchor rope_soft_apply rope_soft_sync_attachment
+    rope_soft_accumulate_attachment_reaction)
 set(PARALLEL_MATER_SLANG_fluid_cloth_ENTRIES
     fluid_cloth_containment_forces cloth_apply_fluid_forces
     fluid_project_inside_cloth)
 set(PARALLEL_MATER_SLANG_fluid_rope_ENTRIES
     fluid_rope_contacts fluid_rope_apply)
 set(PARALLEL_MATER_SLANG_fluid_smoke_ENTRIES
-    fluid_smoke_drag fluid_smoke_grid_drag fluid_smoke_exchange
+    fluid_smoke_drag fluid_smoke_realtime_drag fluid_smoke_grid_drag
+    fluid_smoke_exchange
     fluid_clear_inactive_keep)
 set(PARALLEL_MATER_SLANG_cloth_smoke_ENTRIES
     smoke_cloth_wind smoke_cloth_contact)
@@ -199,7 +204,8 @@ set(PARALLEL_MATER_SLANG_geometry_soft_body_METAL_ENTRIES
     deformable_collide_batch)
 set(PARALLEL_MATER_SLANG_rigid_coupling_ENTRIES
     rigid_coupling_project rigid_coupling_apply_endpoints
-    rigid_coupling_apply_bodies)
+    rigid_coupling_apply_bodies rigid_rope_sync_attachments
+    rigid_rope_apply_attachment_reactions)
 set(PARALLEL_MATER_SLANG_liquid_coupling_ENTRIES
     liquid_coupling_project liquid_coupling_apply_particles
     liquid_coupling_apply_partners)
@@ -254,7 +260,7 @@ set(PARALLEL_MATER_SLANG_smoke_grid_METAL_ENTRIES
 set(PARALLEL_MATER_SLANG_rope_ENTRIES
     rope_realtime_predict rope_realtime_project_constraints
     rope_realtime_apply_position_delta rope_realtime_project_contacts
-    rope_realtime_commit
+    rope_realtime_finalize_self_contacts rope_realtime_commit
     rope_advance rope_advance_coupled)
 set(PARALLEL_MATER_SLANG_rope_OPTIMIZATION 3)
 

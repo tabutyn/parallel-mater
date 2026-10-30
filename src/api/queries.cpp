@@ -237,10 +237,33 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
                      index < ledger.domain_iterations.size(); ++index)
                     realtime.domainIterations[index] =
                         ledger.domain_iterations[index];
-                for (const auto sweeps : ledger.coupling_sweeps)
-                    realtime.couplingSweeps += sweeps;
-                for (const auto edges : ledger.coupling_edges)
+                for (std::size_t index = 0U;
+                     index < ledger.coupling_sweeps.size(); ++index) {
+                    const auto edges = ledger.coupling_edges[index];
                     realtime.couplingEdgeCount += edges;
+                    // One algebraic sweep visits every registered edge in the
+                    // family. Public work accounting is per edge, matching the
+                    // frozen qualification contract rather than merely counting
+                    // the batched dispatch loop.
+                    realtime.couplingSweeps +=
+                        ledger.coupling_sweeps[index] * edges;
+                }
+                // A rejected fixed tick has no published schedule work.  The
+                // queue submission itself remains observable, but staged GPU
+                // work, spatial updates, algebraic iterations, and the clock
+                // advance are rolled back with the state.  Exposing the
+                // aborted ledger here made a capacity failure look committed
+                // even though readback correctly retained the prior state.
+                if (statistics.executionResult != PM_SUCCESS) {
+                    realtime.total = {};
+                    realtime.total.queueSubmissions = 1U;
+                    for (auto &phase : realtime.phases) phase = {};
+                    realtime.timeAdvances = 0U;
+                    for (auto &iterations : realtime.domainIterations)
+                        iterations = 0U;
+                    realtime.couplingEdgeCount = 0U;
+                    realtime.couplingSweeps = 0U;
+                }
             }
             pool->slots[query].available = true;
             return PM_SUCCESS;

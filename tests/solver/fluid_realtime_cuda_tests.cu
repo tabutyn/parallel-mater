@@ -54,6 +54,8 @@ FluidOptions realtime_options(unsigned capacity) {
     result.maximum_speed = 2.9F;
     result.normal_damping = 6.0F;
     result.rest_particle_volume = 0.05F * 0.05F * 0.05F;
+    result.realtime_commit_velocity_scale = capacity > 1U
+        ? 1.0F - fluid_realtime_solver_damping : 1.0F;
     return result;
 }
 

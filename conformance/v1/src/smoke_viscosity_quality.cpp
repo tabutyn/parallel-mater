@@ -163,13 +163,13 @@ void require_viscosity_capability(const CommandScene &simulation,
     options.buoyancy = 0.0F;
     options.response = 0.0F;
     options.rest_number_density = 1.0F;
-    options.pressure_stiffness = 40.0F;
+    options.pressure_stiffness = 0.06F;
     options.viscosity = 0.0F;
     options.vorticity_confinement = 0.0F;
-    options.maximum_speed = 10.0F;
+    options.maximum_speed = 8.9F;
     options.grid_resolution = 0U;
     options.grid_vertical_resolution = 8U;
-    options.grid_pressure_iterations = 8U;
+    options.grid_pressure_iterations = 12U;
     options.grid_kinematic_viscosity = 0.0F;
     options.grid_les_coefficient = 0.0F;
     options.grid_pressure_tolerance = 0.001F;
@@ -185,7 +185,7 @@ void require_viscosity_capability(const CommandScene &simulation,
     options.emitter_half_extents = {0.2F, 0.2F};
     options.initial_velocity = {1.0F, 0.0F, 0.0F};
     options.wind = {};
-    options.particles_per_second = 5.0F;
+    options.particles_per_second = 3.0F;
     options.lifetime = 10.0F;
     options.particle_radius = 0.03F;
     options.buoyancy = 0.0F;
@@ -194,10 +194,10 @@ void require_viscosity_capability(const CommandScene &simulation,
     options.pressure_stiffness = 0.0F;
     options.viscosity = 0.0F;
     options.vorticity_confinement = 0.0F;
-    options.maximum_speed = 4.0F;
+    options.maximum_speed = 3.7F;
     options.grid_resolution = 16U;
     options.grid_vertical_resolution = 8U;
-    options.grid_pressure_iterations = 24U;
+    options.grid_pressure_iterations = 12U;
     options.grid_kinematic_viscosity = 0.0F;
     options.grid_les_coefficient = 0.0F;
     options.grid_pressure_tolerance = 0.001F;
@@ -311,10 +311,10 @@ void require_viscosity_capability(const CommandScene &simulation,
 std::string conformance_smoke_self_viscosity_quality(
     const std::filesystem::path &root) {
     const Fixture particle{"particle-pressure-seeded-relative-motion",
-                           "SMOKE_PARTICLE", 0.01F, 21U, 29U,
+                           "SMOKE_PARTICLE", 1.0F / 60.0F, 13U, 17U,
                            particle_options()};
     const Fixture grid{"grid-driven-jet-relative-motion", "SMOKE_GRID",
-                       0.01F, 81U, 99U, grid_options()};
+                       1.0F / 60.0F, 81U, 99U, grid_options()};
     DriverInfo particle_driver{};
     DriverInfo grid_driver{};
     Json fixtures = Json::array();

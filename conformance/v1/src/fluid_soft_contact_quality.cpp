@@ -114,7 +114,7 @@ surface_bindings() {
     material.particleRadius = 0.05F;
     material.supportRadius = 0.2F;
     material.restParticleVolume = 0.001F;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = 5.9F;
     material.maximumPairAcceleration = 1000.0F;
     material.densityIterations = 1U;
     return material;
@@ -124,7 +124,7 @@ surface_bindings() {
     PmSoftBodyMaterialState material{};
     material.nodeMass = 2.0F;
     material.nodeRadius = 0.05F;
-    material.stretchCompliance = 1.0F;
+    material.stretchCompliance = 0.005F;
     material.maximumProjectionFraction = 0.2F;
     material.maximumSpeed = 10.0F;
     material.solverIterations = 1U;
@@ -213,7 +213,7 @@ surface_bindings() {
 
     Json result = Json::object();
     result["id"] = "subdivided-tetrahedron-normal-impact";
-    result["timestep_seconds"] = 0.01;
+    result["timestep_seconds"] = 1.0 / 60.0;
     result["substeps"] = static_cast<std::uint64_t>(1U);
     result["gravity_m_s2"] = vector_json(PmFloat3{});
     result["fluid_particle_count"] = static_cast<std::uint64_t>(1U);
@@ -390,7 +390,7 @@ std::string conformance_fluid_soft_contact_quality(
                                     &initial_soft) == PM_SUCCESS);
     PM_CHECK(pmCmdCopySoftBodySurface(context.commands, simulation, 0U,
                                       &initial_surface) == PM_SUCCESS);
-    const PmStepInfo step{0.01F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
+    const PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
     PM_CHECK(pmCmdCopyFluidParticles(context.commands, simulation, 0U,

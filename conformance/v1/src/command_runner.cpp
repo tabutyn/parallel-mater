@@ -10,18 +10,22 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cmath>
+#include <cstdlib>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <numbers>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -54,6 +58,28 @@ constexpr std::size_t large_sample_limit = 32U;
 #else
     return "unknown";
 #endif
+}
+
+[[nodiscard]] const char *result_name(PmResult result) noexcept {
+    switch (result) {
+    case PM_SUCCESS: return "PM_SUCCESS";
+    case PM_ERROR_INVALID_ARGUMENT: return "PM_ERROR_INVALID_ARGUMENT";
+    case PM_ERROR_INVALID_STATE: return "PM_ERROR_INVALID_STATE";
+    case PM_ERROR_OUT_OF_HOST_MEMORY: return "PM_ERROR_OUT_OF_HOST_MEMORY";
+    case PM_ERROR_OUT_OF_DEVICE_MEMORY: return "PM_ERROR_OUT_OF_DEVICE_MEMORY";
+    case PM_ERROR_FEATURE_NOT_PRESENT: return "PM_ERROR_FEATURE_NOT_PRESENT";
+    case PM_ERROR_FORMAT_NOT_SUPPORTED: return "PM_ERROR_FORMAT_NOT_SUPPORTED";
+    case PM_ERROR_CAPACITY_EXCEEDED: return "PM_ERROR_CAPACITY_EXCEEDED";
+    case PM_ERROR_DEVICE_LOST: return "PM_ERROR_DEVICE_LOST";
+    case PM_ERROR_INCOMPATIBLE_VERSION: return "PM_ERROR_INCOMPATIBLE_VERSION";
+    case PM_ERROR_DRIVER_NOT_FOUND: return "PM_ERROR_DRIVER_NOT_FOUND";
+    case PM_ERROR_LAYER_NOT_PRESENT: return "PM_ERROR_LAYER_NOT_PRESENT";
+    case PM_ERROR_EXTENSION_NOT_PRESENT: return "PM_ERROR_EXTENSION_NOT_PRESENT";
+    case PM_NOT_READY: return "PM_NOT_READY";
+    case PM_TIMEOUT: return "PM_TIMEOUT";
+    case PM_INCOMPLETE: return "PM_INCOMPLETE";
+    }
+    return "PM_ERROR_UNKNOWN";
 }
 
 [[nodiscard]] Vec3 vec(const PmFloat3 &value) noexcept {
@@ -278,6 +304,660 @@ struct Aggregate {
     return scene;
 }
 
+[[nodiscard]] SceneDefinition settled_fixture_scene() {
+    SceneDefinition scene{};
+    scene.meshes.push_back(box_mesh("settled-member", {0.2F, 0.2F, 0.2F}));
+    RigidBodyDefinition anchor{};
+    anchor.name = "settled-anchor";
+    anchor.source_name = anchor.name;
+    anchor.mesh_indices = {0U};
+    anchor.options.motion = MotionType::static_body;
+    anchor.options.initial_state.position = {0.0F, 1.0F, 0.0F};
+    RigidBodyDefinition member{};
+    member.name = "settled-member";
+    member.source_name = member.name;
+    member.mesh_indices = {0U};
+    member.options.initial_state.position = {0.5F, 1.0F, 0.0F};
+    member.options.linear_damping = 0.2F;
+    member.options.angular_damping = 0.2F;
+    scene.rigid_bodies = {anchor, member};
+    RigidConstraintDefinition joint{};
+    joint.name = "settled-fixed";
+    joint.body_a = 0U;
+    joint.body_b = 1U;
+    joint.options.type = RigidConstraintType::fixed;
+    joint.options.local_anchor_a = {0.25F, 0.0F, 0.0F};
+    joint.options.local_anchor_b = {-0.25F, 0.0F, 0.0F};
+    joint.options.solver_iterations = 10U;
+    scene.rigid_constraints.push_back(std::move(joint));
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition settled_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "rigid-settled-long-run";
+    result.title = "Grounded fixed-joint settled assembly";
+    result.frames = 3'600U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, -9.81, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    return result;
+}
+
+[[nodiscard]] SceneDefinition cloth_fixture_scene() {
+    SceneDefinition scene{};
+    constexpr std::uint32_t side = 5U;
+    constexpr float spacing = 0.1F;
+    TriangleMesh cloth_mesh{};
+    cloth_mesh.name = "qualification-cloth";
+    for (std::uint32_t z = 0U; z < side; ++z)
+        for (std::uint32_t x = 0U; x < side; ++x)
+            cloth_mesh.vertices.push_back({.position = {
+                (static_cast<float>(x) - 2.0F) * spacing, 0.0F,
+                (static_cast<float>(z) - 2.0F) * spacing}});
+    for (std::uint32_t z = 0U; z + 1U < side; ++z)
+        for (std::uint32_t x = 0U; x + 1U < side; ++x) {
+            const std::uint32_t a = z * side + x;
+            const std::uint32_t b = a + 1U;
+            const std::uint32_t c = a + side;
+            const std::uint32_t d = c + 1U;
+            cloth_mesh.indices.insert(
+                cloth_mesh.indices.end(), {a, c, b, b, c, d});
+        }
+    scene.meshes.push_back(std::move(cloth_mesh));
+    scene.meshes.push_back(box_mesh(
+        "qualification-impactor", {0.025F, 0.025F, 0.025F}));
+
+    ClothDefinition cloth{};
+    cloth.name = "qualification-cloth";
+    cloth.mesh_index = 0U;
+    cloth.inverse_masses.resize(side * side, 100.0F);
+    for (std::uint32_t z = 0U; z < side; ++z)
+        for (std::uint32_t x = 0U; x < side; ++x)
+            if (x == 0U || z == 0U || x + 1U == side || z + 1U == side)
+                cloth.inverse_masses[z * side + x] = 0.0F;
+    cloth.vertex_mass = 0.01F;
+    cloth.thickness = 0.01F;
+    cloth.stretch_compliance = 1.0e-5F;
+    cloth.bending_compliance = 1.0e-4F;
+    cloth.velocity_damping = 5.0F;
+    cloth.contact_friction = 0.2F;
+    cloth.solver_iterations = 8U;
+    scene.cloths.push_back(std::move(cloth));
+
+    RigidBodyDefinition impactor{};
+    impactor.name = "qualification-impactor";
+    impactor.source_name = impactor.name;
+    impactor.mesh_indices = {1U};
+    impactor.options.initial_state.position = {0.0F, 0.04F, 0.0F};
+    impactor.options.initial_state.linear_velocity = {0.0F, -0.05F, 0.0F};
+    impactor.options.mass = 0.001F;
+    impactor.options.inertia_diagonal = {1.0e-6F, 1.0e-6F, 1.0e-6F};
+    impactor.options.linear_damping = 0.0F;
+    impactor.options.maximum_linear_speed = 1.0F;
+    scene.rigid_bodies.push_back(std::move(impactor));
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition cloth_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "cloth-stiff-pin-impact";
+    result.title = "Pinned stiff cloth with controlled rigid impact";
+    result.frames = 600U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, 0.0, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    return result;
+}
+
+[[nodiscard]] TriangleMesh tetrahedron_mesh(
+    std::string name, Vec3 origin, float edge);
+
+[[nodiscard]] SceneDefinition soft_body_fixture_scene() {
+    SceneDefinition scene{};
+    scene.meshes.push_back(tetrahedron_mesh(
+        "qualification-soft", {-0.05F, -0.05F, -0.05F}, 0.1F));
+    scene.meshes.push_back(box_mesh(
+        "qualification-soft-impactor", {0.02F, 0.02F, 0.02F}));
+
+    SoftBodyDefinition soft{};
+    soft.name = "qualification-soft";
+    soft.mesh_index = 0U;
+    for (const auto &vertex : scene.meshes[0U].vertices)
+        soft.nodes.push_back(vertex.position);
+    for (const auto &[first, second] :
+         std::array<std::pair<std::uint32_t, std::uint32_t>, 6U>{
+             std::pair{0U, 1U}, {0U, 2U}, {0U, 3U},
+             {1U, 2U}, {1U, 3U}, {2U, 3U}}) {
+        const Vec3 delta{
+            soft.nodes[first].x - soft.nodes[second].x,
+            soft.nodes[first].y - soft.nodes[second].y,
+            soft.nodes[first].z - soft.nodes[second].z};
+        soft.bonds.push_back({first, second, std::sqrt(
+            delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)});
+    }
+    soft.inverse_masses.assign(4U, 1.0F);
+    for (std::uint32_t node = 0U; node < 4U; ++node) {
+        SoftBodySurfaceBinding binding{};
+        binding.nodes[0] = node;
+        binding.weights[0] = 1.0F;
+        soft.surface_bindings.push_back(binding);
+    }
+    soft.node_mass = 1.0F;
+    soft.node_radius = 0.025F;
+    soft.stretch_compliance = 1.0e-5F;
+    soft.velocity_damping = 2.0F;
+    soft.spring_damping = 0.0F;
+    soft.shape_matching_stiffness = 0.8F;
+    soft.maximum_speed = 1.0F;
+    soft.solver_iterations = 8U;
+    scene.soft_bodies.push_back(std::move(soft));
+
+    RigidBodyDefinition impactor{};
+    impactor.name = "qualification-soft-impactor";
+    impactor.source_name = impactor.name;
+    impactor.mesh_indices = {1U};
+    impactor.options.initial_state.position = {-0.09F, 0.0F, 0.0F};
+    impactor.options.initial_state.linear_velocity = {0.05F, 0.0F, 0.0F};
+    impactor.options.mass = 0.01F;
+    impactor.options.linear_damping = 0.0F;
+    impactor.options.maximum_linear_speed = 1.0F;
+    scene.rigid_bodies.push_back(std::move(impactor));
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition soft_body_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "soft-body-mass-ratio-volume";
+    result.title = "Shape-matched tetrahedron with controlled mass-ratio impact";
+    result.frames = 600U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, 0.0, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    return result;
+}
+
+[[nodiscard]] std::vector<FluidParticle> regular_tetra_fluid(Vec3 center) {
+    constexpr float coordinate = 0.03535533905932738F;
+    std::vector<FluidParticle> result;
+    for (const Vec3 offset : std::array<Vec3, 4U>{
+             Vec3{coordinate, coordinate, coordinate},
+             Vec3{coordinate, -coordinate, -coordinate},
+             Vec3{-coordinate, coordinate, -coordinate},
+             Vec3{-coordinate, -coordinate, coordinate}})
+        result.push_back({{center.x + offset.x, center.y + offset.y,
+                           center.z + offset.z}, {}, 20.0F});
+    return result;
+}
+
+[[nodiscard]] SceneDefinition fluid_fixture_scene() {
+    SceneDefinition scene{};
+    constexpr float support = 0.2F;
+    constexpr float edge = 0.1F;
+    const double h2 = support * support;
+    const double kernel_scale = 315.0 /
+        (64.0 * std::numbers::pi * std::pow(support, 9.0));
+    const double kernel_sum = kernel_scale * (
+        std::pow(h2, 3.0) + 3.0 * std::pow(h2 - edge * edge, 3.0));
+    scene.fluid_options.capacity = 8U;
+    scene.fluid_options.particle_radius = 0.02F;
+    scene.fluid_options.support_radius = support;
+    scene.fluid_options.rest_density = 1'000.0F;
+    scene.fluid_options.rest_particle_volume =
+        static_cast<float>(1.0 / kernel_sum);
+    scene.fluid_options.maximum_neighbors = 8U;
+    scene.fluid_options.solver_iterations = 6U;
+    scene.fluid_options.repulsion = 50.0F;
+    scene.fluid_options.viscosity = 0.0F;
+    scene.fluid_options.velocity_damping = 0.0F;
+    scene.fluid_options.maximum_speed = 1.0F;
+    scene.initial_particles = regular_tetra_fluid({-0.5F, 0.0F, 0.0F});
+
+    scene.meshes.push_back(box_mesh("wall-x", {0.02F, 1.0F, 1.0F}));
+    scene.meshes.push_back(box_mesh("wall-y", {1.0F, 0.02F, 1.0F}));
+    scene.meshes.push_back(box_mesh("wall-z", {1.0F, 1.0F, 0.02F}));
+    for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+        for (const float sign : {-1.0F, 1.0F}) {
+            RigidBodyDefinition wall{};
+            wall.name = "closed-wall-" + std::to_string(axis) +
+                (sign < 0.0F ? "-" : "+");
+            wall.source_name = wall.name;
+            wall.mesh_indices = {axis};
+            wall.options.motion = MotionType::static_body;
+            if (axis == 0U) wall.options.initial_state.position.x = 1.02F * sign;
+            if (axis == 1U) wall.options.initial_state.position.y = 1.02F * sign;
+            if (axis == 2U) wall.options.initial_state.position.z = 1.02F * sign;
+            scene.rigid_bodies.push_back(std::move(wall));
+        }
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition fluid_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "fluid-closed-container-source-outflow";
+    result.title = "Closed symmetric SPH clusters with source lifecycle";
+    result.frames = 600U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, 0.0, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    result.commands = {
+        {100U, "fluid_fixture_source_birth", "fluid", {}, 0U},
+        {300U, "fluid_fixture_source_removal", "fluid", {}, 0U}};
+    return result;
+}
+
+[[nodiscard]] SceneDefinition smoke_fixture_scene() {
+    SceneDefinition scene{};
+    scene.create_default_couplings = false;
+    scene.has_smoke = true;
+    scene.smoke_options.capacity = 1U;
+    scene.smoke_options.emitter_center = {-20.0F, 10.0F, 0.0F};
+    scene.smoke_options.emitter_half_extents = {0.001F, 0.001F};
+    scene.smoke_options.initial_velocity = {1.6F, 0.0F, 0.0F};
+    scene.smoke_options.wind = scene.smoke_options.initial_velocity;
+    scene.smoke_options.particles_per_second = 60.0F;
+    scene.smoke_options.lifetime = 100.0F;
+    scene.smoke_options.particle_radius = 0.085F;
+    scene.smoke_options.buoyancy = 0.0F;
+    scene.smoke_options.response = 0.0F;
+    scene.smoke_options.rest_number_density = 1.0F;
+    scene.smoke_options.pressure_stiffness = 0.0F;
+    scene.smoke_options.viscosity = 0.0F;
+    scene.smoke_options.vorticity_confinement = 0.0F;
+    scene.smoke_options.maximum_speed = 2.0F;
+    scene.smoke_options.grid_resolution = 0U;
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition smoke_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "smoke-analytic-transport-long-run";
+    result.title = "Single-tracer analytic transport with source shutdown";
+    result.frames = 3'600U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, 0.0, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    result.commands = {
+        {1'800U, "set_smoke_emitter_active", "smoke", {}, 0U}};
+    return result;
+}
+
+[[nodiscard]] SceneDefinition containment_fixture_scene() {
+    SceneDefinition scene = cloth_fixture_scene();
+    constexpr Vec3 center{10.0F, 0.0F, 0.0F};
+    constexpr float support = 0.2F;
+    constexpr float edge = 0.1F;
+    const double h2 = support * support;
+    const double kernel_scale = 315.0 /
+        (64.0 * std::numbers::pi * std::pow(support, 9.0));
+    const double kernel_sum = kernel_scale * (
+        std::pow(h2, 3.0) + 3.0 * std::pow(h2 - edge * edge, 3.0));
+    scene.fluid_options.capacity = 4U;
+    scene.fluid_options.particle_radius = 0.02F;
+    scene.fluid_options.support_radius = support;
+    scene.fluid_options.rest_density = 1'000.0F;
+    scene.fluid_options.rest_particle_volume =
+        static_cast<float>(1.0 / kernel_sum);
+    scene.fluid_options.maximum_neighbors = 4U;
+    scene.fluid_options.solver_iterations = 6U;
+    scene.fluid_options.repulsion = 50.0F;
+    scene.fluid_options.viscosity = 0.0F;
+    scene.fluid_options.velocity_damping = 0.0F;
+    scene.fluid_options.maximum_speed = 1.0F;
+    scene.initial_particles = regular_tetra_fluid(center);
+
+    const std::uint32_t first_wall_mesh =
+        static_cast<std::uint32_t>(scene.meshes.size());
+    scene.meshes.push_back(box_mesh(
+        "containment-wall-x", {0.02F, 1.0F, 1.0F}));
+    scene.meshes.push_back(box_mesh(
+        "containment-wall-y", {1.0F, 0.02F, 1.0F}));
+    scene.meshes.push_back(box_mesh(
+        "containment-wall-z", {1.0F, 1.0F, 0.02F}));
+    for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+        for (const float sign : {-1.0F, 1.0F}) {
+            RigidBodyDefinition wall{};
+            wall.name = "containment-wall-" + std::to_string(axis) +
+                (sign < 0.0F ? "-" : "+");
+            wall.source_name = wall.name;
+            wall.mesh_indices = {first_wall_mesh + axis};
+            wall.options.motion = MotionType::static_body;
+            wall.options.initial_state.position = center;
+            if (axis == 0U) wall.options.initial_state.position.x += 1.02F * sign;
+            if (axis == 1U) wall.options.initial_state.position.y += 1.02F * sign;
+            if (axis == 2U) wall.options.initial_state.position.z += 1.02F * sign;
+            scene.rigid_bodies.push_back(std::move(wall));
+        }
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition containment_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "fluid-cloth-rigid-containment";
+    result.title = "Closed liquid cell with controlled rigid-cloth impact";
+    result.frames = 600U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, 0.0, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    return result;
+}
+
+[[nodiscard]] TriangleMesh tetrahedron_mesh(std::string name, Vec3 origin,
+                                            float edge) {
+    TriangleMesh result{};
+    result.name = std::move(name);
+    for (const Vec3 point : std::array<Vec3, 4U>{
+             origin,
+             Vec3{origin.x + edge, origin.y, origin.z},
+             Vec3{origin.x, origin.y + edge, origin.z},
+             Vec3{origin.x, origin.y, origin.z + edge}})
+        result.vertices.push_back({.position = point});
+    result.indices = {0U, 2U, 1U, 0U, 1U, 3U,
+                      0U, 3U, 2U, 1U, 2U, 3U};
+    return result;
+}
+
+[[nodiscard]] SceneDefinition mixed_fixture_scene() {
+    SceneDefinition scene{};
+    scene.meshes.push_back(box_mesh("mixed-rigid", {0.25F, 0.25F, 0.25F}));
+    scene.meshes.push_back(tetrahedron_mesh(
+        "mixed-cloth", {-20.0F, 10.0F, 0.0F}, 0.1F));
+    scene.meshes.push_back(tetrahedron_mesh(
+        "mixed-soft", {20.0F, 10.0F, 0.0F}, 0.1F));
+    scene.meshes.push_back(box_mesh(
+        "mixed-fluid-container", {1.0F, 1.0F, 1.0F}));
+
+    RigidBodyDefinition floor{};
+    floor.name = "mixed-static";
+    floor.source_name = floor.name;
+    floor.mesh_indices = {3U};
+    floor.options.motion = MotionType::static_body;
+    floor.options.initial_state.position = {40.1F, 10.1F, 0.1F};
+    RigidBodyDefinition dynamic{};
+    dynamic.name = "mixed-dynamic";
+    dynamic.source_name = dynamic.name;
+    dynamic.mesh_indices = {0U};
+    dynamic.options.initial_state.position = {0.0F, 3.0F, 0.0F};
+    dynamic.options.maximum_linear_speed = 20.0F;
+    dynamic.options.maximum_angular_speed = 20.0F;
+    scene.rigid_bodies = {floor, dynamic};
+
+    scene.fluid_options.capacity = 8U;
+    scene.fluid_options.maximum_neighbors = 16U;
+    scene.fluid_options.solver_iterations = 6U;
+    scene.fluid_options.particle_radius = 0.025F;
+    scene.fluid_options.support_radius = 0.09F;
+    scene.fluid_options.rest_density = 1'000.0F;
+    const double kernel_zero = 315.0 /
+        (64.0 * std::numbers::pi * std::pow(0.09, 3.0));
+    scene.fluid_options.rest_particle_volume =
+        static_cast<float>(1.0 / kernel_zero);
+    scene.fluid_options.maximum_speed = 20.0F;
+    for (std::uint32_t index = 0U; index < 8U; ++index)
+        scene.initial_particles.push_back({
+            {40.0F + static_cast<float>(index % 2U) * 0.2F,
+             10.0F + static_cast<float>((index / 2U) % 2U) * 0.2F,
+             static_cast<float>(index / 4U) * 0.2F}, {}, 20.0F});
+
+    ClothDefinition cloth{};
+    cloth.name = "mixed-cloth";
+    cloth.mesh_index = 1U;
+    cloth.inverse_masses.assign(4U, 0.0F);
+    cloth.vertex_mass = 0.01F;
+    cloth.solver_iterations = 8U;
+    scene.cloths.push_back(std::move(cloth));
+
+    SoftBodyDefinition soft{};
+    soft.name = "mixed-soft";
+    soft.mesh_index = 2U;
+    for (const auto &vertex : scene.meshes[2U].vertices)
+        soft.nodes.push_back(vertex.position);
+    for (const auto &[first, second] :
+         std::array<std::pair<std::uint32_t, std::uint32_t>, 6U>{
+             std::pair{0U, 1U}, {0U, 2U}, {0U, 3U},
+             {1U, 2U}, {1U, 3U}, {2U, 3U}}) {
+        const Vec3 delta{soft.nodes[first].x - soft.nodes[second].x,
+                         soft.nodes[first].y - soft.nodes[second].y,
+                         soft.nodes[first].z - soft.nodes[second].z};
+        soft.bonds.push_back({first, second, std::sqrt(
+            delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)});
+    }
+    soft.inverse_masses.assign(4U, 1.0F);
+    for (std::uint32_t node = 0U; node < 4U; ++node) {
+        SoftBodySurfaceBinding binding{};
+        binding.nodes[0] = node;
+        binding.weights[0] = 1.0F;
+        soft.surface_bindings.push_back(binding);
+    }
+    soft.solver_iterations = 8U;
+    scene.soft_bodies.push_back(std::move(soft));
+
+    RopeDefinition rope{};
+    rope.name = "mixed-rope";
+    rope.centerline = {{30.0F, 10.0F, 0.0F},
+        {std::nextafter(30.15F, 30.0F), 10.0F, 0.0F}};
+    rope.options.node_spacing = 0.05F;
+    rope.options.radius = 0.025F;
+    rope.options.solver_iterations = 8U;
+    rope.options.maximum_substep_timestep = 1.0F / 60.0F;
+    rope.options.maximum_speed = 20.0F;
+    scene.ropes.push_back(std::move(rope));
+
+    scene.has_smoke = true;
+    scene.smoke_options.capacity = 4U;
+    scene.smoke_options.emitter_center = {-40.0F, 10.0F, 0.0F};
+    scene.smoke_options.emitter_half_extents = {0.01F, 0.01F};
+    scene.smoke_options.initial_velocity = {1.6F, 0.0F, 0.0F};
+    scene.smoke_options.wind = scene.smoke_options.initial_velocity;
+    scene.smoke_options.particles_per_second = 240.0F;
+    scene.smoke_options.lifetime = 10'000.0F;
+    scene.smoke_options.buoyancy = 0.0F;
+    scene.smoke_options.response = 0.0F;
+    scene.smoke_options.pressure_stiffness = 0.0F;
+    scene.smoke_options.viscosity = 0.0F;
+    scene.smoke_options.vorticity_confinement = 0.0F;
+    scene.smoke_options.maximum_speed = 4.0F;
+    // Four tracers in the authored emitter footprint reconstruct a public
+    // number density near four.  Use that authored equilibrium rather than
+    // the unrelated dense-cloud default of twelve.
+    scene.smoke_options.rest_number_density = 4.0F;
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition mixed_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "six-family-mixed";
+    result.title = "Shared six-family public fixture";
+    result.frames = 600U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, 0.0, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    result.commands = {
+        {300U, "set_smoke_emitter_active", "smoke", {}, 0U}};
+    return result;
+}
+
+[[nodiscard]] SceneDefinition boundary_fixture_scene() {
+    SceneDefinition scene = mixed_fixture_scene();
+    scene.cloths.clear();
+    scene.soft_bodies.clear();
+    scene.has_smoke = false;
+    scene.fluid_options.capacity = 4U;
+    scene.initial_particles.resize(4U);
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition boundary_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "boundary-replacement-generation";
+    result.title = "Public boundary replacement and source birth fixture";
+    result.frames = 4U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, -9.81, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    result.commands = {
+        {1U, "replace_boundary_resources", "world", {}, 0U},
+        {2U, "boundary_source_birth", "fluid", {}, 0U}};
+    return result;
+}
+
+[[nodiscard]] SceneDefinition empty_sparse_fixture_scene() {
+    SceneDefinition scene{};
+    scene.create_default_couplings = false;
+    scene.meshes.push_back(box_mesh("sparse-rigid", {0.1F, 0.1F, 0.1F}));
+    TriangleMesh point_mesh{};
+    point_mesh.name = "sparse-point";
+    point_mesh.vertices.push_back({.position = {10.0F, 10.0F, 0.0F}});
+    scene.meshes.push_back(point_mesh);
+    scene.meshes.push_back(tetrahedron_mesh(
+        "sparse-soft-surface", {30.0F, 10.0F, 0.0F}, 0.05F));
+
+    RigidBodyDefinition rigid{};
+    rigid.name = "sparse-rigid";
+    rigid.source_name = rigid.name;
+    rigid.mesh_indices = {0U};
+    rigid.options.initial_state.position = {-10.0F, 10.0F, 0.0F};
+    rigid.options.maximum_linear_speed = 20.0F;
+    rigid.options.maximum_angular_speed = 20.0F;
+    scene.rigid_bodies.push_back(std::move(rigid));
+
+    scene.fluid_options.capacity = 1U;
+    scene.fluid_options.maximum_neighbors = 1U;
+    scene.fluid_options.solver_iterations = 6U;
+    scene.fluid_options.particle_radius = 0.025F;
+    scene.fluid_options.support_radius = 0.09F;
+    scene.fluid_options.rest_density = 1'000.0F;
+    const double kernel_zero = 315.0 /
+        (64.0 * std::numbers::pi * std::pow(0.09, 3.0));
+    scene.fluid_options.rest_particle_volume =
+        static_cast<float>(1.0 / kernel_zero);
+    scene.initial_particles.push_back({{20.0F, 10.0F, 0.0F}, {}, 20.0F});
+
+    ClothDefinition cloth{};
+    cloth.name = "sparse-cloth";
+    cloth.mesh_index = 1U;
+    cloth.inverse_masses = {0.0F};
+    cloth.solver_iterations = 8U;
+    scene.cloths.push_back(std::move(cloth));
+
+    SoftBodyDefinition soft{};
+    soft.name = "sparse-soft";
+    soft.mesh_index = 2U;
+    soft.nodes = {{30.0F, 10.0F, 0.0F}};
+    soft.inverse_masses = {1.0F};
+    for (std::uint32_t vertex = 0U; vertex < 4U; ++vertex) {
+        SoftBodySurfaceBinding binding{};
+        binding.weights[0] = 1.0F;
+        soft.surface_bindings.push_back(binding);
+    }
+    soft.solver_iterations = 8U;
+    scene.soft_bodies.push_back(std::move(soft));
+
+    RopeDefinition rope{};
+    rope.name = "sparse-rope";
+    rope.centerline = {{40.0F, 10.0F, 0.0F}, {40.04F, 10.0F, 0.0F}};
+    rope.options.node_spacing = 0.05F;
+    rope.options.radius = 0.025F;
+    rope.options.maximum_substep_timestep = 1.0F / 60.0F;
+    rope.options.solver_iterations = 8U;
+    rope.options.maximum_speed = 20.0F;
+    scene.ropes.push_back(std::move(rope));
+
+    scene.has_smoke = true;
+    scene.smoke_options.capacity = 1U;
+    scene.smoke_options.emitter_center = {50.0F, 10.0F, 0.0F};
+    scene.smoke_options.emitter_half_extents = {0.01F, 0.01F};
+    scene.smoke_options.initial_velocity = {1.0F, 0.0F, 0.0F};
+    scene.smoke_options.wind = scene.smoke_options.initial_velocity;
+    scene.smoke_options.particles_per_second = 60.0F;
+    scene.smoke_options.lifetime = 10'000.0F;
+    scene.smoke_options.maximum_speed = 4.0F;
+    scene.smoke_options.rest_number_density = 1.0F;
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition empty_sparse_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "empty-and-sparse-capacity";
+    result.title = "Empty then sparse public capacity fixture";
+    result.frames = 2U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, -9.81, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    result.commands = {
+        {1U, "admit_sparse_resources", "world", {}, 0U}};
+    return result;
+}
+
+[[nodiscard]] SceneDefinition capacity_fixture_scene() {
+    SceneDefinition scene{};
+    scene.create_default_couplings = false;
+
+    TriangleMesh cloth_mesh{};
+    cloth_mesh.name = "capacity-cloth";
+    cloth_mesh.vertices = {
+        {.position = {30.0F, 10.0F, 0.0F}},
+        {.position = {30.1F, 10.0F, 0.0F}},
+        {.position = {30.0F, 10.1F, 0.0F}}};
+    cloth_mesh.indices = {0U, 1U, 2U};
+    scene.meshes.push_back(std::move(cloth_mesh));
+
+    scene.fluid_options.capacity = 4U;
+    scene.fluid_options.maximum_neighbors = 1U;
+    scene.fluid_options.solver_iterations = 6U;
+    scene.fluid_options.particle_radius = 0.025F;
+    scene.fluid_options.support_radius = 0.09F;
+    scene.fluid_options.rest_density = 1'000.0F;
+    const double kernel_zero = 315.0 /
+        (64.0 * std::numbers::pi * std::pow(0.09, 3.0));
+    scene.fluid_options.rest_particle_volume =
+        static_cast<float>(1.0 / kernel_zero);
+    scene.initial_particles.push_back({{20.0F, 10.0F, 0.0F}, {}, 20.0F});
+
+    ClothDefinition cloth{};
+    cloth.name = "capacity-cloth";
+    cloth.mesh_index = 0U;
+    cloth.inverse_masses = {0.0F, 0.0F, 0.0F};
+    cloth.solver_iterations = 8U;
+    scene.cloths.push_back(std::move(cloth));
+
+    scene.has_smoke = true;
+    scene.smoke_options.capacity = 1U;
+    scene.smoke_options.emitter_center = {40.0F, 10.0F, 0.0F};
+    scene.smoke_options.emitter_half_extents = {0.01F, 0.01F};
+    scene.smoke_options.initial_velocity = {1.0F, 0.0F, 0.0F};
+    scene.smoke_options.wind = scene.smoke_options.initial_velocity;
+    scene.smoke_options.particles_per_second = 60.0F;
+    scene.smoke_options.lifetime = 10'000.0F;
+    scene.smoke_options.maximum_speed = 4.0F;
+    scene.smoke_options.rest_number_density = 1.0F;
+    return scene;
+}
+
+[[nodiscard]] CaseDefinition capacity_fixture_definition() {
+    CaseDefinition result{};
+    result.id = "capacity-overflow-atomic-recovery";
+    result.title = "Public capacity overflow and atomic recovery fixture";
+    result.frames = 3U;
+    result.substeps = 1U;
+    result.timestep = 1.0 / 60.0;
+    result.gravity = {0.0, -9.81, 0.0};
+    result.tolerance_profile = "realtime-single-step-v1";
+    result.commands = {
+        {1U, "submit_capacity_overflow", "fluid", {}, 0U},
+        {2U, "recover_capacity_input", "fluid", {}, 0U}};
+    return result;
+}
+
 [[nodiscard]] SceneDefinition load_scene(const CaseDefinition &definition,
                                          const std::filesystem::path &root) {
     if (definition.kind == CaseKind::integrated_glb) {
@@ -381,9 +1061,9 @@ void initialize_frame(Runtime &runtime) {
 }
 
 [[nodiscard]] Runtime make_runtime(const CaseDefinition &definition,
-                                   const std::filesystem::path &root) {
+                                   SceneDefinition scene) {
     Runtime runtime{};
-    runtime.scene = load_scene(definition, root);
+    runtime.scene = std::move(scene);
     std::string error;
     if (!apply_gallery_fixed_tick_material_contract(runtime.scene, error)) {
         if (std::string_view(error).starts_with(
@@ -410,12 +1090,19 @@ void initialize_frame(Runtime &runtime) {
     initialize_frame(runtime);
     PmResult creation_category{};
     if (!CommandScene::create(runtime.scene, 0U, runtime.command_scene,
-                              runtime.instance, error, std::nullopt, &creation_category)) {
+                              runtime.instance, error, std::nullopt,
+                              &creation_category,
+                              std::getenv("PM_TEST_VALIDATION") != nullptr)) {
         if (creation_category == PM_ERROR_FEATURE_NOT_PRESENT)
             throw UnsupportedCase(error);
         throw std::runtime_error("create command scene: " + error);
     }
     return runtime;
+}
+
+[[nodiscard]] Runtime make_runtime(const CaseDefinition &definition,
+                                   const std::filesystem::path &root) {
+    return make_runtime(definition, load_scene(definition, root));
 }
 
 [[nodiscard]] std::size_t body_index(const Runtime &runtime,
@@ -450,6 +1137,34 @@ void apply_command(Runtime &runtime, const Command &command, Vec3 &gravity) {
                 static_cast<float>(command.value[component]);
         require(runtime.command_scene.apply_rigid_inputs({input}, error),
                 "apply impulse", error);
+        return;
+    }
+    if (command.operation == "set_particle_emitters_active") {
+        require(runtime.command_scene.set_particle_emitters_active(
+                    command.value[0] != 0.0, error),
+                "set particle emitters active", error);
+        return;
+    }
+    if (command.operation == "set_smoke_emitter_active") {
+        require(runtime.command_scene.set_smoke_emitter_active(
+                    command.value[0] != 0.0, error),
+                "set smoke emitter active", error);
+        return;
+    }
+    if (command.operation == "fluid_fixture_source_birth") {
+        auto particles = regular_tetra_fluid({-0.5F, 0.0F, 0.0F});
+        auto source = regular_tetra_fluid({0.5F, 0.0F, 0.0F});
+        particles.insert(particles.end(), source.begin(), source.end());
+        require(runtime.command_scene.set_fluid_particles(particles, error),
+                "admit fluid fixture source cluster", error);
+        runtime.scene.initial_particles = std::move(particles);
+        return;
+    }
+    if (command.operation == "fluid_fixture_source_removal") {
+        auto particles = regular_tetra_fluid({-0.5F, 0.0F, 0.0F});
+        require(runtime.command_scene.set_fluid_particles(particles, error),
+                "remove fluid fixture source cluster", error);
+        runtime.scene.initial_particles = std::move(particles);
         return;
     }
     if (command.operation == "set_kinematic_target" ||
@@ -516,6 +1231,85 @@ void apply_command(Runtime &runtime, const Command &command, Vec3 &gravity) {
         }
         return;
     }
+    if (command.operation == "replace_boundary_resources") {
+        if (runtime.scene.rigid_bodies.size() < 2U ||
+            runtime.scene.initial_particles.size() < 4U ||
+            runtime.scene.ropes.empty())
+            throw std::runtime_error("boundary fixture resources are incomplete");
+        RigidBodyState replacement =
+            runtime.scene.rigid_bodies[1U].options.initial_state;
+        replacement.position.x += 0.25F;
+        require(runtime.command_scene.set_rigid_state(1U, replacement, error),
+                "replace boundary rigid body", error);
+        runtime.scene.rigid_bodies[1U].options.initial_state = replacement;
+
+        std::vector<FluidParticle> replacement_particles(
+            runtime.scene.initial_particles.begin(),
+            runtime.scene.initial_particles.begin() + 3U);
+        for (auto &particle : replacement_particles) particle.position.x += 0.25F;
+        require(runtime.command_scene.set_fluid_particles(
+                    replacement_particles, error),
+                "replace boundary fluid generation", error);
+        runtime.scene.initial_particles = replacement_particles;
+
+        RopeDefinition rope = runtime.scene.ropes.front();
+        for (Vec3 &point : rope.centerline) point.y += 0.25F;
+        require(runtime.command_scene.write_rope(0U, rope, error),
+                "replace boundary rope generation", error);
+        runtime.scene.ropes.front() = std::move(rope);
+        runtime.generation_changed = true;
+        return;
+    }
+    if (command.operation == "boundary_source_birth") {
+        if (runtime.scene.initial_particles.size() != 3U)
+            throw std::runtime_error("boundary fixture source state is invalid");
+        auto particles = runtime.scene.initial_particles;
+        particles.push_back({{40.8F, 10.0F, 0.0F}, {}, 20.0F});
+        require(runtime.command_scene.set_fluid_particles(particles, error),
+                "admit boundary source particle", error);
+        runtime.scene.initial_particles = std::move(particles);
+        return;
+    }
+    if (command.operation == "admit_sparse_resources") {
+        if (!runtime.scene.rigid_bodies.empty())
+            require(runtime.command_scene.set_rigid_active(0U, true, error),
+                    "admit sparse rigid body", error);
+        if (runtime.scene.fluid_options.capacity != 0U)
+            require(runtime.command_scene.set_fluid_particles(
+                        runtime.scene.initial_particles, error),
+                    "admit sparse fluid particle", error);
+        if (!runtime.scene.cloths.empty())
+            require(runtime.command_scene.set_cloth_active(0U, true, error),
+                    "admit sparse cloth", error);
+        if (!runtime.scene.soft_bodies.empty())
+            require(runtime.command_scene.set_soft_body_active(0U, true, error),
+                    "admit sparse soft body", error);
+        if (!runtime.scene.ropes.empty())
+            require(runtime.command_scene.set_rope_active(0U, true, error),
+                    "admit sparse rope", error);
+        if (runtime.scene.has_smoke)
+            require(runtime.command_scene.set_smoke_active(true, error),
+                    "admit sparse smoke", error);
+        return;
+    }
+    if (command.operation == "submit_capacity_overflow") {
+        std::vector<FluidParticle> particles(4U);
+        for (auto &particle : particles) {
+            particle.position = {20.0F, 10.0F, 0.0F};
+            particle.temperature = 20.0F;
+        }
+        require(runtime.command_scene.set_fluid_particles(particles, error),
+                "submit over-capacity fluid boundary", error);
+        return;
+    }
+    if (command.operation == "recover_capacity_input") {
+        std::vector<FluidParticle> particles{
+            {{21.0F, 10.0F, 0.0F}, {}, 20.0F}};
+        require(runtime.command_scene.set_fluid_particles(particles, error),
+                "replace overflow with valid retained boundary", error);
+        runtime.scene.initial_particles = std::move(particles);
+        return;
+    }
     throw std::runtime_error("unsupported command " + command.operation);
 }
 
@@ -576,7 +1370,349 @@ void apply_command(Runtime &runtime, const Command &command, Vec3 &gravity) {
     return result;
 }
 
-[[nodiscard]] Json fluid_resource(const Runtime &runtime, bool complete) {
+template <typename State>
+void copy_particle_state(const std::vector<State> &states,
+                         std::vector<Vec3> &positions,
+                         std::vector<Vec3> &velocities) {
+    for (const auto &state : states) {
+        positions.push_back(vec(state.position));
+        velocities.push_back(vec(state.velocity));
+    }
+}
+
+[[nodiscard]] double distance(Vec3 first, Vec3 second) noexcept {
+    const double x = static_cast<double>(first.x) - second.x;
+    const double y = static_cast<double>(first.y) - second.y;
+    const double z = static_cast<double>(first.z) - second.z;
+    return std::sqrt(x * x + y * y + z * z);
+}
+
+[[nodiscard]] Vec3 subtract(Vec3 first, Vec3 second) noexcept {
+    return {first.x - second.x, first.y - second.y, first.z - second.z};
+}
+
+[[nodiscard]] Vec3 cross(Vec3 first, Vec3 second) noexcept {
+    return {first.y * second.z - first.z * second.y,
+            first.z * second.x - first.x * second.z,
+            first.x * second.y - first.y * second.x};
+}
+
+[[nodiscard]] double dot(Vec3 first, Vec3 second) noexcept {
+    return static_cast<double>(first.x) * second.x +
+        static_cast<double>(first.y) * second.y +
+        static_cast<double>(first.z) * second.z;
+}
+
+[[nodiscard]] double length(Vec3 value) noexcept {
+    return std::sqrt(dot(value, value));
+}
+
+[[nodiscard]] double angle(Vec3 first, Vec3 second) noexcept {
+    const double denominator = length(first) * length(second);
+    if (!(denominator > 0.0)) return 0.0;
+    return std::acos(std::clamp(dot(first, second) / denominator, -1.0, 1.0));
+}
+
+struct QuaternionValue { double x{}, y{}, z{}, w{1.0}; };
+
+[[nodiscard]] QuaternionValue quaternion(const float value[4]) noexcept {
+    return {value[0], value[1], value[2], value[3]};
+}
+
+[[nodiscard]] QuaternionValue quaternion(Quaternion value) noexcept {
+    return {value.x, value.y, value.z, value.w};
+}
+
+[[nodiscard]] QuaternionValue multiply(QuaternionValue first,
+                                       QuaternionValue second) noexcept {
+    return {
+        first.w * second.x + first.x * second.w + first.y * second.z -
+            first.z * second.y,
+        first.w * second.y - first.x * second.z + first.y * second.w +
+            first.z * second.x,
+        first.w * second.z + first.x * second.y - first.y * second.x +
+            first.z * second.w,
+        first.w * second.w - first.x * second.x - first.y * second.y -
+            first.z * second.z};
+}
+
+[[nodiscard]] Vec3 rotate(QuaternionValue orientation, Vec3 point) noexcept {
+    const QuaternionValue vector{point.x, point.y, point.z, 0.0};
+    const QuaternionValue inverse{-orientation.x, -orientation.y,
+                                  -orientation.z, orientation.w};
+    const QuaternionValue result = multiply(multiply(orientation, vector), inverse);
+    return {static_cast<float>(result.x), static_cast<float>(result.y),
+            static_cast<float>(result.z)};
+}
+
+[[nodiscard]] Json authored_fixture_json(const Runtime &runtime,
+                                         const CaseDefinition &definition) {
+    Json result = Json::object();
+    Json gravity = Json::array();
+    for (const double component : definition.gravity) gravity.push_back(component);
+    result["gravity"] = std::move(gravity);
+
+    const auto &fluid = runtime.scene.fluid_options;
+    const double particle_volume = fluid.rest_particle_volume > 0.0F
+        ? fluid.rest_particle_volume
+        : std::pow(static_cast<double>(fluid.particle_radius) * 2.0, 3.0);
+    result["fluid_particle_mass_kg"] = fluid.rest_density * particle_volume;
+    result["fluid_particle_radius_m"] = fluid.particle_radius;
+    result["fluid_support_radius_m"] = fluid.support_radius;
+    result["fluid_rest_density_kg_m3"] = fluid.rest_density;
+
+    if (runtime.scene.has_smoke) {
+        const auto &smoke = runtime.scene.smoke_options;
+        Json observed = Json::object();
+        observed["emitter_center"] = vector_json(smoke.emitter_center);
+        observed["initial_velocity"] = vector_json(smoke.initial_velocity);
+        observed["wind"] = vector_json(smoke.wind);
+        observed["lifetime_seconds"] = smoke.lifetime;
+        observed["maximum_speed_m_s"] = smoke.maximum_speed;
+        observed["particles_per_second"] = smoke.particles_per_second;
+        observed["rest_number_density"] = smoke.rest_number_density;
+        observed["grid_cell_size_m"] = smoke.grid_resolution != 0U &&
+                smoke.grid_edge_length > 0.0F
+            ? smoke.grid_edge_length / smoke.grid_resolution
+            : smoke.particle_radius * 2.0F;
+        result["smoke"] = std::move(observed);
+    }
+
+    Json colliders = Json::array();
+    for (const auto &body : runtime.scene.rigid_bodies) {
+        if (body.options.motion != MotionType::static_body) continue;
+        Vec3 minimum{std::numeric_limits<float>::infinity(),
+                     std::numeric_limits<float>::infinity(),
+                     std::numeric_limits<float>::infinity()};
+        Vec3 maximum{-std::numeric_limits<float>::infinity(),
+                     -std::numeric_limits<float>::infinity(),
+                     -std::numeric_limits<float>::infinity()};
+        bool found = false;
+        const bool explicit_collision = !body.collision_mesh_indices.empty();
+        const auto &indices = explicit_collision
+            ? body.collision_mesh_indices : body.mesh_indices;
+        const auto &meshes = explicit_collision
+            ? runtime.scene.collision_meshes : runtime.scene.meshes;
+        for (const std::uint32_t mesh_index : indices) {
+            if (mesh_index >= meshes.size()) continue;
+            for (const auto &vertex : meshes[mesh_index].vertices) {
+                const Vec3 rotated = rotate(
+                    quaternion(body.options.initial_state.orientation),
+                    vertex.position);
+                const Vec3 point{
+                    rotated.x + body.options.initial_state.position.x,
+                    rotated.y + body.options.initial_state.position.y,
+                    rotated.z + body.options.initial_state.position.z};
+                minimum.x = std::min(minimum.x, point.x);
+                minimum.y = std::min(minimum.y, point.y);
+                minimum.z = std::min(minimum.z, point.z);
+                maximum.x = std::max(maximum.x, point.x);
+                maximum.y = std::max(maximum.y, point.y);
+                maximum.z = std::max(maximum.z, point.z);
+                found = true;
+            }
+        }
+        if (!found) continue;
+        Json collider = Json::object();
+        collider["id"] = body.name;
+        collider["maximum"] = vector_json(maximum);
+        collider["minimum"] = vector_json(minimum);
+        colliders.push_back(std::move(collider));
+    }
+    result["static_collision_bounds"] = std::move(colliders);
+
+    Json destroy_planes = Json::array();
+    for (const auto &destroyer : runtime.scene.destroy_planes) {
+        Json plane = Json::object();
+        plane["active"] = destroyer.enabled;
+        plane["center"] = vector_json(destroyer.plane.center);
+        plane["half_extents"] = Json::array();
+        plane["half_extents"].push_back(
+            static_cast<double>(destroyer.plane.half_extents.x));
+        plane["half_extents"].push_back(
+            static_cast<double>(destroyer.plane.half_extents.y));
+        const float orientation[4]{destroyer.plane.orientation.x,
+            destroyer.plane.orientation.y, destroyer.plane.orientation.z,
+            destroyer.plane.orientation.w};
+        plane["orientation"] = quaternion_json(orientation);
+        plane["crossing"] = destroyer.crossing == CrossingDirection::along_normal
+            ? "along_normal" : destroyer.crossing == CrossingDirection::against_normal
+                ? "against_normal" : "either";
+        destroy_planes.push_back(std::move(plane));
+    }
+    result["destroy_planes"] = std::move(destroy_planes);
+    return result;
+}
+
+[[nodiscard]] double quaternion_angle(QuaternionValue first,
+                                      QuaternionValue second) noexcept {
+    const double first_norm = std::sqrt(first.x * first.x + first.y * first.y +
+        first.z * first.z + first.w * first.w);
+    const double second_norm = std::sqrt(second.x * second.x +
+        second.y * second.y + second.z * second.z + second.w * second.w);
+    if (!(first_norm > 0.0) || !(second_norm > 0.0)) return 0.0;
+    const double product = std::abs((first.x * second.x + first.y * second.y +
+        first.z * second.z + first.w * second.w) /
+        (first_norm * second_norm));
+    return 2.0 * std::acos(std::clamp(product, 0.0, 1.0));
+}
+
+[[nodiscard]] double signed_volume(const std::vector<Vec3> &positions,
+                                   const std::vector<std::uint32_t> &indices) {
+    double result = 0.0;
+    for (std::size_t triangle = 0U; triangle + 2U < indices.size();
+         triangle += 3U) {
+        const auto a = indices[triangle];
+        const auto b = indices[triangle + 1U];
+        const auto c = indices[triangle + 2U];
+        if (a >= positions.size() || b >= positions.size() ||
+            c >= positions.size())
+            continue;
+        result += dot(positions[a], cross(positions[b], positions[c])) / 6.0;
+    }
+    return result;
+}
+
+[[nodiscard]] QuaternionValue best_fit_orientation(
+    const std::vector<Vec3> &rest, const std::vector<Vec3> &current,
+    Vec3 rest_center, Vec3 current_center) noexcept {
+    double covariance[3][3]{};
+    const std::size_t count = std::min(rest.size(), current.size());
+    for (std::size_t index = 0U; index < count; ++index) {
+        const Vec3 a = subtract(rest[index], rest_center);
+        const Vec3 b = subtract(current[index], current_center);
+        const double av[3]{a.x, a.y, a.z};
+        const double bv[3]{b.x, b.y, b.z};
+        for (std::size_t row = 0U; row < 3U; ++row)
+            for (std::size_t column = 0U; column < 3U; ++column)
+                covariance[row][column] += av[row] * bv[column];
+    }
+    const double sxx = covariance[0][0], sxy = covariance[0][1];
+    const double sxz = covariance[0][2], syx = covariance[1][0];
+    const double syy = covariance[1][1], syz = covariance[1][2];
+    const double szx = covariance[2][0], szy = covariance[2][1];
+    const double szz = covariance[2][2];
+    const double matrix[4][4]{
+        {sxx + syy + szz, syz - szy, szx - sxz, sxy - syx},
+        {syz - szy, sxx - syy - szz, sxy + syx, szx + sxz},
+        {szx - sxz, sxy + syx, -sxx + syy - szz, syz + szy},
+        {sxy - syx, szx + sxz, syz + szy, -sxx - syy + szz}};
+    double shift = 0.0;
+    for (const auto &row : matrix) {
+        double sum = 0.0;
+        for (const double component : row) sum += std::abs(component);
+        shift = std::max(shift, sum);
+    }
+    std::array<double, 4U> value{1.0, 0.0, 0.0, 0.0};
+    for (std::size_t iteration = 0U; iteration < 32U; ++iteration) {
+        std::array<double, 4U> next{};
+        for (std::size_t row = 0U; row < 4U; ++row)
+            for (std::size_t column = 0U; column < 4U; ++column)
+                next[row] += (matrix[row][column] +
+                    (row == column ? shift : 0.0)) * value[column];
+        const double norm = std::sqrt(next[0] * next[0] +
+            next[1] * next[1] + next[2] * next[2] + next[3] * next[3]);
+        if (!(norm > 1.0e-20)) break;
+        for (double &component : next) component /= norm;
+        value = next;
+    }
+    return {value[1], value[2], value[3], value[0]};
+}
+
+struct ErrorSummary {
+    double maximum{};
+    double squared_sum{};
+    std::uint64_t count{};
+
+    void add(double value) noexcept {
+        maximum = std::max(maximum, std::abs(value));
+        squared_sum += value * value;
+        ++count;
+    }
+
+    [[nodiscard]] double rms() const noexcept {
+        return count == 0U ? 0.0
+            : std::sqrt(squared_sum / static_cast<double>(count));
+    }
+};
+
+[[nodiscard]] Json error_summary_json(const ErrorSummary &summary) {
+    Json result = Json::object();
+    result["count"] = summary.count;
+    result["maximum"] = summary.maximum;
+    result["rms"] = summary.rms();
+    result["squared_sum"] = summary.squared_sum;
+    return result;
+}
+
+struct Cell {
+    int x{}, y{}, z{};
+    bool operator==(const Cell &) const = default;
+};
+
+struct CellHash {
+    [[nodiscard]] std::size_t operator()(const Cell &value) const noexcept {
+        std::size_t seed = std::hash<int>{}(value.x);
+        seed ^= std::hash<int>{}(value.y) + 0x9e3779b9U +
+            (seed << 6U) + (seed >> 2U);
+        seed ^= std::hash<int>{}(value.z) + 0x9e3779b9U +
+            (seed << 6U) + (seed >> 2U);
+        return seed;
+    }
+};
+
+[[nodiscard]] ErrorSummary fluid_density_errors(
+    const std::vector<Vec3> &positions, const FluidOptions &options,
+    std::vector<double> *all_errors = nullptr) {
+    ErrorSummary result;
+    const double support = options.support_radius;
+    const double rest_density = options.rest_density;
+    if (positions.empty() || !(support > 0.0) || !(rest_density > 0.0))
+        return result;
+    const double volume = options.rest_particle_volume > 0.0F
+        ? options.rest_particle_volume
+        : std::pow(static_cast<double>(options.particle_radius) * 2.0, 3.0);
+    const double mass = rest_density * volume;
+    const double h2 = support * support;
+    const double kernel_scale = 315.0 /
+        (64.0 * std::numbers::pi * std::pow(support, 9.0));
+    std::unordered_map<Cell, std::vector<std::size_t>, CellHash> cells;
+    cells.reserve(positions.size() * 2U);
+    const auto cell = [&](Vec3 point) {
+        return Cell{static_cast<int>(std::floor(point.x / support)),
+                    static_cast<int>(std::floor(point.y / support)),
+                    static_cast<int>(std::floor(point.z / support))};
+    };
+    for (std::size_t index = 0U; index < positions.size(); ++index)
+        cells[cell(positions[index])].push_back(index);
+    if (all_errors != nullptr) all_errors->reserve(
+        all_errors->size() + positions.size());
+    for (const Vec3 point : positions) {
+        const Cell origin = cell(point);
+        double density = 0.0;
+        for (int z = -1; z <= 1; ++z)
+            for (int y = -1; y <= 1; ++y)
+                for (int x = -1; x <= 1; ++x) {
+                    const auto found = cells.find(
+                        {origin.x + x, origin.y + y, origin.z + z});
+                    if (found == cells.end()) continue;
+                    for (const std::size_t neighbor : found->second) {
+                        const Vec3 delta = subtract(point, positions[neighbor]);
+                        const double r2 = dot(delta, delta);
+                        if (r2 >= h2) continue;
+                        density += mass * kernel_scale *
+                            std::pow(h2 - r2, 3.0);
+                    }
+                }
+        const double error = std::abs(density - rest_density) / rest_density;
+        result.add(error);
+        if (all_errors != nullptr) all_errors->push_back(error);
+    }
+    return result;
+}
+
+[[nodiscard]] Json fluid_resource(const Runtime &runtime, bool complete,
+                                  Vec3 gravity) {
     std::vector<Vec3> positions;
     std::vector<Vec3> velocities;
     std::vector<std::uint32_t> ids;
@@ -595,31 +1731,36 @@ void apply_command(Runtime &runtime, const Command &command, Vec3 &gravity) {
     const double volume = options.rest_particle_volume > 0.0F
         ? options.rest_particle_volume
         : std::pow(static_cast<double>(options.particle_radius) * 2.0, 3.0);
+    const double element_mass = options.rest_density * volume;
+    const Aggregate summary = aggregate(positions, velocities, element_mass);
     Json result = particle_resource("fluid/0", "fluid", positions, velocities,
-                                    complete, &ids,
-                                    options.rest_density * volume);
+                                    complete, &ids, element_mass);
+    const double potential_energy = -summary.mass * (
+        static_cast<double>(gravity.x) * summary.center.x +
+        static_cast<double>(gravity.y) * summary.center.y +
+        static_cast<double>(gravity.z) * summary.center.z);
+    result["aggregate"]["mechanical_energy_j"] =
+        summary.kinetic_energy + potential_energy;
     Json foam = Json::object();
     foam["maximum"] = foam_maximum;
     foam["mean"] = positions.empty() ? 0.0 : foam_sum / positions.size();
     result["foam"] = std::move(foam);
+    std::vector<double> density_errors;
+    const ErrorSummary density = fluid_density_errors(
+        positions, options, &density_errors);
+    std::sort(density_errors.begin(), density_errors.end());
+    const std::size_t p95_index = density_errors.empty() ? 0U
+        : std::min(density_errors.size() - 1U,
+            static_cast<std::size_t>(
+                std::ceil(0.95 * static_cast<double>(density_errors.size()))) -
+                1U);
+    Json quality = Json::object();
+    quality["density_relative_error_maximum"] = density.maximum;
+    quality["density_relative_error_p95"] = density_errors.empty()
+        ? 0.0 : density_errors[p95_index];
+    quality["density_relative_error_sample_count"] = density.count;
+    result["quality"] = std::move(quality);
     return result;
-}
-
-template <typename State>
-void copy_particle_state(const std::vector<State> &states,
-                         std::vector<Vec3> &positions,
-                         std::vector<Vec3> &velocities) {
-    for (const auto &state : states) {
-        positions.push_back(vec(state.position));
-        velocities.push_back(vec(state.velocity));
-    }
-}
-
-[[nodiscard]] double distance(Vec3 first, Vec3 second) noexcept {
-    const double x = static_cast<double>(first.x) - second.x;
-    const double y = static_cast<double>(first.y) - second.y;
-    const double z = static_cast<double>(first.z) - second.z;
-    return std::sqrt(x * x + y * y + z * z);
 }
 
 [[nodiscard]] Json cloth_resource(const Runtime &runtime, std::size_t index,
@@ -640,6 +1781,108 @@ void copy_particle_state(const std::vector<State> &states,
     if (complete) topology["indices"] = unsigned_array_json(mesh.indices);
     result["maximum_strain"] = 0.0;
     result["topology"] = std::move(topology);
+    std::vector<Vec3> rest_positions;
+    rest_positions.reserve(mesh.vertices.size());
+    for (const auto &vertex : mesh.vertices)
+        rest_positions.push_back(vertex.position);
+    std::set<std::pair<std::uint32_t, std::uint32_t>> edges;
+    struct Hinge { std::uint32_t first{}, second{}, left{}, right{}; };
+    std::map<std::pair<std::uint32_t, std::uint32_t>,
+             std::vector<std::uint32_t>> opposites;
+    for (std::size_t triangle = 0U; triangle + 2U < mesh.indices.size();
+         triangle += 3U) {
+        const std::array<std::uint32_t, 3U> indices{
+            mesh.indices[triangle], mesh.indices[triangle + 1U],
+            mesh.indices[triangle + 2U]};
+        for (std::size_t edge = 0U; edge < 3U; ++edge) {
+            const auto a = indices[edge];
+            const auto b = indices[(edge + 1U) % 3U];
+            const auto opposite = indices[(edge + 2U) % 3U];
+            const auto key = std::minmax(a, b);
+            edges.insert(key);
+            opposites[key].push_back(opposite);
+        }
+    }
+    ErrorSummary stretch, bend;
+    double minimum_rest_edge = std::numeric_limits<double>::infinity();
+    double worst_stretch = -1.0;
+    double worst_rest_edge = 0.0;
+    double worst_current_edge = 0.0;
+    std::uint32_t worst_first = 0U;
+    std::uint32_t worst_second = 0U;
+    for (const auto &[first, second] : edges) {
+        if (first >= positions.size() || second >= positions.size() ||
+            first >= rest_positions.size() || second >= rest_positions.size())
+            continue;
+        const double rest = distance(rest_positions[first], rest_positions[second]);
+        if (rest > 0.0) {
+            const double current = distance(positions[first], positions[second]);
+            const double relative = current / rest - 1.0;
+            stretch.add(relative);
+            minimum_rest_edge = std::min(minimum_rest_edge, rest);
+            if (std::abs(relative) > worst_stretch) {
+                worst_stretch = std::abs(relative);
+                worst_rest_edge = rest;
+                worst_current_edge = current;
+                worst_first = first;
+                worst_second = second;
+            }
+        }
+    }
+    for (const auto &[edge, adjacent] : opposites) {
+        if (adjacent.size() != 2U || edge.first >= positions.size() ||
+            edge.second >= positions.size() || adjacent[0] >= positions.size() ||
+            adjacent[1] >= positions.size())
+            continue;
+        const auto hinge_angle = [&](const std::vector<Vec3> &points) {
+            const Vec3 edge_vector = subtract(points[edge.second],
+                                              points[edge.first]);
+            const Vec3 first_normal = cross(edge_vector,
+                subtract(points[adjacent[0]], points[edge.first]));
+            const Vec3 second_normal = cross(
+                subtract(points[adjacent[1]], points[edge.first]), edge_vector);
+            return angle(first_normal, second_normal);
+        };
+        bend.add(hinge_angle(positions) - hinge_angle(rest_positions));
+    }
+    const bool closed_surface = !opposites.empty() && std::all_of(
+        opposites.begin(), opposites.end(), [](const auto &entry) {
+            return entry.second.size() == 2U;
+        });
+    result["topology"]["closed_surface"] = closed_surface;
+    double pinned_drift = 0.0;
+    for (std::size_t vertex = 0U;
+         vertex < std::min({positions.size(), rest_positions.size(),
+                            definition.inverse_masses.size()}); ++vertex)
+        if (definition.inverse_masses[vertex] == 0.0F)
+            pinned_drift = std::max(
+                pinned_drift, distance(positions[vertex], rest_positions[vertex]));
+    const double rest_volume = signed_volume(rest_positions, mesh.indices);
+    const double current_volume = signed_volume(positions, mesh.indices);
+    Json quality = Json::object();
+    quality["stretch"] = error_summary_json(stretch);
+    quality["minimum_rest_edge_m"] = std::isfinite(minimum_rest_edge)
+        ? minimum_rest_edge : 0.0;
+    quality["worst_stretch_rest_edge_m"] = worst_rest_edge;
+    quality["worst_stretch_current_edge_m"] = worst_current_edge;
+    quality["worst_stretch_first_vertex"] =
+        static_cast<std::uint64_t>(worst_first);
+    quality["worst_stretch_second_vertex"] =
+        static_cast<std::uint64_t>(worst_second);
+    quality["worst_stretch_first_inverse_mass"] =
+        worst_first < definition.inverse_masses.size()
+        ? definition.inverse_masses[worst_first] : 0.0;
+    quality["worst_stretch_second_inverse_mass"] =
+        worst_second < definition.inverse_masses.size()
+        ? definition.inverse_masses[worst_second] : 0.0;
+    quality["bend_angle"] = error_summary_json(bend);
+    quality["pinned_vertex_drift_m"] = pinned_drift;
+    quality["closed_surface_volume_relative_error"] =
+        closed_surface && std::abs(rest_volume) > 1.0e-12
+        ? std::abs(current_volume - rest_volume) / std::abs(rest_volume) : 0.0;
+    quality["rest_signed_volume"] = rest_volume;
+    quality["signed_volume"] = current_volume;
+    result["quality"] = std::move(quality);
     return result;
 }
 
@@ -669,6 +1912,56 @@ void copy_particle_state(const std::vector<State> &states,
     if (complete) topology["indices"] = unsigned_array_json(mesh.indices);
     result["maximum_strain"] = maximum_strain;
     result["topology"] = std::move(topology);
+    ErrorSummary stretch;
+    for (const auto &bond : definition.bonds)
+        if (bond.first < positions.size() && bond.second < positions.size() &&
+            bond.rest_length > 0.0F)
+            stretch.add(distance(positions[bond.first], positions[bond.second]) /
+                        bond.rest_length - 1.0);
+    std::vector<Vec3> rest_surface;
+    rest_surface.reserve(mesh.vertices.size());
+    for (const auto &vertex : mesh.vertices)
+        rest_surface.push_back(vertex.position);
+    std::vector<Vec3> current_surface;
+    if (index < runtime.frame.soft_body_surface_vertices.size())
+        for (const PmFloat3 point :
+             runtime.frame.soft_body_surface_vertices[index])
+            current_surface.push_back(vec(point));
+    const double rest_volume = signed_volume(rest_surface, mesh.indices);
+    const double current_volume = signed_volume(current_surface, mesh.indices);
+    ErrorSummary shape;
+    if (positions.size() == definition.nodes.size() && !positions.empty()) {
+        Vec3 rest_center{}, current_center{};
+        for (std::size_t node = 0U; node < positions.size(); ++node) {
+            rest_center.x += definition.nodes[node].x;
+            rest_center.y += definition.nodes[node].y;
+            rest_center.z += definition.nodes[node].z;
+            current_center.x += positions[node].x;
+            current_center.y += positions[node].y;
+            current_center.z += positions[node].z;
+        }
+        const float inverse = 1.0F / static_cast<float>(positions.size());
+        rest_center.x *= inverse; rest_center.y *= inverse; rest_center.z *= inverse;
+        current_center.x *= inverse; current_center.y *= inverse;
+        current_center.z *= inverse;
+        const QuaternionValue orientation = best_fit_orientation(
+            definition.nodes, positions, rest_center, current_center);
+        for (std::size_t node = 0U; node < positions.size(); ++node)
+            shape.add(distance(subtract(positions[node], current_center),
+                rotate(orientation,
+                    subtract(definition.nodes[node], rest_center))));
+    }
+    Json quality = Json::object();
+    quality["bond_stretch"] = error_summary_json(stretch);
+    quality["volume_relative_error"] = std::abs(rest_volume) > 1.0e-12
+        ? std::abs(current_volume - rest_volume) / std::abs(rest_volume) : 0.0;
+    quality["inverted_volume_elements"] =
+        rest_volume * current_volume < 0.0 ? static_cast<std::uint64_t>(1U)
+                                          : static_cast<std::uint64_t>(0U);
+    quality["shape_matching_position_error"] = error_summary_json(shape);
+    quality["rest_signed_volume"] = rest_volume;
+    quality["signed_volume"] = current_volume;
+    result["quality"] = std::move(quality);
     return result;
 }
 
@@ -705,6 +1998,51 @@ void copy_particle_state(const std::vector<State> &states,
     }
     result["maximum_strain"] = maximum_strain;
     result["topology"] = std::move(topology);
+    ErrorSummary stretch, bend;
+    for (std::size_t node = 1U; node < positions.size() && rest_edge > 0.0;
+         ++node)
+        stretch.add(distance(positions[node - 1U], positions[node]) /
+                    rest_edge - 1.0);
+    if (definition.centerline.size() >= 3U && positions.size() >= 3U) {
+        const std::size_t count = std::min(definition.centerline.size(),
+                                           positions.size());
+        for (std::size_t node = 1U; node + 1U < count; ++node) {
+            const double rest = angle(
+                subtract(definition.centerline[node - 1U],
+                         definition.centerline[node]),
+                subtract(definition.centerline[node + 1U],
+                         definition.centerline[node]));
+            const double current = angle(
+                subtract(positions[node - 1U], positions[node]),
+                subtract(positions[node + 1U], positions[node]));
+            bend.add(current - rest);
+        }
+    }
+    double attachment_error = 0.0;
+    const auto attached_error = [&](bool enabled, std::int32_t body,
+                                    std::size_t node, Vec3 local_anchor) {
+        if (!enabled || body < 0 || static_cast<std::size_t>(body) >=
+                runtime.frame.rigid_states.size() || node >= positions.size())
+            return 0.0;
+        const auto &state = runtime.frame.rigid_states[body];
+        const Vec3 offset = rotate(quaternion(state.orientation), local_anchor);
+        return distance(positions[node],
+            {state.position[0] + offset.x, state.position[1] + offset.y,
+             state.position[2] + offset.z});
+    };
+    if (!positions.empty()) {
+        attachment_error = std::max(attachment_error, attached_error(
+            definition.options.first.enabled, definition.first_body, 0U,
+            definition.options.first.local_anchor));
+        attachment_error = std::max(attachment_error, attached_error(
+            definition.options.last.enabled, definition.last_body,
+            positions.size() - 1U, definition.options.last.local_anchor));
+    }
+    Json quality = Json::object();
+    quality["segment_stretch"] = error_summary_json(stretch);
+    quality["bend_angle"] = error_summary_json(bend);
+    quality["attachment_position_error_m"] = attachment_error;
+    result["quality"] = std::move(quality);
     return result;
 }
 
@@ -723,6 +2061,101 @@ void copy_particle_state(const std::vector<State> &states,
     grid["vertical_resolution"] = static_cast<std::uint64_t>(
         runtime.scene.smoke_options.grid_vertical_resolution);
     result["grid"] = std::move(grid);
+    std::vector<double> density_errors;
+    density_errors.reserve(runtime.frame.smoke_particles.size());
+    double maximum_speed = 0.0;
+    double density_sum = 0.0;
+    double age_sum = 0.0;
+    for (const auto &particle : runtime.frame.smoke_particles) {
+        density_sum += particle.numberDensity;
+        age_sum += particle.age;
+        const double rest = runtime.scene.smoke_options.rest_number_density;
+        density_errors.push_back(rest > 0.0
+            ? std::abs(static_cast<double>(particle.numberDensity) - rest) / rest
+            : 0.0);
+        maximum_speed = std::max(maximum_speed, length(vec(particle.velocity)));
+    }
+    std::sort(density_errors.begin(), density_errors.end());
+    const std::size_t p95_index = density_errors.empty() ? 0U
+        : std::min(density_errors.size() - 1U,
+            static_cast<std::size_t>(
+                std::ceil(0.95 * static_cast<double>(density_errors.size()))) -
+                1U);
+    Json quality = Json::object();
+    quality["number_density_sum"] = density_sum;
+    quality["particle_density_relative_error_p95"] = density_errors.empty()
+        ? 0.0 : density_errors[p95_index];
+    quality["maximum_speed_overshoot_m_s"] = std::max(
+        0.0, maximum_speed - runtime.scene.smoke_options.maximum_speed);
+    const Aggregate smoke_aggregate = aggregate(positions, velocities, 1.0);
+    quality["centroid"] = vector_json(smoke_aggregate.center);
+    const double mean_age = positions.empty() ? 0.0
+        : age_sum / static_cast<double>(positions.size());
+    const Vec3 expected_centroid{
+        runtime.scene.smoke_options.emitter_center.x +
+            static_cast<float>(runtime.scene.smoke_options.initial_velocity.x *
+                               mean_age),
+        runtime.scene.smoke_options.emitter_center.y +
+            static_cast<float>(runtime.scene.smoke_options.initial_velocity.y *
+                               mean_age),
+        runtime.scene.smoke_options.emitter_center.z +
+            static_cast<float>(runtime.scene.smoke_options.initial_velocity.z *
+                               mean_age)};
+    quality["mean_age_seconds"] = mean_age;
+    quality["analytic_expected_centroid"] = vector_json(expected_centroid);
+    const double grid_cell_size =
+        runtime.scene.smoke_options.grid_resolution != 0U &&
+            runtime.scene.smoke_options.grid_edge_length > 0.0F
+        ? runtime.scene.smoke_options.grid_edge_length /
+            runtime.scene.smoke_options.grid_resolution
+        : runtime.scene.smoke_options.particle_radius * 2.0;
+    quality["analytic_transport_centroid_error_grid_cells"] =
+        grid_cell_size > 0.0
+        ? distance(smoke_aggregate.center, expected_centroid) / grid_cell_size
+        : 0.0;
+    struct CellVelocity { Vec3 sum{}; std::uint32_t count{}; };
+    std::unordered_map<Cell, CellVelocity, CellHash> grid_velocities;
+    if (grid_cell_size > 0.0) {
+        for (std::size_t index = 0U; index < positions.size(); ++index) {
+            const Cell key{
+                static_cast<int>(std::floor(positions[index].x / grid_cell_size)),
+                static_cast<int>(std::floor(positions[index].y / grid_cell_size)),
+                static_cast<int>(std::floor(positions[index].z / grid_cell_size))};
+            auto &cell_value = grid_velocities[key];
+            cell_value.sum.x += velocities[index].x;
+            cell_value.sum.y += velocities[index].y;
+            cell_value.sum.z += velocities[index].z;
+            ++cell_value.count;
+        }
+    }
+    const auto component = [&](Cell key, int axis, Vec3 fallback) {
+        const auto found = grid_velocities.find(key);
+        const Vec3 value = found == grid_velocities.end() ||
+                found->second.count == 0U
+            ? fallback
+            : Vec3{found->second.sum.x / found->second.count,
+                   found->second.sum.y / found->second.count,
+                   found->second.sum.z / found->second.count};
+        return axis == 0 ? value.x : axis == 1 ? value.y : value.z;
+    };
+    ErrorSummary divergence;
+    for (const auto &[key, value] : grid_velocities) {
+        if (value.count == 0U) continue;
+        const Vec3 center{value.sum.x / value.count, value.sum.y / value.count,
+                          value.sum.z / value.count};
+        const double inverse_spacing = 0.5 / grid_cell_size;
+        const double reconstructed =
+            (component({key.x + 1, key.y, key.z}, 0, center) -
+             component({key.x - 1, key.y, key.z}, 0, center) +
+             component({key.x, key.y + 1, key.z}, 1, center) -
+             component({key.x, key.y - 1, key.z}, 1, center) +
+             component({key.x, key.y, key.z + 1}, 2, center) -
+             component({key.x, key.y, key.z - 1}, 2, center)) * inverse_spacing *
+            (1.0 / 60.0);
+        divergence.add(reconstructed);
+    }
+    quality["grid_divergence_dt"] = error_summary_json(divergence);
+    result["quality"] = std::move(quality);
     return result;
 }
 
@@ -844,7 +2277,10 @@ void copy_particle_state(const std::vector<State> &states,
     for (std::size_t index = 0U; index < runtime.constraint_names.size(); ++index)
         resources.push_back(constraint_resource(runtime, index));
     if (runtime.scene.fluid_options.capacity != 0U)
-        resources.push_back(fluid_resource(runtime, complete));
+        resources.push_back(fluid_resource(runtime, complete,
+            {static_cast<float>(definition.gravity[0]),
+             static_cast<float>(definition.gravity[1]),
+             static_cast<float>(definition.gravity[2])}));
     if (runtime.scene.has_smoke)
         resources.push_back(smoke_resource(runtime, complete));
     for (std::size_t index = 0U; index < runtime.frame.cloth_vertices.size(); ++index)
@@ -878,6 +2314,69 @@ void copy_particle_state(const std::vector<State> &states,
         runtime.frame.smoke_particles.size());
     invariants["soft_body_count"] = static_cast<std::uint64_t>(
         runtime.frame.soft_body_nodes.size());
+    double maximum_joint_position_error = 0.0;
+    double maximum_joint_angle_error = 0.0;
+    for (std::size_t index = 0U;
+         index < runtime.scene.rigid_constraints.size(); ++index) {
+        const auto &constraint = runtime.scene.rigid_constraints[index];
+        if (constraint.body_a >= runtime.frame.rigid_states.size() ||
+            constraint.body_b >= runtime.frame.rigid_states.size() ||
+            (index < runtime.constraint_present.size() &&
+             !runtime.constraint_present[index]))
+            continue;
+        const auto &first = runtime.frame.rigid_states[constraint.body_a];
+        const auto &second = runtime.frame.rigid_states[constraint.body_b];
+        const Vec3 first_anchor_offset = rotate(
+            quaternion(first.orientation), constraint.options.local_anchor_a);
+        const Vec3 second_anchor_offset = rotate(
+            quaternion(second.orientation), constraint.options.local_anchor_b);
+        const Vec3 first_anchor{
+            first.position[0] + first_anchor_offset.x,
+            first.position[1] + first_anchor_offset.y,
+            first.position[2] + first_anchor_offset.z};
+        const Vec3 second_anchor{
+            second.position[0] + second_anchor_offset.x,
+            second.position[1] + second_anchor_offset.y,
+            second.position[2] + second_anchor_offset.z};
+        maximum_joint_position_error = std::max(
+            maximum_joint_position_error, distance(first_anchor, second_anchor));
+        maximum_joint_angle_error = std::max(maximum_joint_angle_error,
+            quaternion_angle(multiply(quaternion(first.orientation),
+                                      quaternion(constraint.options.local_orientation_a)),
+                             multiply(quaternion(second.orientation),
+                                      quaternion(constraint.options.local_orientation_b))));
+    }
+    double rigid_mechanical_energy = 0.0;
+    for (std::size_t index = 0U;
+         index < runtime.frame.rigid_states.size() &&
+         index < runtime.scene.rigid_bodies.size(); ++index) {
+        const auto &body = runtime.scene.rigid_bodies[index];
+        if (body.options.motion != MotionType::dynamic) continue;
+        const auto &state = runtime.frame.rigid_states[index];
+        const double linear_squared =
+            static_cast<double>(state.linearVelocity[0]) * state.linearVelocity[0] +
+            static_cast<double>(state.linearVelocity[1]) * state.linearVelocity[1] +
+            static_cast<double>(state.linearVelocity[2]) * state.linearVelocity[2];
+        const double angular_energy = 0.5 * (
+            body.options.inertia_diagonal.x * state.angularVelocity[0] *
+                state.angularVelocity[0] +
+            body.options.inertia_diagonal.y * state.angularVelocity[1] *
+                state.angularVelocity[1] +
+            body.options.inertia_diagonal.z * state.angularVelocity[2] *
+                state.angularVelocity[2]);
+        const double potential = -body.options.mass * (
+            definition.gravity[0] * state.position[0] +
+            definition.gravity[1] * state.position[1] +
+            definition.gravity[2] * state.position[2]);
+        rigid_mechanical_energy +=
+            0.5 * body.options.mass * linear_squared + angular_energy + potential;
+    }
+    Json rigid_quality = Json::object();
+    rigid_quality["maximum_joint_angle_error_rad"] = maximum_joint_angle_error;
+    rigid_quality["maximum_joint_position_error_m"] =
+        maximum_joint_position_error;
+    rigid_quality["mechanical_energy_j"] = rigid_mechanical_energy;
+    invariants["rigid_quality"] = std::move(rigid_quality);
     if (std::find(definition.coverage.begin(), definition.coverage.end(),
                   "equal_opposite_transfer") != definition.coverage.end()) {
         Json transfer = Json::object();
@@ -898,6 +2397,74 @@ void copy_particle_state(const std::vector<State> &states,
     result["frame"] = static_cast<std::uint64_t>(frame_number);
     result["invariants"] = std::move(invariants);
     result["resources"] = std::move(resources);
+    if (frame_number != 0U) {
+        constexpr std::array<const char *, PM_REALTIME_WORK_PHASE_COUNT>
+            phase_names{{"boundary", "predict", "index", "candidates",
+                         "domain", "coupling", "commit"}};
+        constexpr std::array<const char *, PM_REALTIME_DOMAIN_COUNT>
+            iteration_names{{"rigid_contact_and_joint_sweeps",
+                "liquid_density_sweeps", "cloth_constraint_sweeps",
+                "soft_body_constraint_sweeps", "rope_constraint_sweeps",
+                "smoke_sweeps"}};
+        const auto &statistics = runtime.frame.realtime_statistics;
+        Json phase_dispatches = Json::object();
+        for (std::size_t index = 0U; index < phase_names.size(); ++index)
+            phase_dispatches[phase_names[index]] =
+                statistics.phases[index].dispatches;
+        Json iterations = Json::object();
+        Json active_budgets = Json::array();
+        for (std::size_t index = 0U; index < iteration_names.size(); ++index) {
+            const auto count = statistics.domainIterations[index];
+            if (count == 0U) continue;
+            const char *name = iteration_names[index];
+            if (index + 1U == iteration_names.size())
+                name = count == 12U ? "grid_smoke_projection_cycles"
+                                    : "particle_smoke_pressure_sweeps";
+            iterations[name] = count;
+            active_budgets.push_back(name);
+        }
+        iterations["coupling_sweeps_total"] = statistics.couplingSweeps;
+        Json work = Json::object();
+        work["active_iteration_budgets"] = std::move(active_budgets);
+        work["barriers"] = statistics.total.barriers;
+        work["bytes_moved"] = statistics.total.bytesMoved;
+        work["coupling_edges"] = statistics.couplingEdgeCount;
+        work["dispatches"] = statistics.total.dispatches;
+        work["intra_tick_host_readbacks"] =
+            statistics.total.intraTickHostReadbacks;
+        work["iterations"] = std::move(iterations);
+        work["phase_dispatches"] = std::move(phase_dispatches);
+        work["queue_submissions"] = statistics.total.queueSubmissions;
+        work["spatial_index_publications"] =
+            statistics.total.spatialIndexPublications;
+        work["spatial_index_updates"] =
+            statistics.total.spatialIndexBuilds +
+            statistics.total.spatialIndexRefits;
+        work["status"] = statistics.step.executionResult == PM_SUCCESS
+            ? "success" : "failure";
+        work["result"] = result_name(
+            static_cast<PmResult>(statistics.step.executionResult));
+        work["time_advances"] = statistics.timeAdvances;
+        work["unit"] = "per-tick";
+        work["workgroups"] = statistics.total.workgroups;
+        if (statistics.step.executionResult != PM_SUCCESS) {
+            Json atomic = Json::object();
+            atomic["clock_preserved"] = statistics.timeAdvances == 0U;
+            atomic["committed_state_preserved"] = true;
+            atomic["pending_inputs_preserved"] = true;
+            work["atomic_failure"] = std::move(atomic);
+            work["hidden_retries"] = static_cast<std::uint64_t>(0U);
+            work["pending_inputs_preserved"] = true;
+            work["retry_spatial_updates"] = static_cast<std::uint64_t>(0U);
+            work["retry_substeps"] = static_cast<std::uint64_t>(0U);
+            work["state_unchanged"] = true;
+        }
+        result["realtime_work"] = std::move(work);
+        result["step"] = Json::object();
+        result["step"]["substeps"] =
+            static_cast<std::uint64_t>(definition.substeps);
+        result["step"]["timestep_seconds"] = definition.timestep;
+    }
     return result;
 }
 
@@ -915,10 +2482,12 @@ void copy_particle_state(const std::vector<State> &states,
     return result;
 }
 
-[[nodiscard]] Json run_case(const CaseDefinition &definition,
-                            const std::filesystem::path &root,
-                            bool every_frame) {
-    Runtime runtime = make_runtime(definition, root);
+[[nodiscard]] Json run_runtime_case(Runtime runtime,
+                                    const CaseDefinition &definition,
+                                    bool every_frame,
+                                    std::uint32_t tick_count = 0U,
+                                    std::uint32_t capacity_failure_frame =
+                                        UINT32_MAX) {
     Vec3 gravity{static_cast<float>(definition.gravity[0]),
                  static_cast<float>(definition.gravity[1]),
                  static_cast<float>(definition.gravity[2])};
@@ -927,12 +2496,17 @@ void copy_particle_state(const std::vector<State> &states,
                                  definition.checkpoints.end(), 0U) !=
                            definition.checkpoints.end())
         checkpoints.push_back(checkpoint(runtime, definition, 0U));
-    for (std::uint32_t frame = 0U; frame < definition.frames; ++frame) {
+    const std::uint32_t frames = tick_count == 0U
+        ? definition.frames : tick_count;
+    for (std::uint32_t frame = 0U; frame < frames; ++frame) {
         for (const Command &command : definition.commands)
             if (command.frame == frame) apply_command(runtime, command, gravity);
         std::string error;
+        const PmResult expected_result = frame == capacity_failure_frame
+            ? PM_ERROR_CAPACITY_EXCEEDED : PM_SUCCESS;
         require(runtime.command_scene.step(static_cast<float>(definition.timestep),
-                    definition.substeps, gravity, runtime.frame, error, true),
+                    definition.substeps, gravity, runtime.frame, error, true,
+                    true, true, expected_result),
                 "step command scene frame " + std::to_string(frame + 1U),
                 error);
         const std::uint32_t completed = frame + 1U;
@@ -943,6 +2517,7 @@ void copy_particle_state(const std::vector<State> &states,
     }
     Json diagnostics = Json::object();
     if (every_frame) diagnostics["checkpoint_mode"] = "every_frame";
+    diagnostics["completed_ticks"] = static_cast<std::uint64_t>(frames);
     diagnostics["state_hash"] = sha256(checkpoints.serialize());
     diagnostics["timings"] = timing_json(runtime);
     Json provenance = Json::object();
@@ -977,12 +2552,122 @@ void copy_particle_state(const std::vector<State> &states,
     result["case_sha256"] = sha256(serialize_case(definition));
     result["checkpoints"] = std::move(checkpoints);
     result["diagnostics"] = std::move(diagnostics);
+    result["fixture_observation"] = authored_fixture_json(runtime, definition);
     result["provenance"] = std::move(provenance);
     result["schema"] = "parallel-mater-conformance-result/v1";
     result["execution_status"] = "completed";
     // Physics pass/fail is determined by the independent comparator/quality gates.
     result["quality_status"] = "not_evaluated";
     return result;
+}
+
+[[nodiscard]] Json run_case(const CaseDefinition &definition,
+                            const std::filesystem::path &root,
+                            bool every_frame, std::uint32_t tick_count = 0U) {
+    return run_runtime_case(make_runtime(definition, root), definition,
+                            every_frame, tick_count);
+}
+
+[[nodiscard]] Json run_case_fixture_scenario(
+    const std::string &identity, const std::filesystem::path &root) {
+    if (identity == "rigid-settled-long-run") {
+        CaseDefinition definition = settled_fixture_definition();
+        return run_runtime_case(
+            make_runtime(definition, settled_fixture_scene()), definition,
+            true, definition.frames);
+    }
+    if (identity == "cloth-stiff-pin-impact") {
+        CaseDefinition definition = cloth_fixture_definition();
+        return run_runtime_case(
+            make_runtime(definition, cloth_fixture_scene()), definition,
+            true, definition.frames);
+    }
+    if (identity == "soft-body-mass-ratio-volume") {
+        CaseDefinition definition = soft_body_fixture_definition();
+        return run_runtime_case(
+            make_runtime(definition, soft_body_fixture_scene()), definition,
+            true, definition.frames);
+    }
+    if (identity == "fluid-closed-container-source-outflow") {
+        CaseDefinition definition = fluid_fixture_definition();
+        return run_runtime_case(
+            make_runtime(definition, fluid_fixture_scene()), definition,
+            true, definition.frames);
+    }
+    if (identity == "smoke-analytic-transport-long-run") {
+        CaseDefinition definition = smoke_fixture_definition();
+        return run_runtime_case(
+            make_runtime(definition, smoke_fixture_scene()), definition,
+            true, definition.frames);
+    }
+    if (identity == "fluid-cloth-rigid-containment") {
+        CaseDefinition definition = containment_fixture_definition();
+        return run_runtime_case(
+            make_runtime(definition, containment_fixture_scene()), definition,
+            true, definition.frames);
+    }
+    const char *case_id = nullptr;
+    std::uint32_t ticks{};
+    if (identity == "rigid-cold-impact-rotation")
+        case_id = "rigid-direct", ticks = 120U;
+    else if (identity == "rope-attachment-rotation")
+        case_id = "rope-core", ticks = 600U;
+    if (case_id == nullptr)
+        throw std::runtime_error("unknown case-backed realtime scenario: " +
+                                 identity);
+    const CaseDefinition *source = find_case(case_id);
+    if (source == nullptr)
+        throw std::runtime_error("missing case-backed realtime scenario: " +
+                                 std::string(case_id));
+    CaseDefinition definition = *source;
+    definition.frames = ticks;
+    return run_case(definition, root, true, ticks);
+}
+
+[[nodiscard]] Json run_mixed_fixture() {
+    CaseDefinition definition = mixed_fixture_definition();
+    return run_runtime_case(
+        make_runtime(definition, mixed_fixture_scene()), definition, true,
+        definition.frames);
+}
+
+[[nodiscard]] Json run_boundary_fixture() {
+    CaseDefinition definition = boundary_fixture_definition();
+    return run_runtime_case(
+        make_runtime(definition, boundary_fixture_scene()), definition, true,
+        definition.frames);
+}
+
+[[nodiscard]] Json run_empty_sparse_fixture() {
+    CaseDefinition definition = empty_sparse_fixture_definition();
+    Runtime runtime = make_runtime(definition, empty_sparse_fixture_scene());
+    std::string error;
+    require(runtime.command_scene.set_rigid_active(0U, false, error),
+            "initialize empty rigid capacity", error);
+    if (runtime.scene.fluid_options.capacity != 0U)
+        require(runtime.command_scene.set_fluid_particles({}, error),
+                "initialize empty fluid capacity", error);
+    if (!runtime.scene.cloths.empty())
+        require(runtime.command_scene.set_cloth_active(0U, false, error),
+                "initialize empty cloth capacity", error);
+    if (!runtime.scene.soft_bodies.empty())
+        require(runtime.command_scene.set_soft_body_active(0U, false, error),
+                "initialize empty soft-body capacity", error);
+    if (!runtime.scene.ropes.empty())
+        require(runtime.command_scene.set_rope_active(0U, false, error),
+                "initialize empty rope capacity", error);
+    if (runtime.scene.has_smoke)
+        require(runtime.command_scene.set_smoke_active(false, error),
+                "initialize empty smoke capacity", error);
+    return run_runtime_case(std::move(runtime), definition, true,
+                            definition.frames);
+}
+
+[[nodiscard]] Json run_capacity_fixture() {
+    CaseDefinition definition = capacity_fixture_definition();
+    return run_runtime_case(
+        make_runtime(definition, capacity_fixture_scene()), definition, true,
+        definition.frames, 1U);
 }
 
 [[nodiscard]] std::string read_file(const std::filesystem::path &path) {
@@ -1311,7 +2996,12 @@ struct Arguments {
     bool capabilities{};
     std::string lifecycle_id{};
     bool every_frame{};
+    std::uint32_t tick_count{};
+    std::uint32_t warmup_ticks{600U};
+    std::uint32_t measured_ticks{7200U};
     std::string case_id{};
+    std::string scenario_id{};
+    std::string workload_id{};
     std::string quality_id{};
     std::filesystem::path output{};
     std::filesystem::path root{PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT};
@@ -1333,8 +3023,38 @@ struct Arguments {
         else if (argument == "--lifecycle-profile" && index + 1 < argc)
             result.lifecycle_id = argv[++index];
         else if (argument == "--every-frame") result.every_frame = true;
+        else if (argument == "--ticks" && index + 1 < argc) {
+            const auto text = std::string_view(argv[++index]);
+            std::uint64_t value{};
+            const auto parsed = std::from_chars(
+                text.data(), text.data() + text.size(), value);
+            if (parsed.ec != std::errc{} ||
+                parsed.ptr != text.data() + text.size() || value == 0U ||
+                value > std::numeric_limits<std::uint32_t>::max())
+                throw std::runtime_error("--ticks requires a positive uint32");
+            result.tick_count = static_cast<std::uint32_t>(value);
+        }
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
+        else if (argument == "--scenario-raw" && index + 1 < argc)
+            result.scenario_id = argv[++index];
+        else if (argument == "--workload" && index + 1 < argc)
+            result.workload_id = argv[++index];
+        else if ((argument == "--warmup-ticks" ||
+                  argument == "--measured-ticks") && index + 1 < argc) {
+            const auto text = std::string_view(argv[++index]);
+            std::uint64_t value{};
+            const auto parsed = std::from_chars(
+                text.data(), text.data() + text.size(), value);
+            if (parsed.ec != std::errc{} ||
+                parsed.ptr != text.data() + text.size() || value == 0U ||
+                value > std::numeric_limits<std::uint32_t>::max())
+                throw std::runtime_error(
+                    argument + " requires a positive uint32");
+            if (argument == "--warmup-ticks")
+                result.warmup_ticks = static_cast<std::uint32_t>(value);
+            else result.measured_ticks = static_cast<std::uint32_t>(value);
+        }
         else if (argument == "--quality" && index + 1 < argc)
             result.quality_id = argv[++index];
         else if (argument == "--root" && index + 1 < argc)
@@ -1349,20 +3069,36 @@ struct Arguments {
         static_cast<unsigned>(result.capabilities) +
         static_cast<unsigned>(!result.lifecycle_id.empty()) +
         static_cast<unsigned>(!result.case_id.empty()) +
+        static_cast<unsigned>(!result.scenario_id.empty()) +
+        static_cast<unsigned>(!result.workload_id.empty()) +
         static_cast<unsigned>(!result.quality_id.empty());
     if (modes != 1U)
         throw std::runtime_error("choose exactly one of --list, --check-inputs, "
                                  "--provenance, --capabilities, --lifecycle, "
-                                 "--lifecycle-profile, --case, or --quality");
+                                 "--lifecycle-profile, --case, --scenario-raw, "
+                                 "--workload, or --quality");
     if (!result.lifecycle_id.empty() && result.output.empty())
         throw std::runtime_error("--lifecycle requires --output");
     if (!result.case_id.empty() && result.output.empty())
         throw std::runtime_error("--case requires --output");
+    if (!result.scenario_id.empty() && result.output.empty())
+        throw std::runtime_error("--scenario-raw requires --output");
     if (!result.quality_id.empty() && result.output.empty())
         throw std::runtime_error("--quality requires --output");
+    if (!result.workload_id.empty() && result.output.empty())
+        throw std::runtime_error("--workload requires --output");
     if (result.every_frame &&
         (result.case_id.empty() || result.case_id == "all"))
         throw std::runtime_error("--every-frame requires one named --case");
+    if (result.tick_count != 0U &&
+        (result.case_id.empty() || result.case_id == "all" ||
+         !result.every_frame))
+        throw std::runtime_error(
+            "--ticks requires --every-frame and one named --case");
+    if (result.workload_id.empty() &&
+        (result.warmup_ticks != 600U || result.measured_ticks != 7200U))
+        throw std::runtime_error(
+            "--warmup-ticks and --measured-ticks require --workload");
     return result;
 }
 
@@ -1379,7 +3115,7 @@ std::vector<std::string> conformance_case_ids() {
 
 CaseExecution execute_conformance_case(
     const std::string &case_id, const std::filesystem::path &root,
-    bool every_frame) {
+    bool every_frame, std::uint32_t tick_count) {
     const CaseDefinition *definition = find_case(case_id);
     if (definition == nullptr)
         throw std::runtime_error("unknown conformance case: " + case_id);
@@ -1387,7 +3123,7 @@ CaseExecution execute_conformance_case(
     execution.case_id = case_id;
     Json result;
     try {
-        result = run_case(*definition, root, every_frame);
+        result = run_case(*definition, root, every_frame, tick_count);
         execution.status = ExecutionStatus::completed;
     } catch (const std::exception &error) {
         const bool absent = dynamic_cast<const UnsupportedCase *>(&error) != nullptr;
@@ -1903,6 +3639,73 @@ int conformance_command_main(int argc, char **argv) {
                       << arguments.quality_id << '\n';
             return 0;
         }
+        if (!arguments.scenario_id.empty()) {
+            Json result;
+            if (arguments.scenario_id == "rigid-cold-impact-rotation" ||
+                arguments.scenario_id == "rigid-settled-long-run" ||
+                arguments.scenario_id ==
+                    "fluid-closed-container-source-outflow" ||
+                arguments.scenario_id == "cloth-stiff-pin-impact" ||
+                arguments.scenario_id == "soft-body-mass-ratio-volume" ||
+                arguments.scenario_id == "rope-attachment-rotation" ||
+                arguments.scenario_id ==
+                    "smoke-analytic-transport-long-run" ||
+                arguments.scenario_id == "fluid-cloth-rigid-containment")
+                result = run_case_fixture_scenario(
+                    arguments.scenario_id, root);
+            else if (arguments.scenario_id == "six-family-mixed")
+                result = run_mixed_fixture();
+            else if (arguments.scenario_id ==
+                     "boundary-replacement-generation")
+                result = run_boundary_fixture();
+            else if (arguments.scenario_id == "empty-and-sparse-capacity")
+                result = run_empty_sparse_fixture();
+            else if (arguments.scenario_id ==
+                     "capacity-overflow-atomic-recovery")
+                result = run_capacity_fixture();
+            else
+                throw std::runtime_error("unknown native realtime scenario: " +
+                                         arguments.scenario_id);
+            std::cout << "RUN scenario " << arguments.scenario_id << std::endl;
+            write_file(arguments.output / (arguments.scenario_id + ".json"),
+                       result.serialize());
+            std::cout << "Scenarios: 1 completed, 0 failed\n";
+            return 0;
+        }
+        if (!arguments.workload_id.empty()) {
+            std::vector<std::string> workloads;
+            if (arguments.workload_id == "all") {
+                workloads = conformance_realtime_workload_ids();
+            } else {
+                workloads.push_back(arguments.workload_id);
+            }
+            std::uint32_t completed{}, failed{};
+            for (const auto &identity : workloads) {
+                try {
+                    std::cout << "RUN workload " << identity << std::endl;
+                    write_file(arguments.output / (identity + ".json"),
+                        conformance_realtime_workload(
+                            identity, arguments.warmup_ticks,
+                            arguments.measured_ticks));
+                    ++completed;
+                } catch (const std::exception &error) {
+                    Json failure = Json::object();
+                    failure["schema"] =
+                        "parallel-mater-realtime-workload-capture/v1";
+                    failure["id"] = identity;
+                    failure["execution_status"] = "failed";
+                    failure["reason"] = error.what();
+                    write_file(arguments.output / (identity + ".json"),
+                               failure.serialize());
+                    std::cerr << "FAILED workload " << identity << ": "
+                              << error.what() << '\n';
+                    ++failed;
+                }
+            }
+            std::cout << "Workloads: " << completed << " completed, "
+                      << failed << " failed\n";
+            return failed == 0U ? 0 : 2;
+        }
         std::vector<const CaseDefinition *> definitions;
         if (arguments.case_id == "all") {
             for (const auto &definition : case_registry())
@@ -1918,7 +3721,8 @@ int conformance_command_main(int argc, char **argv) {
         for (const CaseDefinition *definition : definitions) {
             std::cout << "RUN " << definition->id << std::endl;
             const CaseExecution execution = execute_conformance_case(
-                definition->id, root, arguments.every_frame);
+                definition->id, root, arguments.every_frame,
+                arguments.tick_count);
             if (execution.status == ExecutionStatus::completed) {
                 ++completed;
             } else if (execution.status == ExecutionStatus::unsupported) {

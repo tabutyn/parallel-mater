@@ -23,7 +23,8 @@ FluidOptions_0 constants(const FluidDispatchConstants &value) noexcept {
         value.support_radius, 0U, value.maximum_neighbors, value.repulsion,
         value.viscosity, value.velocity_damping, value.maximum_speed,
         value.normal_damping, value.rest_particle_volume,
-        value.maximum_pair_acceleration};
+        value.maximum_pair_acceleration,
+        value.realtime_commit_velocity_scale};
 }
 
 } // namespace
@@ -622,6 +623,23 @@ void filter_fluid_spatial_candidates(
         filtered_counts, filtered_sources, status};
     device::dispatch_cpu(
         grid, block, fluid_filter_spatial_candidates_Thread, &args);
+}
+
+PmResult gather_fluid_spatial_payloads(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue, const std::uint32_t *compacted_sources,
+    const std::uint32_t *active_slot_count, const void *metadata,
+    std::uint32_t leaf_capacity, std::uint32_t candidate_slot_capacity,
+    std::uint32_t *active_payloads, std::uint32_t *status) noexcept {
+    EntryPointParams_31 args{
+        const_cast<std::uint32_t *>(compacted_sources),
+        const_cast<std::uint32_t *>(active_slot_count),
+        const_cast<FluidSpatialLeafMetadata_0 *>(
+            as<FluidSpatialLeafMetadata_0>(metadata)),
+        leaf_capacity, candidate_slot_capacity, active_payloads, status};
+    device::dispatch_cpu(
+        grid, block, fluid_gather_spatial_payloads_Thread, &args);
+    return PM_SUCCESS;
 }
 
 void count_fluid_spatial_neighbors(

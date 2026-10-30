@@ -416,7 +416,13 @@ std::shared_ptr<LayerChain> load_validation_layers(
         append_loader_relative_directories(paths, "layers.d",
                                            ManifestKind::layer);
     }
+    std::set<std::filesystem::path> unique;
     for (const std::filesystem::path &path : paths) {
+        std::error_code error_code;
+        const std::filesystem::path canonical =
+            std::filesystem::weakly_canonical(path, error_code);
+        const std::filesystem::path &key = error_code ? path : canonical;
+        if (!unique.insert(key).second) continue;
         std::string error;
         if (auto layer = Layer::open(path, error))
             result->entries.push_back(std::move(layer));

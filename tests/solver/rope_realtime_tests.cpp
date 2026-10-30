@@ -78,7 +78,7 @@ void test_input_contract() {
     input.linear_speed = 3.0001F;
     CHECK(validate_rope_realtime_input(input) == PM_ERROR_INVALID_ARGUMENT);
     input = valid_input();
-    input.solver_correction = 0.02501F;
+    input.solver_correction = 0.05001F;
     CHECK(validate_rope_realtime_input(input) == PM_ERROR_INVALID_ARGUMENT);
     input = valid_input();
     input.authored_strain = 0.2501F;
@@ -99,8 +99,8 @@ void test_budget_and_epoch() {
     CHECK(budget.contact_passes == 4U);
     CHECK(budget.time_advances == 1U);
     CHECK(budget.spatial_updates_during_solve == 0U);
-    CHECK(budget.domain_dispatches == 22U);
-    CHECK(budget.domain_workgroups == 22U);
+    CHECK(budget.domain_dispatches == 23U);
+    CHECK(budget.domain_workgroups == 23U);
     CHECK(budget.stretch_constraint_visits == 568U);
     CHECK(budget.bend_constraint_visits == 1'120U);
     CHECK(budget.contact_visits == 288U);

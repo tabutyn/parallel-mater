@@ -6,6 +6,7 @@ import types;
 import math;
 import device_intrinsics;
 import graphics_resources;
+import geometry;
 
 static const uint kRigidCouplingProfileVersion = 1u;
 static const float kRigidCouplingTimestep = 1.0f / 60.0f;
@@ -140,6 +141,12 @@ void rigid_coupling_project(
     float endpointInverseMass = endpoint_inverse_masses[endpoint];
     float bodyInverseMass = parameters.motion == MotionType.dynamic
         ? parameters.inverse_mass : 0.0f;
+    // A rope attachment reacts through the complete chain, not one node.
+    // The endpoint buffer stores per-node inverse mass, so convert it to the
+    // chain's translational inverse mass for the attachment proposal.
+    if (family == kRigidCouplingRope &&
+        mode == kRigidCouplingAttachment && endpoint_count != 0u)
+        endpointInverseMass /= float(endpoint_count);
     Vec3 localPoint = constraint_body_local_points[constraint];
     Vec3 bodyPoint = transform_point(bodyState, localPoint);
     Vec3 previousBodyPoint = transform_point(previousBodyState, localPoint);
@@ -256,10 +263,23 @@ void rigid_coupling_project(
             Vec3 error = subtract(bodyPoint, endpointPosition);
             Vec3 correction = clamp_length(multiply(error, response),
                 0.25f * characteristic_length);
-            endpointCorrection = multiply(correction,
-                endpointInverseMass / linearInverseMass);
-            body_position_deltas[constraint] = multiply(correction,
-                -bodyInverseMass / linearInverseMass);
+            if (family == kRigidCouplingRope)
+            {
+                // A point-only endpoint delta creates a local segment kink
+                // after the rope's domain sweeps are complete. The attachment
+                // sync projects the static correction across the chain; only
+                // the dynamic rigid side receives a positional proposal here.
+                endpointCorrection = {};
+                body_position_deltas[constraint] = bodyInverseMass > 0.0f
+                    ? multiply(correction, -1.0f) : Vec3(0.0f);
+            }
+            else
+            {
+                endpointCorrection = multiply(correction,
+                    endpointInverseMass / linearInverseMass);
+                body_position_deltas[constraint] = multiply(correction,
+                    -bodyInverseMass / linearInverseMass);
+            }
         }
         endpointImpulse = multiply(relativeVelocity,
             -response / linearInverseMass);
@@ -276,6 +296,334 @@ void rigid_coupling_project(
     endpoint_impulses[constraint] = endpointImpulse;
     body_angular_impulses[constraint] = cross(
         arm, multiply(endpointImpulse, -1.0f));
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rigid_rope_sync_attachments(
+    uniform PMBuffer<Vec3> rope_positions,
+    uniform PMBuffer<Vec3> rope_previous_positions,
+    uniform PMBuffer<Vec3> rope_velocities, uniform uint rope_count,
+    uniform PMBuffer<float> rope_rest_lengths,
+    uniform PMBuffer<Vec3> rope_anchor_targets,
+    uniform PMBuffer<BodyParameters> body_parameters,
+    uniform PMBuffer<RigidBodyState> body_states,
+    uniform PMBuffer<uint> body_generations, uniform uint body_count,
+    uniform PMBuffer<uint> constraint_endpoints,
+    uniform PMBuffer<uint> constraint_bodies,
+    uniform PMBuffer<uint> constraint_body_generations,
+    uniform PMBuffer<Vec3> constraint_body_local_points,
+    uniform PMByteBuffer constraint_active, uniform uint constraint_count,
+    uniform float dt PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    // One thread owns the chain-wide projection. A point-only rope snap after
+    // the final domain sweep puts the complete attachment error into one
+    // segment. Static anchors instead translate the solved chain without
+    // changing segment lengths; dynamic bodies follow the solved endpoint.
+    // The preceding reciprocal proposal still owns momentum exchange.
+    if (pmThreadIndex() != 0u || rope_count == 0u || dt <= 0.0f) return;
+    bool firstActive = false;
+    bool lastActive = false;
+    bool firstStatic = false;
+    bool lastStatic = false;
+    Vec3 firstCorrection = {};
+    Vec3 lastCorrection = {};
+    Vec3 firstVelocity = {};
+    Vec3 lastVelocity = {};
+    for (uint constraint = 0u; constraint < constraint_count; ++constraint)
+    {
+        if (constraint_active[constraint] == 0u) continue;
+        uint endpoint = constraint_endpoints[constraint];
+        uint body = constraint_bodies[constraint];
+        if (endpoint >= rope_count || body >= body_count ||
+            constraint_body_generations[constraint] != body_generations[body])
+            continue;
+        RigidBodyState state = body_states[body];
+        Vec3 position = transform_point(
+            state, constraint_body_local_points[constraint]);
+        Vec3 arm = subtract(position, state.position);
+        Vec3 velocity = add(state.linear_velocity,
+            cross(state.angular_velocity, arm));
+        Vec3 correction = subtract(position, rope_positions[endpoint]);
+        if (endpoint == 0u)
+        {
+            firstActive = true;
+            firstStatic = body_parameters[body].motion != MotionType.dynamic;
+            firstCorrection = correction;
+            firstVelocity = velocity;
+            rope_anchor_targets[0u] = position;
+        }
+        else if (endpoint + 1u == rope_count)
+        {
+            lastActive = true;
+            lastStatic = body_parameters[body].motion != MotionType.dynamic;
+            lastCorrection = correction;
+            lastVelocity = velocity;
+            rope_anchor_targets[1u] = position;
+        }
+    }
+    if (!firstActive && !lastActive) return;
+    Vec3 chainFirstCorrection = {};
+    Vec3 chainLastCorrection = {};
+    if (firstStatic && lastStatic)
+    {
+        chainFirstCorrection = firstCorrection;
+        chainLastCorrection = lastCorrection;
+    }
+    else if (firstStatic)
+    {
+        chainFirstCorrection = firstCorrection;
+        chainLastCorrection = firstCorrection;
+    }
+    else if (lastStatic)
+    {
+        chainFirstCorrection = lastCorrection;
+        chainLastCorrection = lastCorrection;
+    }
+    float denominator = rope_count > 1u ? float(rope_count - 1u) : 1.0f;
+    for (uint node = 0u; node < rope_count; ++node)
+    {
+        float weight = float(node) / denominator;
+        Vec3 correction = add(
+            multiply(chainFirstCorrection, 1.0f - weight),
+            multiply(chainLastCorrection, weight));
+        Vec3 position = add(rope_positions[node], correction);
+        rope_positions[node] = position;
+        rope_previous_positions[node] = add(
+            rope_previous_positions[node], correction);
+    }
+    if (firstStatic && !lastStatic)
+    {
+        for (uint node = 1u; node < rope_count; ++node)
+        {
+            Vec3 previous = rope_positions[node];
+            Vec3 direction = normalized_or(subtract(previous,
+                rope_positions[node - 1u]), Vec3(1.0f, 0.0f, 0.0f));
+            Vec3 position = add(rope_positions[node - 1u],
+                multiply(direction, rope_rest_lengths[node - 1u]));
+            Vec3 correction = subtract(position, previous);
+            rope_positions[node] = position;
+            rope_previous_positions[node] = add(
+                rope_previous_positions[node], correction);
+        }
+    }
+    else if (lastStatic && !firstStatic)
+    {
+        for (uint node = rope_count - 1u; node > 0u; --node)
+        {
+            Vec3 previous = rope_positions[node - 1u];
+            Vec3 direction = normalized_or(subtract(previous,
+                rope_positions[node]), Vec3(-1.0f, 0.0f, 0.0f));
+            Vec3 position = add(rope_positions[node],
+                multiply(direction, rope_rest_lengths[node - 1u]));
+            Vec3 correction = subtract(position, previous);
+            rope_positions[node - 1u] = position;
+            rope_previous_positions[node - 1u] = add(
+                rope_previous_positions[node - 1u], correction);
+        }
+    }
+    if (firstStatic)
+    {
+        rope_previous_positions[0u] = subtract(
+            rope_positions[0u], multiply(firstVelocity, dt));
+        rope_velocities[0u] = firstVelocity;
+    }
+    if (lastStatic)
+    {
+        uint endpoint = rope_count - 1u;
+        rope_previous_positions[endpoint] = subtract(
+            rope_positions[endpoint], multiply(lastVelocity, dt));
+        rope_velocities[endpoint] = lastVelocity;
+    }
+    for (uint constraint = 0u; constraint < constraint_count; ++constraint)
+    {
+        if (constraint_active[constraint] == 0u) continue;
+        uint endpoint = constraint_endpoints[constraint];
+        uint body = constraint_bodies[constraint];
+        if (endpoint >= rope_count || body >= body_count ||
+            constraint_body_generations[constraint] != body_generations[body] ||
+            body_parameters[body].motion != MotionType.dynamic)
+            continue;
+        RigidBodyState state = body_states[body];
+        Vec3 bodyPoint = transform_point(
+            state, constraint_body_local_points[constraint]);
+        state.position = add(state.position,
+            subtract(rope_positions[endpoint], bodyPoint));
+        body_states[body] = state;
+        Vec3 position = rope_positions[endpoint];
+        Vec3 arm = subtract(position, state.position);
+        Vec3 velocity = add(state.linear_velocity,
+            cross(state.angular_velocity, arm));
+        rope_previous_positions[endpoint] = subtract(
+            position, multiply(velocity, dt));
+        rope_velocities[endpoint] = velocity;
+        rope_anchor_targets[endpoint == 0u ? 0u : 1u] = position;
+    }
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rigid_rope_apply_attachment_reactions(
+    uniform PMBuffer<Vec3> previous_rope_velocities,
+    uniform PMBuffer<Vec3> current_rope_velocities,
+    uniform PMBuffer<float> rope_inverse_masses, uniform uint rope_count,
+    uniform PMBuffer<float> rope_rest_lengths,
+    uniform float rope_maximum_speed,
+    uniform uint attached_end_mask, uniform uint attached_end_count,
+    uniform Vec3 gravity, uniform float dt,
+    uniform PMBuffer<Vec3> rope_positions,
+    uniform PMBuffer<Vec3> rope_velocities,
+    uniform PMBuffer<Vec3> rope_constraint_forces,
+    uniform PMBuffer<Vec3> rope_anchor_targets,
+    uniform PMBuffer<BodyParameters> body_parameters,
+    uniform PMBuffer<BodyAccumulator> body_accumulators,
+    uniform PMBuffer<RigidBodyState> body_previous_states,
+    uniform PMBuffer<RigidBodyState> body_states,
+    uniform PMBuffer<uint> body_generations, uniform uint body_count,
+    uniform PMBuffer<uint> constraint_endpoints,
+    uniform PMBuffer<uint> constraint_bodies,
+    uniform PMBuffer<uint> constraint_body_generations,
+    uniform PMBuffer<Vec3> constraint_body_local_points,
+    uniform PMByteBuffer constraint_active, uniform uint constraint_count
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint constraint = pmThreadIndex();
+    if (constraint >= constraint_count ||
+        constraint_active[constraint] == 0u || attached_end_count == 0u ||
+        dt <= 0.0f) return;
+    uint endpoint = constraint_endpoints[constraint];
+    uint body = constraint_bodies[constraint];
+    if (endpoint >= rope_count || body >= body_count ||
+        constraint_body_generations[constraint] != body_generations[body])
+        return;
+    Vec3 currentImpulse = {};
+    Vec3 previousMomentum = {};
+    float freeMass = 0.0f;
+    for (uint node = 0u; node < rope_count; ++node)
+    {
+        bool attached = (node == 0u && (attached_end_mask & 1u) != 0u) ||
+            (node + 1u == rope_count && (attached_end_mask & 2u) != 0u);
+        float inverseMass = rope_inverse_masses[node];
+        if (attached || inverseMass <= 0.0f) continue;
+        float mass = 1.0f / inverseMass;
+        freeMass += mass;
+        previousMomentum = add(previousMomentum,
+            multiply(previous_rope_velocities[node], mass));
+        currentImpulse = add(currentImpulse, subtract(
+            multiply(subtract(current_rope_velocities[node],
+                previous_rope_velocities[node]), mass),
+            multiply(gravity, mass * dt)));
+    }
+    if (freeMass <= 0.0f) return;
+    BodyParameters parameters = body_parameters[body];
+    BodyAccumulator accumulator = body_accumulators[body];
+    RigidBodyState previousState = body_previous_states[body];
+    RigidBodyState state = body_states[body];
+    Vec3 position = transform_point(
+        state, constraint_body_local_points[constraint]);
+    Vec3 arm = subtract(position, state.position);
+    Vec3 bodyImpulse = {};
+    if (parameters.motion == MotionType.dynamic)
+    {
+        Vec3 baseLinear = add(previousState.linear_velocity,
+            multiply(add(gravity,
+                multiply(accumulator.force, parameters.inverse_mass)), dt));
+        baseLinear = add(baseLinear,
+            multiply(accumulator.impulse, parameters.inverse_mass));
+        baseLinear = multiply(baseLinear,
+            1.0f / (1.0f + parameters.linear_damping * dt));
+        baseLinear = clamp_length(
+            baseLinear, parameters.maximum_linear_speed);
+        Vec3 baseAngular = add(previousState.angular_velocity,
+            multiply(inverse_inertia_world(parameters, previousState,
+                accumulator.torque), dt));
+        baseAngular = add(baseAngular,
+            inverse_inertia_world(parameters, previousState,
+                accumulator.angular_impulse));
+        baseAngular = multiply(baseAngular,
+            1.0f / (1.0f + parameters.angular_damping * dt));
+        baseAngular = clamp_length(
+            baseAngular, parameters.maximum_angular_speed);
+        Vec3 baseAnchorVelocity = add(baseLinear,
+            cross(baseAngular, arm));
+        Vec3 inertialRopeVelocity = add(
+            multiply(previousMomentum, 1.0f / freeMass),
+            multiply(gravity, dt));
+        Vec3 relative = subtract(
+            inertialRopeVelocity, baseAnchorVelocity);
+        float relativeSpeed = vector_length(relative);
+        if (relativeSpeed > 1.0e-8f)
+        {
+            Vec3 direction = multiply(relative, 1.0f / relativeSpeed);
+            Vec3 angularVelocity = inverse_inertia_world(
+                parameters, state, cross(arm, direction));
+            float effectiveInverseMass = parameters.inverse_mass +
+                1.0f / freeMass +
+                dot(cross(angularVelocity, arm), direction);
+            if (effectiveInverseMass > 1.0e-8f)
+                bodyImpulse = multiply(direction,
+                    relativeSpeed / effectiveInverseMass);
+        }
+        bodyImpulse = multiply(bodyImpulse,
+            1.0f / float(attached_end_count));
+        Vec3 ropeAdjustment = subtract(
+            multiply(bodyImpulse, -1.0f), currentImpulse);
+        Vec3 ropeVelocityDelta = multiply(
+            ropeAdjustment, 1.0f / freeMass);
+        for (uint node = 0u; node < rope_count; ++node)
+        {
+            bool attached =
+                (node == 0u && (attached_end_mask & 1u) != 0u) ||
+                (node + 1u == rope_count &&
+                    (attached_end_mask & 2u) != 0u);
+            if (attached || rope_inverse_masses[node] <= 0.0f) continue;
+            current_rope_velocities[node] = clamp_length(add(
+                current_rope_velocities[node], ropeVelocityDelta),
+                rope_maximum_speed);
+            rope_positions[node] = add(rope_positions[node],
+                multiply(ropeVelocityDelta, dt));
+        }
+        state.linear_velocity = clamp_length(add(baseLinear,
+            multiply(bodyImpulse, parameters.inverse_mass)),
+            parameters.maximum_linear_speed);
+        state.angular_velocity = clamp_length(add(baseAngular,
+            inverse_inertia_world(parameters, state,
+                cross(arm, bodyImpulse))),
+            parameters.maximum_angular_speed);
+        body_states[body] = state;
+    }
+    Vec3 velocity = add(state.linear_velocity,
+        cross(state.angular_velocity, arm));
+    rope_positions[endpoint] = position;
+    rope_velocities[endpoint] = velocity;
+    rope_constraint_forces[endpoint] = multiply(bodyImpulse, 1.0f / dt);
+    rope_anchor_targets[endpoint == 0u ? 0u : 1u] = position;
+    // Final attachment projection preserves authored segment lengths without
+    // feeding a point-only correction back into the next tick.
+    if (attached_end_mask == 1u)
+    {
+        for (uint node = 1u; node < rope_count; ++node)
+        {
+            Vec3 direction = normalized_or(subtract(
+                rope_positions[node], rope_positions[node - 1u]),
+                Vec3(0.0f, -1.0f, 0.0f));
+            rope_positions[node] = add(rope_positions[node - 1u],
+                multiply(direction, rope_rest_lengths[node - 1u]));
+        }
+    }
+    else if (attached_end_mask == 2u)
+    {
+        for (uint node = rope_count - 1u; node > 0u; --node)
+        {
+            Vec3 direction = normalized_or(subtract(
+                rope_positions[node - 1u], rope_positions[node]),
+                Vec3(0.0f, 1.0f, 0.0f));
+            rope_positions[node - 1u] = add(rope_positions[node],
+                multiply(direction, rope_rest_lengths[node - 1u]));
+        }
+    }
 }
 
 [shader("compute")]

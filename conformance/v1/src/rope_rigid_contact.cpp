@@ -22,11 +22,11 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float preparation_timestep = 0.01F;
-constexpr PmFloat3 preparation_gravity{100.0F, 100.0F, 0.0F};
-constexpr float quality_timestep = 0.01F;
-constexpr float rope_node_spacing = 0.03F;
-constexpr float rope_radius = 0.015F;
+constexpr float preparation_timestep = 1.0F / 60.0F;
+constexpr PmFloat3 preparation_gravity{35.0F, 31.0F, 0.0F};
+constexpr float quality_timestep = 1.0F / 60.0F;
+constexpr float rope_node_spacing = 0.06F;
+constexpr float rope_radius = 0.03F;
 constexpr float rope_mass = 0.5F;
 constexpr float rigid_mass = 100.0F;
 constexpr float cube_half_extent = 0.1F;
@@ -35,16 +35,19 @@ constexpr float cube_inertia =
     (1.0F / 6.0F) * rigid_mass * (2.0F * cube_half_extent) *
     (2.0F * cube_half_extent);
 constexpr float expected_impact_impulse =
-    1.0F / (1.0F / rope_mass + 1.0F / rigid_mass);
+    preparation_gravity.x * preparation_timestep /
+    (1.0F / rope_mass + 1.0F / rigid_mass);
 
 constexpr std::array<PmFloat3, 2U> impact_centerline{{
-    {-0.13F, -0.03F, 0.0F}, {-0.13F, -0.01F, 0.0F}}};
+    {-0.144722222F, -0.038611111F, 0.0F},
+    {-0.144722222F, 0.021388889F, 0.0F}}};
 constexpr std::array<PmFloat3, 2U> impact_prepared{{
-    {-0.12F, -0.02F, 0.0F}, {-0.12F, 0.0F, 0.0F}}};
+    {-0.135F, -0.03F, 0.0F}, {-0.135F, 0.03F, 0.0F}}};
 constexpr std::array<PmFloat3, 2U> control_centerline{{
-    {-0.30F, -0.03F, 0.0F}, {-0.30F, -0.01F, 0.0F}}};
+    {-0.299722222F, -0.038611111F, 0.0F},
+    {-0.299722222F, 0.021388889F, 0.0F}}};
 constexpr std::array<PmFloat3, 2U> control_prepared{{
-    {-0.29F, -0.02F, 0.0F}, {-0.29F, 0.0F, 0.0F}}};
+    {-0.29F, -0.03F, 0.0F}, {-0.29F, 0.03F, 0.0F}}};
 
 constexpr std::array<PmFloat3, 8U> cube_vertices{{
     {-cube_half_extent, -cube_half_extent, -cube_half_extent},
@@ -193,7 +196,7 @@ template <typename Value, std::size_t Size>
     material.velocityDamping = 0.0F;
     material.maximumSubstepTimestep = quality_timestep;
     material.friction = 0.0F;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = 1.75F;
     material.solverIterations = 2U;
     material.selfCollision = PM_FALSE;
     return material;
@@ -383,7 +386,9 @@ void record_copies(Context &context, const FixtureObjects &fixture,
     result["authored_rope_centerline_m"] = vectors_json(centerline);
     result["prepared_rope_nodes_m"] = vectors_json(prepared);
     result["prepared_rope_velocity_m_s"] =
-        vector_json(PmFloat3{1.0F, 1.0F, 0.0F});
+        vector_json(PmFloat3{
+            preparation_gravity.x * preparation_timestep,
+            preparation_gravity.y * preparation_timestep, 0.0F});
     result["rope_node_count"] =
         static_cast<std::uint64_t>(centerline.size());
     result["rope_node_spacing_m"] = static_cast<double>(rope.nodeSpacing);

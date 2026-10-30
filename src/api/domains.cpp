@@ -30,6 +30,27 @@ static_assert(sizeof(PmFloat3) == sizeof(Vec3));
     return {source.x, source.y, source.z};
 }
 
+[[nodiscard]] bool same_smoke_except_emission_rate(
+    const PmSmokeInfo &first, const PmSmokeInfo &second) noexcept {
+    return first.active == second.active &&
+        first.materialIndex == second.materialIndex &&
+        first.particleCapacity == second.particleCapacity &&
+        first.emitterCenter.x == second.emitterCenter.x &&
+        first.emitterCenter.y == second.emitterCenter.y &&
+        first.emitterCenter.z == second.emitterCenter.z &&
+        first.emitterHalfExtents.x == second.emitterHalfExtents.x &&
+        first.emitterHalfExtents.y == second.emitterHalfExtents.y &&
+        first.initialVelocity.x == second.initialVelocity.x &&
+        first.initialVelocity.y == second.initialVelocity.y &&
+        first.initialVelocity.z == second.initialVelocity.z &&
+        first.wind.x == second.wind.x && first.wind.y == second.wind.y &&
+        first.wind.z == second.wind.z && first.lifetime == second.lifetime &&
+        first.gridMinimum.x == second.gridMinimum.x &&
+        first.gridMinimum.y == second.gridMinimum.y &&
+        first.gridMinimum.z == second.gridMinimum.z &&
+        first.gridEdgeLength == second.gridEdgeLength;
+}
+
 template <typename T>
 [[nodiscard]] PmResult copy_array(const T *source, std::uint32_t count,
                                   std::vector<T> &destination) noexcept {
@@ -366,7 +387,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteCloths(
         const PmClothCapacity capacity =
             simulation->cloth_capacities[first + index];
         if (source.materialIndex >= command_buffer->bound_pipeline->cloths.size() ||
-            source.vertexCount == 0U || source.triangleIndexCount == 0U ||
+            source.vertexCount == 0U ||
             source.triangleIndexCount % 3U != 0U ||
             source.vertexCount > capacity.vertexCapacity ||
             source.triangleIndexCount > capacity.triangleIndexCapacity ||
@@ -638,7 +659,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSoftBodies(
         const PmSoftBodyCapacity capacity =
             simulation->soft_body_capacities[first + index];
         if (source.materialIndex >= command_buffer->bound_pipeline->soft_bodies.size() ||
-            source.nodeCount == 0U || source.bondCount == 0U ||
+            source.nodeCount == 0U ||
             source.surfaceVertexCount == 0U ||
             source.surfaceTriangleIndexCount == 0U ||
             source.surfaceTriangleIndexCount % 3U != 0U ||
@@ -863,19 +884,47 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSmoke(
             if (simulation->binding.persistentMemory == nullptr) return PM_ERROR_INVALID_STATE;
             parallel_mater::simulation::ScopedMemoryArena arena_scope(
                 simulation->arena.get());
-            const auto detached = parallel_mater::api::clear_couplings(simulation);
-            if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
+                const auto &source = copied[offset];
+                const auto &slot = simulation->smokes[first + offset];
+                const auto &info = simulation->smoke_infos[first + offset];
+                if (source.active == PM_TRUE &&
+                    source.particlesPerSecond == 0.0F &&
+                    (!slot.has_value() || !info.has_value() ||
+                     !same_smoke_except_emission_rate(source, *info)))
+                    return PM_ERROR_INVALID_ARGUMENT;
+            }
+            const bool replaces_domain = std::any_of(
+                copied.begin(), copied.end(), [](const PmSmokeInfo &source) {
+                    return source.active != PM_TRUE ||
+                        source.particlesPerSecond != 0.0F;
+                });
+            if (replaces_domain) {
+                const auto detached =
+                    parallel_mater::api::clear_couplings(simulation);
+                if (detached != PM_SUCCESS) return detached;
+            }
+            for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
+                const PmSmokeInfo &source = copied[offset];
+                auto &slot = simulation->smokes[first + offset];
+                auto &info = simulation->smoke_infos[first + offset];
+                if (source.active == PM_TRUE &&
+                    source.particlesPerSecond == 0.0F) {
+                    const PmResult result = parallel_mater::api::from_status(
+                        simulation->runtime->disable_smoke_source(*slot));
+                    if (result != PM_SUCCESS) return result;
+                    info = source;
+                    continue;
+                }
                 parallel_mater::simulation::ScopedMemoryArena slot_scope(
                     simulation->domain_memory.smokes[first + offset].get());
-                auto &slot = simulation->smokes[first + offset];
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(
                         simulation->runtime->remove_smoke(*slot));
                     if (result != PM_SUCCESS) return result;
                     slot.reset();
                 }
-                const PmSmokeInfo &source = copied[offset];
+                info.reset();
                 if (source.active == PM_FALSE) continue;
                 if (source.materialIndex >= pipeline->smokes.size())
                     return PM_ERROR_INVALID_ARGUMENT;
@@ -909,8 +958,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteSmoke(
                     simulation->runtime->add_smoke(options, created));
                 if (result != PM_SUCCESS) return result;
                 slot = created;
+                info = source;
             }
-            simulation->couplings_initialized = false;
+            if (replaces_domain) simulation->couplings_initialized = false;
             return PM_SUCCESS;
         });
 }

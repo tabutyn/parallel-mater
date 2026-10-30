@@ -58,6 +58,7 @@ struct Fixture {
     Vec3 *velocities{};
     Vec3 *previous{};
     Vec3 *position_deltas{};
+    Vec3 *constraint_forces{};
     Vec3 *anchor_targets{};
     Vec3 *contact_normals{};
     float *correction_used{};
@@ -76,6 +77,7 @@ struct Fixture {
           velocities(managed<Vec3>(capacity)),
           previous(managed<Vec3>(capacity)),
           position_deltas(managed<Vec3>(capacity)),
+          constraint_forces(managed<Vec3>(capacity)),
           anchor_targets(managed<Vec3>(2U)),
           contact_normals(managed<Vec3>(capacity)),
           correction_used(managed<float>(capacity)),
@@ -94,8 +96,9 @@ struct Fixture {
     }
 
     ~Fixture() {
-        for (void *pointer : std::array<void *, 15>{positions, velocities,
-                 previous, position_deltas, anchor_targets, contact_normals,
+        for (void *pointer : std::array<void *, 16>{positions, velocities,
+                 previous, position_deltas, constraint_forces,
+                 anchor_targets, contact_normals,
                  correction_used, inverse_masses, rest_lengths,
                  rest_bend_lengths, contact_offsets, anchor_active,
                  contact_active, time_advances, status})
@@ -104,6 +107,7 @@ struct Fixture {
 
     bool allocated() const {
         return positions && velocities && previous && position_deltas &&
+            constraint_forces &&
             anchor_targets && contact_normals && correction_used &&
             inverse_masses && rest_lengths && rest_bend_lengths &&
             contact_offsets && anchor_active && contact_active &&
@@ -139,7 +143,8 @@ struct Fixture {
              sweep < rope_realtime_constraint_sweeps; ++sweep) {
             rope_realtime_project_constraints<<<1U, threads>>>(
                 reinterpret_cast<Vec3_0 *>(positions),
-                reinterpret_cast<Vec3_0 *>(position_deltas), correction_used,
+                reinterpret_cast<Vec3_0 *>(position_deltas),
+                reinterpret_cast<Vec3_0 *>(constraint_forces), correction_used,
                 inverse_masses, rest_lengths, rest_bend_lengths,
                 anchor_active, count, capacity, node_spacing,
                 structural_compliance, dt, profile, status);

@@ -123,7 +123,11 @@ bool apply_gallery_fixed_tick_material_contract(
             if (std::isfinite(bond.rest_length) && bond.rest_length > 0.0F)
                 bond.rest_length = std::max(
                     bond.rest_length, minimum_characteristic_length);
-        const float characteristic = shortest_bond(body);
+        const float bond_characteristic = shortest_bond(body);
+        // A sparse one-node body has no stretch graph, but its public contact
+        // diameter is still a valid profile characteristic length.
+        const float characteristic = std::isfinite(bond_characteristic)
+            ? bond_characteristic : 2.0F * body.node_radius;
         if (!std::isfinite(characteristic)) {
             error = "soft body has no fixed-tick characteristic length";
             return false;

@@ -237,6 +237,7 @@ struct FluidOptions
     float normal_damping;
     float rest_particle_volume;
     float maximum_pair_acceleration;
+    float realtime_commit_velocity_scale;
 };
 
 struct ClothId

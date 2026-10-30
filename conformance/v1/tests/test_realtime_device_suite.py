@@ -95,14 +95,19 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
         count = definition["ticks"]
         tick_work = [self.tick(overrides.get(index))
                      for index in range(count)]
+        final_public_state = {"frame": count}
         executions = [{
             "validation_enabled": mode,
             "simulation_status": "PM_SUCCESS",
             "simulation_instance_count": 1,
             "completed_tick_records": count,
+            "measurements": measurements,
             "measurements_sha256": MODULE.value_sha256(measurements),
+            "tick_work": tick_work,
             "tick_work_sha256": MODULE.value_sha256(tick_work),
-            "final_public_state_sha256": "c" * 64,
+            "final_public_state": final_public_state,
+            "final_public_state_sha256": MODULE.value_sha256(
+                final_public_state),
         } for mode in (False, True)]
         return {
             "id": definition["id"],
@@ -280,8 +285,10 @@ class RealtimeDeviceSuiteTests(unittest.TestCase):
 
     def test_plain_and_validation_public_states_must_match(self):
         capture = self.capture()
-        capture["scenarios"][0]["executions"][1][
-            "final_public_state_sha256"] = "d" * 64
+        execution = capture["scenarios"][0]["executions"][1]
+        execution["final_public_state"] = {"frame": -1}
+        execution["final_public_state_sha256"] = MODULE.value_sha256(
+            execution["final_public_state"])
         report = self.evaluate(capture)
         self.assertFalse(report["passed"])
         self.assertIn("public states differ", json.dumps(report["failures"]))

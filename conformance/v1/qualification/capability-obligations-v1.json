@@ -37,553 +37,2052 @@
     ]
   },
   "contracts": [
-    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "9581bc11a09dd04983b0e98339b8c5716b23c9e06f07be7a7726d00701e07189", "compatible_sha256": ["2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f", "c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e", "c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c", "a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d", "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62", "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af", "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"]},
-    {"id": "case:fluid-lifecycle", "path": "conformance/v1/cases/fluid-lifecycle.json", "sha256": "c5d69c6395e3436f0b4173fb6713490919e602d5f86c21520f7691e1a1bf1ad5", "compatible_sha256": ["43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"]},
-    {"id": "case:rope-core", "path": "conformance/v1/cases/rope-core.json", "sha256": "7f51b62a631e1e601a586ee995135dd678c96a3464273c670b3d7784a0c4f6cf", "compatible_sha256": ["8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"]},
-    {"id": "case:smoke-grid", "path": "conformance/v1/cases/smoke-grid.json", "sha256": "25e64ab64c0ad649afca90c8f88d63c362f43a48e105b5bb174f05cfbb7fd82b", "compatible_sha256": ["8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"]},
-    {"id": "case:rigid-direct", "path": "conformance/v1/cases/rigid-direct.json", "sha256": "1b1a68c58cd90dc8fefae91c50d326f7c366f4f64078f365dcc64f96eeb07209", "compatible_sha256": ["4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c"]},
-    {"id": "case:compound-weld-lifecycle", "path": "conformance/v1/cases/compound-weld-lifecycle.json", "sha256": "3c7202da4c72c740a71268e14f75831cc7fc915ee41d6f0b87566310a8e75d74", "compatible_sha256": ["3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26"]},
-    {"id": "case:cloth-water", "path": "conformance/v1/cases/cloth-water.json", "sha256": "afb34b9a0e737d9d84956490b026c3f0f45f659c7e5aa10694ee5e3daabaa6fe", "compatible_sha256": ["b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5"]},
-    {"id": "case:soft-body-fluid", "path": "conformance/v1/cases/soft-body-fluid.json", "sha256": "8d8cb31e66563f4dd375aa484bd8a7524814a72cf00d2a2f6517801ec058ba4f", "compatible_sha256": ["935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653"]},
-    {"id": "case:rope-fluid", "path": "conformance/v1/cases/rope-fluid.json", "sha256": "114592b094861c198c23950d90001929fff3b0c6a43564a40d0f9a2903e3f67b", "compatible_sha256": ["368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27"]},
-    {"id": "case:smoke-water", "path": "conformance/v1/cases/smoke-water.json", "sha256": "1601b807d2159ab7cd1fdc7bf65040d23ce399be1714cfea77e9bac95259614c", "compatible_sha256": ["cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c"]},
-    {"id": "case:fluid-rigid", "path": "conformance/v1/cases/fluid-rigid.json", "sha256": "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6", "compatible_sha256": ["2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"]},
-    {"id": "case:soft-body-cloth", "path": "conformance/v1/cases/soft-body-cloth.json", "sha256": "cfa7cd8b3ede7a4a9710f16a9c511984192f5a405f9be31e04d4a96ced4872ab", "compatible_sha256": ["779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a"]},
-    {"id": "case:rope-cloth", "path": "conformance/v1/cases/rope-cloth.json", "sha256": "0b2d1be47582893d56b3c7455d5188c74a25eecabb91adc7fda841a01b5ade13", "compatible_sha256": ["28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792"]},
-    {"id": "case:smoke-cloth", "path": "conformance/v1/cases/smoke-cloth.json", "sha256": "7b5d86ee8c0036458b691997a82e6b0ee15ba6f9c50169b4c05d0ba7f0b176c4", "compatible_sha256": ["8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc"]},
-    {"id": "case:cloth-core", "path": "conformance/v1/cases/cloth-core.json", "sha256": "bbf1b54575b32460942ad15aa6ee847e6de3a7ad502d3a4729bf3b6f0620c824", "compatible_sha256": ["f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5"]},
-    {"id": "case:rope-soft-body", "path": "conformance/v1/cases/rope-soft-body.json", "sha256": "caf1cd0e631c9853b73a56a91cae140b7b35d6671066d15279efed7b67d9a4bb", "compatible_sha256": ["8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549"]},
-    {"id": "case:smoke-soft-body", "path": "conformance/v1/cases/smoke-soft-body.json", "sha256": "52748bcf5490922cce9992a5f62417cc5b79319cf49d1b3cbfcd0d56d2e8d252", "compatible_sha256": ["a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8"]},
-    {"id": "case:soft-body-core", "path": "conformance/v1/cases/soft-body-core.json", "sha256": "d54705d31a08162a76fbd4bd980daa5a85fd15e00e056124bf55ae5bc75aa0e3", "compatible_sha256": ["e453b88e5a753b608b9a56857df82f3176fe43ae9b7f351c36dc792e601abffc"]},
-    {"id": "case:soft-body-rigid", "path": "conformance/v1/cases/soft-body-rigid.json", "sha256": "47f45728af9cc9ed4b5967d953e134becdd3af97a8f40b464690b3b45a9241cf", "compatible_sha256": ["ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505"]},
-    {"id": "case:smoke-rope", "path": "conformance/v1/cases/smoke-rope.json", "sha256": "1780733844fc01e4ff0ff066e2febb6d39856445f0388996a4c56ac2a0e244e1", "compatible_sha256": ["da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"]},
-    {"id": "quality:rigid-brick-penetration-v1", "path": "conformance/v1/quality/rigid-brick-penetration-v1.json", "sha256": "89485de13dc48baefae04252c0c877e5b25f06185686c3fa85e1c699eade1f80", "compatible_sha256": ["1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da"]},
-    {"id": "quality:rigid-attachment-v1", "path": "conformance/v1/quality/rigid-attachment-v1.json", "sha256": "8c62e99c00c7d52ebee54d25a1c8c2f640baaaeb3c2c01e9dcc29f1a620c1f67", "compatible_sha256": ["570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108"]},
-    {"id": "quality:fluid-self-contact-v1", "path": "conformance/v1/quality/fluid-self-contact-v1.json", "sha256": "28b9bb8f1dbe1a9696418f93108549b65a369dd4b81f69bf714312251b8e3af2"},
-    {"id": "quality:fluid-self-pressure-v1", "path": "conformance/v1/quality/fluid-self-pressure-v1.json", "sha256": "42825a5db3568c7d204f88958718f0a2b512880de865e036f8d82ecae0da93be"},
-    {"id": "quality:fluid-self-viscosity-v1", "path": "conformance/v1/quality/fluid-self-viscosity-v1.json", "sha256": "a41f204deac0b08a1e4741542533e17922b1af1dce38220ab05f63bfcba2e5d5"},
-    {"id": "quality:rope-self-contact-v1", "path": "conformance/v1/quality/rope-self-contact-v1.json", "sha256": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113"},
-    {"id": "quality:rope-self-contact-v2", "path": "conformance/v1/quality/rope-self-contact-v2.json", "sha256": "8860ec9a5ba0e79dc4b917eabaad88d99fb77b0d17b8575d650f43143d17b408"},
-    {"id": "quality:rope-rigid-contact-v1", "path": "conformance/v1/quality/rope-rigid-contact-v1.json", "sha256": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3"},
-    {"id": "quality:rope-rigid-attachment-v1", "path": "conformance/v1/quality/rope-rigid-attachment-v1.json", "sha256": "f11a7dd5b27e5da058a4384b2154b2db6a3ee1f8c3cc94d6333b9f8d8c5fb6d0"},
-    {"id": "quality:fluid-cloth-containment-v1", "path": "conformance/v1/quality/fluid-cloth-containment-v1.json", "sha256": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33"},
-    {"id": "quality:cloth-soft-contact-v1", "path": "conformance/v1/quality/cloth-soft-contact-v1.json", "sha256": "0d67c947347d45b5bdc897df3f213513f576c01ca1bd3898b32010ec7578b7e2"},
-    {"id": "quality:cloth-rigid-contact-v1", "path": "conformance/v1/quality/cloth-rigid-contact-v1.json", "sha256": "0d9b503564ce6e5405b147035d241ea1984c1273fd8df7108c52300ae9ffb909"},
-    {"id": "quality:fluid-soft-contact-v1", "path": "conformance/v1/quality/fluid-soft-contact-v1.json", "sha256": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986"},
-    {"id": "quality:fluid-rope-contact-v1", "path": "conformance/v1/quality/fluid-rope-contact-v1.json", "sha256": "cf62d762b47a575bc1d11c22ca2486ff7a28b307366f28d6c97bbe9f132b5540", "compatible_sha256": ["fbed229f399b2961a6753cc089862f55dac8b9d9e59b3d7bcecb5556d38de1bd", "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89"]},
-    {"id": "quality:fluid-rigid-contact-v1", "path": "conformance/v1/quality/fluid-rigid-contact-v1.json", "sha256": "3f91da38345cab59a2cc37487fe4fa243bf211b91f4bd3a0b70163206d07f9a3"},
-    {"id": "quality:soft-rigid-contact-v1", "path": "conformance/v1/quality/soft-rigid-contact-v1.json", "sha256": "2cc79bdc7ce270490c00e92dd3e00911bf10c624ed49f5c36b99d8143a96fad6"},
-    {"id": "quality:fluid-rigid-containment-v1", "path": "conformance/v1/quality/fluid-rigid-containment-v1.json", "sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6"},
-    {"id": "quality:cloth-rope-attachment-v1", "path": "conformance/v1/quality/cloth-rope-attachment-v1.json", "sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023"},
-    {"id": "quality:soft-rope-contact-v1", "path": "conformance/v1/quality/soft-rope-contact-v1.json", "sha256": "df6d15ea4e3d96346a23894c557292da15f6acf26dafd33384a17028226a1de6"},
-    {"id": "quality:soft-rope-attachment-v1", "path": "conformance/v1/quality/soft-rope-attachment-v1.json", "sha256": "9a90ee73617bfc59e3e0187834b356cd0d4615bf6e278d441bf290d36a36c5f4", "compatible_sha256": ["7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549"]},
-    {"id": "quality:smoke-self-pressure-v1", "path": "conformance/v1/quality/smoke-self-pressure-v1.json", "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150"},
-    {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
-    {"id": "quality:cloth-smoke-contact-v1", "path": "conformance/v1/quality/cloth-smoke-contact-v1.json", "sha256": "39d221db1df6d6b6f73c650df4004b81ce4541203a359edf2654f7172c1c8029"},
-    {"id": "quality:soft-smoke-contact-v1", "path": "conformance/v1/quality/soft-smoke-contact-v1.json", "sha256": "4ee08a7676ccf9c7198e0fbdd752db59c25bb655601e22aa15a327d70ab0ab8d"},
-    {"id": "quality:rope-smoke-contact-v1", "path": "conformance/v1/quality/rope-smoke-contact-v1.json", "sha256": "821c94ef42abeb047390383ef6fd0f28476aa5880414235defb8348532bbbc7a"},
-    {"id": "quality:smoke-rigid-contact-v1", "path": "conformance/v1/quality/smoke-rigid-contact-v1.json", "sha256": "138454122bed21dccb6c30f5e7e132ba9a1131856d88396cd8171570a4337029"},
-    {"id": "quality:smoke-rigid-drag-v1", "path": "conformance/v1/quality/smoke-rigid-drag-v1.json", "sha256": "15d40028ec945834d7f49f44ddcaddcfa3fddedcf984730b20e112d86ec73315"},
-    {"id": "quality:smoke-rope-drag-v1", "path": "conformance/v1/quality/smoke-rope-drag-v1.json", "sha256": "9554669ec21ac7c5dd6c1110d66bf974c115f7755cba4f78769cce2b1e3d318d"},
-    {"id": "quality:smoke-self-viscosity-v1", "path": "conformance/v1/quality/smoke-self-viscosity-v1.json", "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"},
-    {"id": "quality:smoke-fluid-drag-v1", "path": "conformance/v1/quality/smoke-fluid-drag-v1.json", "sha256": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1"},
-    {"id": "quality:smoke-cloth-drag-v1", "path": "conformance/v1/quality/smoke-cloth-drag-v1.json", "sha256": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac"},
-    {"id": "quality:smoke-soft-drag-v1", "path": "conformance/v1/quality/smoke-soft-drag-v1.json", "sha256": "b7d5c09ba966e1ddbd8c7580ee6868f9d9e4de62462b069d9fb0e749904b766c"},
-    {"id": "quality:fluid-smoke-phase-v1", "path": "conformance/v1/quality/fluid-smoke-phase-v1.json", "sha256": "da827f9cf347269442f529b3e57beeef70b4c64714c48cc21f1ad0666597f263"},
-    {"id": "quality:externally-heated-fluid-v1", "path": "conformance/v1/quality/externally-heated-fluid-v1.json", "sha256": "8fa544e51d8d900d68cfe3b8711fa1129a7bc56275b1bacfa0c9bffc15a0dacf"},
-    {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
-    {"id": "quality:core-conservation-stability-v1#equal-material-viscosity", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
-    {"id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
-    {"id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
-    {"id": "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json", "sha256": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1"},
-    {"id": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json", "sha256": "b77ce14642b8d6535b57e26e919397fab2cdc5cdf89d8ae8f82cf5bb643259ea"},
-    {"id": "lifecycle:soft-rigid-contact-lifecycle-v1#soft-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json", "sha256": "11a11ed96e09c8f8fcee037d029d9730a2aba3f48183b69eb6017d8164e015fb"},
-    {"id": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json", "sha256": "bc4730838161caa3c77c54c65e58f14fee1fdf4095b26432fea8738ddae6fff0"},
-    {"id": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json", "sha256": "d03f1609c66a4c5f5b827ee581274dd1860e95b8459dc653576d663445d0e9c4"},
-    {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
-    {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
-    {"id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json", "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"},
-    {"id": "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-smoke-contact-lifecycle-v1.json", "sha256": "3ccfe472f7bcfad66f2b092a63fccadc88fdc268cb59ae65c12cc9d541c55d0d"},
-    {"id": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json", "sha256": "eebb8182329058601310417e9d951f594bdaf53d966c670d4874adcbf12f29d2"},
-    {"id": "lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json", "sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f"},
-    {"id": "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json", "sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f"},
-    {"id": "lifecycle:smoke-rigid-contact-lifecycle-v1#particle-smoke-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json", "sha256": "d53d75c441f41f74dddb0a6ef1d6dff97dee10f688002b1d8775781e871be47e"},
-    {"id": "lifecycle:smoke-rigid-contact-lifecycle-v1#grid-smoke-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json", "sha256": "d53d75c441f41f74dddb0a6ef1d6dff97dee10f688002b1d8775781e871be47e"},
-    {"id": "lifecycle:smoke-rigid-drag-lifecycle-v1#particle-smoke-rigid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json", "sha256": "f723cfe22394d304ab39070a4e6522f5837592154dd4abfd3757cfa4d006792d"},
-    {"id": "lifecycle:smoke-rigid-drag-lifecycle-v1#grid-smoke-rigid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json", "sha256": "f723cfe22394d304ab39070a4e6522f5837592154dd4abfd3757cfa4d006792d"},
-    {"id": "lifecycle:smoke-rope-drag-lifecycle-v1#particle-smoke-rope-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json", "sha256": "5266327b4ea77d9bac1b7b8f4bef8b287704c59db1363b7d4aeb0ea25a1cb4d2"},
-    {"id": "lifecycle:smoke-rope-drag-lifecycle-v1#grid-smoke-rope-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json", "sha256": "5266327b4ea77d9bac1b7b8f4bef8b287704c59db1363b7d4aeb0ea25a1cb4d2"},
-    {"id": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json", "sha256": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35"},
-    {"id": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json", "sha256": "271515deca0bb595e3da0da91373c44db6d6295b14c98342e01501536869a4e5"},
-    {"id": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json", "sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"},
-    {"id": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json", "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"},
-    {"id": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json", "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"},
-    {"id": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-cloth-grid-drag-lifecycle-v1.json", "sha256": "7322bab0d2368931c9620eb9711f977a7ed4bf28ab3e5f1ec523c8ad9261b1a1"},
-    {"id": "lifecycle:smoke-soft-drag-lifecycle-v1#particle-smoke-soft-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json", "sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027"},
-    {"id": "lifecycle:smoke-soft-drag-lifecycle-v1#grid-smoke-soft-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json", "sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027"},
-    {"id": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json", "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"},
-    {"id": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json", "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"},
-    {"id": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json", "sha256": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20"},
-    {"id": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json", "sha256": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20"}
+    {
+      "id": "registry:interaction-capabilities",
+      "path": "registry/pm.xml",
+      "sha256": "9581bc11a09dd04983b0e98339b8c5716b23c9e06f07be7a7726d00701e07189",
+      "compatible_sha256": [
+        "2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f",
+        "c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e",
+        "c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c",
+        "a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d",
+        "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62",
+        "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+        "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"
+      ]
+    },
+    {
+      "id": "case:fluid-lifecycle",
+      "path": "conformance/v1/cases/fluid-lifecycle.json",
+      "sha256": "c5d69c6395e3436f0b4173fb6713490919e602d5f86c21520f7691e1a1bf1ad5",
+      "compatible_sha256": [
+        "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"
+      ]
+    },
+    {
+      "id": "case:rope-core",
+      "path": "conformance/v1/cases/rope-core.json",
+      "sha256": "7f51b62a631e1e601a586ee995135dd678c96a3464273c670b3d7784a0c4f6cf",
+      "compatible_sha256": [
+        "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"
+      ]
+    },
+    {
+      "id": "case:smoke-grid",
+      "path": "conformance/v1/cases/smoke-grid.json",
+      "sha256": "25e64ab64c0ad649afca90c8f88d63c362f43a48e105b5bb174f05cfbb7fd82b",
+      "compatible_sha256": [
+        "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"
+      ]
+    },
+    {
+      "id": "case:rigid-direct",
+      "path": "conformance/v1/cases/rigid-direct.json",
+      "sha256": "1b1a68c58cd90dc8fefae91c50d326f7c366f4f64078f365dcc64f96eeb07209",
+      "compatible_sha256": [
+        "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c"
+      ]
+    },
+    {
+      "id": "case:compound-weld-lifecycle",
+      "path": "conformance/v1/cases/compound-weld-lifecycle.json",
+      "sha256": "3c7202da4c72c740a71268e14f75831cc7fc915ee41d6f0b87566310a8e75d74",
+      "compatible_sha256": [
+        "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26"
+      ]
+    },
+    {
+      "id": "case:cloth-water",
+      "path": "conformance/v1/cases/cloth-water.json",
+      "sha256": "afb34b9a0e737d9d84956490b026c3f0f45f659c7e5aa10694ee5e3daabaa6fe",
+      "compatible_sha256": [
+        "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5"
+      ]
+    },
+    {
+      "id": "case:soft-body-fluid",
+      "path": "conformance/v1/cases/soft-body-fluid.json",
+      "sha256": "8d8cb31e66563f4dd375aa484bd8a7524814a72cf00d2a2f6517801ec058ba4f",
+      "compatible_sha256": [
+        "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653"
+      ]
+    },
+    {
+      "id": "case:rope-fluid",
+      "path": "conformance/v1/cases/rope-fluid.json",
+      "sha256": "114592b094861c198c23950d90001929fff3b0c6a43564a40d0f9a2903e3f67b",
+      "compatible_sha256": [
+        "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27"
+      ]
+    },
+    {
+      "id": "case:smoke-water",
+      "path": "conformance/v1/cases/smoke-water.json",
+      "sha256": "1601b807d2159ab7cd1fdc7bf65040d23ce399be1714cfea77e9bac95259614c",
+      "compatible_sha256": [
+        "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c"
+      ]
+    },
+    {
+      "id": "case:fluid-rigid",
+      "path": "conformance/v1/cases/fluid-rigid.json",
+      "sha256": "9443b0b3b733106977319ac941f83f6d68b1f85060c39f89dff6b58e0fce47a6",
+      "compatible_sha256": [
+        "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+      ]
+    },
+    {
+      "id": "case:soft-body-cloth",
+      "path": "conformance/v1/cases/soft-body-cloth.json",
+      "sha256": "cfa7cd8b3ede7a4a9710f16a9c511984192f5a405f9be31e04d4a96ced4872ab",
+      "compatible_sha256": [
+        "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a"
+      ]
+    },
+    {
+      "id": "case:rope-cloth",
+      "path": "conformance/v1/cases/rope-cloth.json",
+      "sha256": "0b2d1be47582893d56b3c7455d5188c74a25eecabb91adc7fda841a01b5ade13",
+      "compatible_sha256": [
+        "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792"
+      ]
+    },
+    {
+      "id": "case:smoke-cloth",
+      "path": "conformance/v1/cases/smoke-cloth.json",
+      "sha256": "7b5d86ee8c0036458b691997a82e6b0ee15ba6f9c50169b4c05d0ba7f0b176c4",
+      "compatible_sha256": [
+        "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc"
+      ]
+    },
+    {
+      "id": "case:cloth-core",
+      "path": "conformance/v1/cases/cloth-core.json",
+      "sha256": "bbf1b54575b32460942ad15aa6ee847e6de3a7ad502d3a4729bf3b6f0620c824",
+      "compatible_sha256": [
+        "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5"
+      ]
+    },
+    {
+      "id": "case:rope-soft-body",
+      "path": "conformance/v1/cases/rope-soft-body.json",
+      "sha256": "caf1cd0e631c9853b73a56a91cae140b7b35d6671066d15279efed7b67d9a4bb",
+      "compatible_sha256": [
+        "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549"
+      ]
+    },
+    {
+      "id": "case:smoke-soft-body",
+      "path": "conformance/v1/cases/smoke-soft-body.json",
+      "sha256": "52748bcf5490922cce9992a5f62417cc5b79319cf49d1b3cbfcd0d56d2e8d252",
+      "compatible_sha256": [
+        "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8"
+      ]
+    },
+    {
+      "id": "case:soft-body-core",
+      "path": "conformance/v1/cases/soft-body-core.json",
+      "sha256": "d54705d31a08162a76fbd4bd980daa5a85fd15e00e056124bf55ae5bc75aa0e3",
+      "compatible_sha256": [
+        "e453b88e5a753b608b9a56857df82f3176fe43ae9b7f351c36dc792e601abffc"
+      ]
+    },
+    {
+      "id": "case:soft-body-rigid",
+      "path": "conformance/v1/cases/soft-body-rigid.json",
+      "sha256": "47f45728af9cc9ed4b5967d953e134becdd3af97a8f40b464690b3b45a9241cf",
+      "compatible_sha256": [
+        "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505"
+      ]
+    },
+    {
+      "id": "case:smoke-rope",
+      "path": "conformance/v1/cases/smoke-rope.json",
+      "sha256": "1780733844fc01e4ff0ff066e2febb6d39856445f0388996a4c56ac2a0e244e1",
+      "compatible_sha256": [
+        "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"
+      ]
+    },
+    {
+      "id": "quality:rigid-brick-penetration-v1",
+      "path": "conformance/v1/quality/rigid-brick-penetration-v1.json",
+      "sha256": "89485de13dc48baefae04252c0c877e5b25f06185686c3fa85e1c699eade1f80",
+      "compatible_sha256": [
+        "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da"
+      ]
+    },
+    {
+      "id": "quality:rigid-attachment-v1",
+      "path": "conformance/v1/quality/rigid-attachment-v1.json",
+      "sha256": "8c62e99c00c7d52ebee54d25a1c8c2f640baaaeb3c2c01e9dcc29f1a620c1f67",
+      "compatible_sha256": [
+        "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108"
+      ]
+    },
+    {
+      "id": "quality:fluid-self-contact-v1",
+      "path": "conformance/v1/quality/fluid-self-contact-v1.json",
+      "sha256": "28b9bb8f1dbe1a9696418f93108549b65a369dd4b81f69bf714312251b8e3af2"
+    },
+    {
+      "id": "quality:fluid-self-pressure-v1",
+      "path": "conformance/v1/quality/fluid-self-pressure-v1.json",
+      "sha256": "42825a5db3568c7d204f88958718f0a2b512880de865e036f8d82ecae0da93be"
+    },
+    {
+      "id": "quality:fluid-self-viscosity-v1",
+      "path": "conformance/v1/quality/fluid-self-viscosity-v1.json",
+      "sha256": "a41f204deac0b08a1e4741542533e17922b1af1dce38220ab05f63bfcba2e5d5"
+    },
+    {
+      "id": "quality:rope-self-contact-v1",
+      "path": "conformance/v1/quality/rope-self-contact-v1.json",
+      "sha256": "c1abddad130c17d7e9358a4276f0380155fc12d3eb406384d7e83274913dc1ae"
+    },
+    {
+      "id": "quality:rope-self-contact-v2",
+      "path": "conformance/v1/quality/rope-self-contact-v2.json",
+      "sha256": "8244ae304ce2ef9230006084cfec523eebc4aafbb0c87033673890da51650fd0"
+    },
+    {
+      "id": "quality:rope-rigid-contact-v1",
+      "path": "conformance/v1/quality/rope-rigid-contact-v1.json",
+      "sha256": "ffad1a96b4b27fd2748667bb9ec22afc264d9b72f5867e262fefe3d704af678e"
+    },
+    {
+      "id": "quality:rope-rigid-attachment-v1",
+      "path": "conformance/v1/quality/rope-rigid-attachment-v1.json",
+      "sha256": "f0cd03a8a94b82115efedf57a52cc011c92f59f8b6066d41f0729953700fc5d7"
+    },
+    {
+      "id": "quality:fluid-cloth-containment-v1",
+      "path": "conformance/v1/quality/fluid-cloth-containment-v1.json",
+      "sha256": "d85d7625cebc3133ad28842650525269b2fe8f92e7c8922be01956d3b3e1059c"
+    },
+    {
+      "id": "quality:cloth-soft-contact-v1",
+      "path": "conformance/v1/quality/cloth-soft-contact-v1.json",
+      "sha256": "c5850e87f901af1f6e78e971a9d2425d5b89e393d64b6d1522d2a94eaf92e24e"
+    },
+    {
+      "id": "quality:cloth-rigid-contact-v1",
+      "path": "conformance/v1/quality/cloth-rigid-contact-v1.json",
+      "sha256": "61d21a4033269c9b47eb1051d1fb604246e77fc4a83bd81a2c791826138070ea"
+    },
+    {
+      "id": "quality:fluid-soft-contact-v1",
+      "path": "conformance/v1/quality/fluid-soft-contact-v1.json",
+      "sha256": "c82cc67804265f8d66bf9025a296c7561c324f4110fb777c61811c232f42bd7f"
+    },
+    {
+      "id": "quality:fluid-rope-contact-v1",
+      "path": "conformance/v1/quality/fluid-rope-contact-v1.json",
+      "sha256": "cf62d762b47a575bc1d11c22ca2486ff7a28b307366f28d6c97bbe9f132b5540",
+      "compatible_sha256": [
+        "fbed229f399b2961a6753cc089862f55dac8b9d9e59b3d7bcecb5556d38de1bd",
+        "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89"
+      ]
+    },
+    {
+      "id": "quality:fluid-rigid-contact-v1",
+      "path": "conformance/v1/quality/fluid-rigid-contact-v1.json",
+      "sha256": "e42676f25466f6b96f3a935bd7e409c1b401d57510f69bd54609cacb458a2c0e"
+    },
+    {
+      "id": "quality:soft-rigid-contact-v1",
+      "path": "conformance/v1/quality/soft-rigid-contact-v1.json",
+      "sha256": "97d4fa307b9c965ff9271addf84f60efead7166d38631f498c63909857ba57a0"
+    },
+    {
+      "id": "quality:fluid-rigid-containment-v1",
+      "path": "conformance/v1/quality/fluid-rigid-containment-v1.json",
+      "sha256": "e712eacf69022b5e03f4e0af2df2bc5d58d101821747c8cf071b2a2612eb10f8"
+    },
+    {
+      "id": "quality:cloth-rope-attachment-v1",
+      "path": "conformance/v1/quality/cloth-rope-attachment-v1.json",
+      "sha256": "b38a097f778b2e3f69bd89e1cd6553480b15d8d3dc0d933e10347a93f965d1f6"
+    },
+    {
+      "id": "quality:soft-rope-contact-v1",
+      "path": "conformance/v1/quality/soft-rope-contact-v1.json",
+      "sha256": "86e747bed14b9812c456b0c4df962c61a9e4c42aa3bf8c42206eb8c7cd0501cc"
+    },
+    {
+      "id": "quality:soft-rope-attachment-v1",
+      "path": "conformance/v1/quality/soft-rope-attachment-v1.json",
+      "sha256": "73b9dc5acb19133b50d5cf90194493005f6f678cbbf2915058efcfff097c8207",
+      "compatible_sha256": [
+        "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549"
+      ]
+    },
+    {
+      "id": "quality:smoke-self-pressure-v1",
+      "path": "conformance/v1/quality/smoke-self-pressure-v1.json",
+      "sha256": "3293b80002a4ff9cf9ad53ffd53611dc48dfe877510c76e9c16b6c5ca1ec9373"
+    },
+    {
+      "id": "quality:fluid-cloth-contact-v1",
+      "path": "conformance/v1/quality/fluid-cloth-contact-v1.json",
+      "sha256": "77d44848ac76ed51156d4282ee01c49e128d0e5fdb6ad3899a4a52140211c6c2"
+    },
+    {
+      "id": "quality:cloth-smoke-contact-v1",
+      "path": "conformance/v1/quality/cloth-smoke-contact-v1.json",
+      "sha256": "2aba1a41d108c679d4271d5b87cc81f8ddc87a42adef8fd39893c8e19658dc7a"
+    },
+    {
+      "id": "quality:soft-smoke-contact-v1",
+      "path": "conformance/v1/quality/soft-smoke-contact-v1.json",
+      "sha256": "38bdc2b55cb98decfd167dac1e2b51da4bd5dc89ac49cc915fe6911a23ab736f"
+    },
+    {
+      "id": "quality:rope-smoke-contact-v1",
+      "path": "conformance/v1/quality/rope-smoke-contact-v1.json",
+      "sha256": "036422408fc6a15f785dfc17b53b0ab945375a29ce75cdb005b14fdf3e017644"
+    },
+    {
+      "id": "quality:smoke-rigid-contact-v1",
+      "path": "conformance/v1/quality/smoke-rigid-contact-v1.json",
+      "sha256": "7e7814e008229eaafcf055a3967648a20b3049b51d6fb8f523546bf5d23ac5a1"
+    },
+    {
+      "id": "quality:smoke-rigid-drag-v1",
+      "path": "conformance/v1/quality/smoke-rigid-drag-v1.json",
+      "sha256": "fa5a1bf0fd75664431186b49ea6a4f1092f59298f4ae4755312f0c62446d22c6"
+    },
+    {
+      "id": "quality:smoke-rope-drag-v1",
+      "path": "conformance/v1/quality/smoke-rope-drag-v1.json",
+      "sha256": "136b9f70bbe0e6a2c5fdfff9af1514f179315294f9d8a9861611378cf9d37d96"
+    },
+    {
+      "id": "quality:smoke-self-viscosity-v1",
+      "path": "conformance/v1/quality/smoke-self-viscosity-v1.json",
+      "sha256": "7c3c9f285a950e19e4684040815f5f3ed4650068019f0913f1b51c20ec481334"
+    },
+    {
+      "id": "quality:smoke-fluid-drag-v1",
+      "path": "conformance/v1/quality/smoke-fluid-drag-v1.json",
+      "sha256": "f0a74f27dadbbdab70462d4f4a556b44c296628243688c2e9894b17c44d1da7e"
+    },
+    {
+      "id": "quality:smoke-cloth-drag-v1",
+      "path": "conformance/v1/quality/smoke-cloth-drag-v1.json",
+      "sha256": "3b215cfbb8c44f09df2218116284fb32d4ace6a37556b76b30d6c4939710a750"
+    },
+    {
+      "id": "quality:smoke-soft-drag-v1",
+      "path": "conformance/v1/quality/smoke-soft-drag-v1.json",
+      "sha256": "194472e66415a9adfc173e8ae5cd3bd14632836ad46177e1de0e8969a6bcce37"
+    },
+    {
+      "id": "quality:fluid-smoke-phase-v1",
+      "path": "conformance/v1/quality/fluid-smoke-phase-v1.json",
+      "sha256": "525965dbe5eec3d3598fb56548dafdc3431ac3c4f7cd7705a8c2e44b0b425060"
+    },
+    {
+      "id": "quality:externally-heated-fluid-v1",
+      "path": "conformance/v1/quality/externally-heated-fluid-v1.json",
+      "sha256": "d5b9e7de21b79c30d117be07251d78e8292cbaf8c606e9a141362531af3fffd2"
+    },
+    {
+      "id": "quality:core-conservation-stability-v1#equal-material-pressure-contact",
+      "path": "conformance/v1/quality/core-conservation-v1.json",
+      "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
+    },
+    {
+      "id": "quality:core-conservation-stability-v1#equal-material-viscosity",
+      "path": "conformance/v1/quality/core-conservation-v1.json",
+      "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
+    },
+    {
+      "id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+      "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json",
+      "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+    },
+    {
+      "id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json",
+      "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+    },
+    {
+      "id": "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json",
+      "sha256": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1"
+    },
+    {
+      "id": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json",
+      "sha256": "b77ce14642b8d6535b57e26e919397fab2cdc5cdf89d8ae8f82cf5bb643259ea"
+    },
+    {
+      "id": "lifecycle:soft-rigid-contact-lifecycle-v1#soft-rigid-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json",
+      "sha256": "11a11ed96e09c8f8fcee037d029d9730a2aba3f48183b69eb6017d8164e015fb"
+    },
+    {
+      "id": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json",
+      "sha256": "bc4730838161caa3c77c54c65e58f14fee1fdf4095b26432fea8738ddae6fff0"
+    },
+    {
+      "id": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json",
+      "sha256": "d03f1609c66a4c5f5b827ee581274dd1860e95b8459dc653576d663445d0e9c4"
+    },
+    {
+      "id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"
+    },
+    {
+      "id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"
+    },
+    {
+      "id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json",
+      "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"
+    },
+    {
+      "id": "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/cloth-smoke-contact-lifecycle-v1.json",
+      "sha256": "3ccfe472f7bcfad66f2b092a63fccadc88fdc268cb59ae65c12cc9d541c55d0d"
+    },
+    {
+      "id": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json",
+      "sha256": "eebb8182329058601310417e9d951f594bdaf53d966c670d4874adcbf12f29d2"
+    },
+    {
+      "id": "lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json",
+      "sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f"
+    },
+    {
+      "id": "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json",
+      "sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f"
+    },
+    {
+      "id": "lifecycle:smoke-rigid-contact-lifecycle-v1#particle-smoke-rigid-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json",
+      "sha256": "d53d75c441f41f74dddb0a6ef1d6dff97dee10f688002b1d8775781e871be47e"
+    },
+    {
+      "id": "lifecycle:smoke-rigid-contact-lifecycle-v1#grid-smoke-rigid-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json",
+      "sha256": "d53d75c441f41f74dddb0a6ef1d6dff97dee10f688002b1d8775781e871be47e"
+    },
+    {
+      "id": "lifecycle:smoke-rigid-drag-lifecycle-v1#particle-smoke-rigid-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json",
+      "sha256": "f723cfe22394d304ab39070a4e6522f5837592154dd4abfd3757cfa4d006792d"
+    },
+    {
+      "id": "lifecycle:smoke-rigid-drag-lifecycle-v1#grid-smoke-rigid-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json",
+      "sha256": "f723cfe22394d304ab39070a4e6522f5837592154dd4abfd3757cfa4d006792d"
+    },
+    {
+      "id": "lifecycle:smoke-rope-drag-lifecycle-v1#particle-smoke-rope-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json",
+      "sha256": "5266327b4ea77d9bac1b7b8f4bef8b287704c59db1363b7d4aeb0ea25a1cb4d2"
+    },
+    {
+      "id": "lifecycle:smoke-rope-drag-lifecycle-v1#grid-smoke-rope-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json",
+      "sha256": "5266327b4ea77d9bac1b7b8f4bef8b287704c59db1363b7d4aeb0ea25a1cb4d2"
+    },
+    {
+      "id": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json",
+      "sha256": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35"
+    },
+    {
+      "id": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json",
+      "sha256": "271515deca0bb595e3da0da91373c44db6d6295b14c98342e01501536869a4e5"
+    },
+    {
+      "id": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json",
+      "sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"
+    },
+    {
+      "id": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json",
+      "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"
+    },
+    {
+      "id": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json",
+      "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"
+    },
+    {
+      "id": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-cloth-grid-drag-lifecycle-v1.json",
+      "sha256": "7322bab0d2368931c9620eb9711f977a7ed4bf28ab3e5f1ec523c8ad9261b1a1"
+    },
+    {
+      "id": "lifecycle:smoke-soft-drag-lifecycle-v1#particle-smoke-soft-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json",
+      "sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027"
+    },
+    {
+      "id": "lifecycle:smoke-soft-drag-lifecycle-v1#grid-smoke-soft-drag-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json",
+      "sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027"
+    },
+    {
+      "id": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json",
+      "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"
+    },
+    {
+      "id": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json",
+      "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"
+    },
+    {
+      "id": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json",
+      "sha256": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20"
+    },
+    {
+      "id": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
+      "path": "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json",
+      "sha256": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20"
+    }
   ],
   "rules": [
     {
       "id": "fluid-self-contact",
-      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "FLUID"
+        ],
+        "scope": [
+          "SELF"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:fluid-lifecycle",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
-        "analytic_invariants": ["quality:fluid-self-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-self-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-self-pressure",
-      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["PRESSURE"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "FLUID"
+        ],
+        "scope": [
+          "SELF"
+        ],
+        "mode": [
+          "PRESSURE"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:fluid-lifecycle",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
-        "analytic_invariants": ["quality:fluid-self-pressure-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-self-pressure-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-self-viscosity",
-      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "FLUID"
+        ],
+        "scope": [
+          "SELF"
+        ],
+        "mode": [
+          "VISCOSITY"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:fluid-lifecycle",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
-        "analytic_invariants": ["quality:fluid-self-viscosity-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-self-viscosity-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-pair-equal-pressure-contact",
-      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SEPARATE_SYSTEM"], "mode": ["CONTACT", "PRESSURE"], "direction": ["BIDIRECTIONAL"], "material_profile": ["EQUAL"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "FLUID"
+        ],
+        "scope": [
+          "SEPARATE_SYSTEM"
+        ],
+        "mode": [
+          "CONTACT",
+          "PRESSURE"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "EQUAL"
+        ]
+      },
       "required": {
-        "execution": ["quality:core-conservation-stability-v1#equal-material-pressure-contact"],
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:core-conservation-stability-v1#equal-material-pressure-contact"]
+        "execution": [
+          "quality:core-conservation-stability-v1#equal-material-pressure-contact"
+        ],
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:core-conservation-stability-v1#equal-material-pressure-contact"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-pair-equal-viscosity",
-      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SEPARATE_SYSTEM"], "mode": ["VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["EQUAL"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "FLUID"
+        ],
+        "scope": [
+          "SEPARATE_SYSTEM"
+        ],
+        "mode": [
+          "VISCOSITY"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "EQUAL"
+        ]
+      },
       "required": {
-        "execution": ["quality:core-conservation-stability-v1#equal-material-viscosity"],
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:core-conservation-stability-v1#equal-material-viscosity"]
+        "execution": [
+          "quality:core-conservation-stability-v1#equal-material-viscosity"
+        ],
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:core-conservation-stability-v1#equal-material-viscosity"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rope-self",
-      "match": {"first_family": ["ROPE"], "second_family": ["ROPE"], "scope": ["SELF"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "ROPE"
+        ],
+        "second_family": [
+          "ROPE"
+        ],
+        "scope": [
+          "SELF"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rope-core",
       "required": {
-        "lifecycle_invariants": ["case:rope-core"],
-        "analytic_invariants": ["quality:rope-self-contact-v2"]
+        "lifecycle_invariants": [
+          "case:rope-core"
+        ],
+        "analytic_invariants": [
+          "quality:rope-self-contact-v2"
+        ]
       },
       "missing": {}
     },
     {
       "id": "smoke-self-pressure",
-      "match": {"first_family": ["SMOKE"], "second_family": ["SMOKE"], "scope": ["SELF"], "mode": ["PRESSURE"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "SMOKE"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "SELF"
+        ],
+        "mode": [
+          "PRESSURE"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE",
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-grid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback", "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-self-pressure-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback",
+          "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-self-pressure-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "smoke-self-viscosity",
-      "match": {"first_family": ["SMOKE"], "second_family": ["SMOKE"], "scope": ["SELF"], "mode": ["VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "SMOKE"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "SELF"
+        ],
+        "mode": [
+          "VISCOSITY"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE",
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-grid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-self-viscosity-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-self-viscosity-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rigid-contact",
-      "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "RIGID_BODY"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "SAME_DOMAIN"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rigid-direct",
       "required": {
-        "lifecycle_invariants": ["case:rigid-direct"],
-        "analytic_invariants": ["quality:rigid-brick-penetration-v1"]
+        "lifecycle_invariants": [
+          "case:rigid-direct"
+        ],
+        "analytic_invariants": [
+          "quality:rigid-brick-penetration-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rigid-attachment",
-      "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "RIGID_BODY"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "SAME_DOMAIN"
+        ],
+        "mode": [
+          "ATTACHMENT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:compound-weld-lifecycle",
       "required": {
-        "lifecycle_invariants": ["case:compound-weld-lifecycle"],
-        "analytic_invariants": ["quality:rigid-attachment-v1"]
+        "lifecycle_invariants": [
+          "case:compound-weld-lifecycle"
+        ],
+        "analytic_invariants": [
+          "quality:rigid-attachment-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-cloth-contact",
-      "match": {"first_family": ["FLUID"], "second_family": ["CLOTH"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "CLOTH"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:cloth-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:fluid-cloth-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-cloth-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-cloth-containment",
-      "match": {"first_family": ["FLUID"], "second_family": ["CLOTH"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTAINMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "CLOTH"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTAINMENT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:cloth-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:fluid-cloth-containment-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-cloth-containment-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-soft-body",
-      "match": {"first_family": ["FLUID"], "second_family": ["SOFT_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "SOFT_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:soft-body-fluid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:fluid-soft-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-soft-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-rope",
-      "match": {"first_family": ["FLUID"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "ROPE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rope-fluid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:fluid-rope-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-rope-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-smoke-drag-particle",
-      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-fluid-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-fluid-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-smoke-drag-grid",
-      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-fluid-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-fluid-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-smoke-thermal-particle",
-      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["THERMAL"], "direction": ["EXTERNAL_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "THERMAL"
+        ],
+        "direction": [
+          "EXTERNAL_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:externally-heated-fluid-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:externally-heated-fluid-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-smoke-thermal-grid",
-      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["THERMAL"], "direction": ["EXTERNAL_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "THERMAL"
+        ],
+        "direction": [
+          "EXTERNAL_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:externally-heated-fluid-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:externally-heated-fluid-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-smoke-phase-particle",
-      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["PHASE"], "direction": ["FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "PHASE"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND_TRANSFER"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:fluid-smoke-phase-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-smoke-phase-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-smoke-phase-grid",
-      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["PHASE"], "direction": ["FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "PHASE"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND_TRANSFER"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-water",
       "required": {
-        "lifecycle_invariants": ["lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:fluid-smoke-phase-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-smoke-phase-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-rigid-contact",
-      "match": {"first_family": ["FLUID"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:fluid-rigid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:fluid-rigid-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-rigid-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "fluid-rigid-containment",
-      "match": {"first_family": ["FLUID"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTAINMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "FLUID"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTAINMENT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:fluid-rigid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:fluid-rigid-containment-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:fluid-rigid-containment-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "cloth-soft-body",
-      "match": {"first_family": ["CLOTH"], "second_family": ["SOFT_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "CLOTH"
+        ],
+        "second_family": [
+          "SOFT_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:soft-body-cloth",
       "required": {
-        "lifecycle_invariants": ["lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:cloth-soft-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:cloth-soft-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "cloth-rope",
-      "match": {"first_family": ["CLOTH"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "CLOTH"
+        ],
+        "second_family": [
+          "ROPE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "ATTACHMENT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rope-cloth",
       "required": {
-        "lifecycle_invariants": ["lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:cloth-rope-attachment-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:cloth-rope-attachment-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "cloth-smoke-contact-particle",
-      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "CLOTH"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-cloth",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:cloth-smoke-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:cloth-smoke-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "cloth-smoke-drag-particle",
-      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "CLOTH"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-cloth",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:smoke-cloth-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-cloth-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "cloth-smoke-contact-grid",
-      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "CLOTH"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-cloth",
       "required": {
-        "lifecycle_invariants": ["lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:cloth-smoke-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:cloth-smoke-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "cloth-smoke-drag-grid",
-      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "CLOTH"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-cloth",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-cloth-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-cloth-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "cloth-rigid",
-      "match": {"first_family": ["CLOTH"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "CLOTH"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:cloth-core",
       "required": {
-        "lifecycle_invariants": ["lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:cloth-rigid-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:cloth-rigid-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "soft-body-rope-contact",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "SOFT_BODY"
+        ],
+        "second_family": [
+          "ROPE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rope-soft-body",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:soft-rope-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:soft-rope-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "soft-body-rope-attachment",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "SOFT_BODY"
+        ],
+        "second_family": [
+          "ROPE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "ATTACHMENT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rope-soft-body",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:soft-rope-attachment-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:soft-rope-attachment-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "soft-body-smoke-contact-particle",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "SOFT_BODY"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-soft-body",
       "required": {
-        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
-        "analytic_invariants": ["quality:soft-smoke-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:soft-smoke-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "soft-body-smoke-drag-particle",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "SOFT_BODY"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-soft-body",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-soft-drag-lifecycle-v1#particle-smoke-soft-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-soft-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-soft-drag-lifecycle-v1#particle-smoke-soft-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-soft-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "soft-body-smoke-contact-grid",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "SOFT_BODY"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-soft-body",
       "required": {
-        "lifecycle_invariants": ["lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:soft-smoke-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:soft-smoke-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "soft-body-smoke-drag-grid",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "SOFT_BODY"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-soft-body",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-soft-drag-lifecycle-v1#grid-smoke-soft-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-soft-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-soft-drag-lifecycle-v1#grid-smoke-soft-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-soft-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "soft-body-rigid",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "SOFT_BODY"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:soft-body-core",
       "required": {
-        "lifecycle_invariants": ["lifecycle:soft-rigid-contact-lifecycle-v1#soft-rigid-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:soft-rigid-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:soft-rigid-contact-lifecycle-v1#soft-rigid-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:soft-rigid-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rope-smoke-contact-particle",
-      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "ROPE"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-rope",
       "required": {
-        "lifecycle_invariants": ["lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:rope-smoke-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:rope-smoke-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rope-smoke-contact-grid",
-      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "ROPE"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "FIRST_TO_SECOND"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-rope",
       "required": {
-        "lifecycle_invariants": ["lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:rope-smoke-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:rope-smoke-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rope-smoke-drag-particle",
-      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "ROPE"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-rope",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-rope-drag-lifecycle-v1#particle-smoke-rope-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-rope-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-rope-drag-lifecycle-v1#particle-smoke-rope-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-rope-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rope-smoke-drag-grid",
-      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "ROPE"
+        ],
+        "second_family": [
+          "SMOKE"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "SECOND_TO_FIRST"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-rope",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-rope-drag-lifecycle-v1#grid-smoke-rope-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-rope-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-rope-drag-lifecycle-v1#grid-smoke-rope-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-rope-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rope-rigid-contact",
-      "match": {"first_family": ["ROPE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "ROPE"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rope-core",
       "required": {
-        "lifecycle_invariants": ["case:rope-core"],
-        "analytic_invariants": ["quality:rope-rigid-contact-v1"]
+        "lifecycle_invariants": [
+          "case:rope-core"
+        ],
+        "analytic_invariants": [
+          "quality:rope-rigid-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "rope-rigid-attachment",
-      "match": {"first_family": ["ROPE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "match": {
+        "first_family": [
+          "ROPE"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "ATTACHMENT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "ENDPOINT_NATIVE"
+        ]
+      },
       "trajectory_contract": "case:rope-core",
       "required": {
-        "lifecycle_invariants": ["case:rope-core"],
-        "analytic_invariants": ["quality:rope-rigid-attachment-v1"]
+        "lifecycle_invariants": [
+          "case:rope-core"
+        ],
+        "analytic_invariants": [
+          "quality:rope-rigid-attachment-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "smoke-rigid-contact-particle",
-      "match": {"first_family": ["SMOKE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "SMOKE"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-grid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-rigid-contact-lifecycle-v1#particle-smoke-rigid-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-rigid-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-rigid-contact-lifecycle-v1#particle-smoke-rigid-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-rigid-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "smoke-rigid-contact-grid",
-      "match": {"first_family": ["SMOKE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "SMOKE"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "CONTACT"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-grid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-rigid-contact-lifecycle-v1#grid-smoke-rigid-contact-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-rigid-contact-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-rigid-contact-lifecycle-v1#grid-smoke-rigid-contact-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-rigid-contact-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "smoke-rigid-drag-particle",
-      "match": {"first_family": ["SMOKE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_PARTICLE"]},
+      "match": {
+        "first_family": [
+          "SMOKE"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "SMOKE_PARTICLE"
+        ]
+      },
       "trajectory_contract": "case:smoke-grid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-rigid-drag-lifecycle-v1#particle-smoke-rigid-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-rigid-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-rigid-drag-lifecycle-v1#particle-smoke-rigid-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-rigid-drag-v1"
+        ]
       },
       "missing": {}
     },
     {
       "id": "smoke-rigid-drag-grid",
-      "match": {"first_family": ["SMOKE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_GRID"]},
+      "match": {
+        "first_family": [
+          "SMOKE"
+        ],
+        "second_family": [
+          "RIGID_BODY"
+        ],
+        "scope": [
+          "DISTINCT_FAMILY"
+        ],
+        "mode": [
+          "DRAG"
+        ],
+        "direction": [
+          "BIDIRECTIONAL"
+        ],
+        "material_profile": [
+          "SMOKE_GRID"
+        ]
+      },
       "trajectory_contract": "case:smoke-grid",
       "required": {
-        "lifecycle_invariants": ["lifecycle:smoke-rigid-drag-lifecycle-v1#grid-smoke-rigid-drag-capacity-replacement-removal-rollback"],
-        "analytic_invariants": ["quality:smoke-rigid-drag-v1"]
+        "lifecycle_invariants": [
+          "lifecycle:smoke-rigid-drag-lifecycle-v1#grid-smoke-rigid-drag-capacity-replacement-removal-rollback"
+        ],
+        "analytic_invariants": [
+          "quality:smoke-rigid-drag-v1"
+        ]
       },
       "missing": {}
     }

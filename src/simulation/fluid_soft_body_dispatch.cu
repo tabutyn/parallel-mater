@@ -71,31 +71,34 @@ void detect_fluid_soft_contacts(
 
 void solve_fluid_soft_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
-    void *velocities, void *accelerations, float *foam,
+    void *velocities, void *velocity_deltas, void *accelerations, float *foam,
     const std::uint32_t *particle_count, const void *contacts,
     const std::uint32_t *node_contact_counts, const float *inverse_masses,
     const void *soft_velocities, float maximum_soft_speed,
     float inverse_particle_mass, float friction, float maximum_projection,
-    float timestep, void *node_position_deltas, void *node_impulses) noexcept {
+    float frame_inverse_timestep, float commit_velocity_scale,
+    void *node_position_deltas, void *node_impulses) noexcept {
     fluid_soft_solve<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(velocities),
-        as<Vec3_0>(accelerations), foam,
+        as<Vec3_0>(velocity_deltas), as<Vec3_0>(accelerations), foam,
         const_cast<std::uint32_t *>(particle_count),
         const_cast<FluidSoftContact_0 *>(as<FluidSoftContact_0>(contacts)),
         const_cast<std::uint32_t *>(node_contact_counts),
         const_cast<float *>(inverse_masses),
         const_cast<Vec3_0 *>(as<Vec3_0>(soft_velocities)), maximum_soft_speed,
-        inverse_particle_mass, friction, maximum_projection, timestep,
+        inverse_particle_mass, friction, maximum_projection,
+        frame_inverse_timestep, commit_velocity_scale,
         as<Vec3_0>(node_position_deltas), as<Vec3_0>(node_impulses));
 }
 
 void apply_fluid_soft_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
-    void *velocities, const float *inverse_masses,
+    void *previous_positions, void *velocities, const float *inverse_masses,
     const void *position_deltas, const void *impulses, void *forces,
     std::uint32_t node_count, float inverse_frame_timestep) noexcept {
     fluid_soft_apply<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
-        as<Vec3_0>(positions), as<Vec3_0>(velocities),
+        as<Vec3_0>(positions), as<Vec3_0>(previous_positions),
+        as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses),
         const_cast<Vec3_0 *>(as<Vec3_0>(position_deltas)),
         const_cast<Vec3_0 *>(as<Vec3_0>(impulses)), as<Vec3_0>(forces),

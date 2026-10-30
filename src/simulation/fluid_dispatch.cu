@@ -31,6 +31,8 @@ FluidOptions_0 constants(const FluidDispatchConstants &value) noexcept {
     result.rest_density_0 = value.rest_density;
     result.rest_particle_volume_0 = value.rest_particle_volume;
     result.maximum_neighbors_0 = value.maximum_neighbors;
+    result.realtime_commit_velocity_scale_0 =
+        value.realtime_commit_velocity_scale;
     return result;
 }
 
@@ -611,6 +613,23 @@ void filter_fluid_spatial_candidates(
         const_cast<std::uint32_t *>(candidate_counts),
         const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
         filtered_counts, filtered_sources, status);
+}
+
+PmResult gather_fluid_spatial_payloads(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const std::uint32_t *compacted_sources,
+    const std::uint32_t *active_slot_count, const void *metadata,
+    std::uint32_t leaf_capacity, std::uint32_t candidate_slot_capacity,
+    std::uint32_t *active_payloads, std::uint32_t *status) noexcept {
+    fluid_gather_spatial_payloads<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<std::uint32_t *>(compacted_sources),
+        const_cast<std::uint32_t *>(active_slot_count),
+        const_cast<FluidSpatialLeafMetadata_0 *>(
+            as<FluidSpatialLeafMetadata_0>(metadata)),
+        leaf_capacity, candidate_slot_capacity, active_payloads, status);
+    return device::from_driver_error(cudaPeekAtLastError());
 }
 
 void count_fluid_spatial_neighbors(

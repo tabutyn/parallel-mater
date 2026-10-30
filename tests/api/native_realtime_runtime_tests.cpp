@@ -902,7 +902,8 @@ int main(int argc, char **argv) {
             CHECK(out.total.spatialIndexPublications == 1U);
             CHECK(out.total.intraTickHostReadbacks == 0U);
             CHECK(out.couplingEdgeCount == 2U);
-            CHECK(out.couplingSweeps == 4U);
+            CHECK(out.couplingSweeps ==
+                  out.couplingEdgeCount * 4U);
         };
 
         reset_phase_case("reset successful phase lifecycle");
@@ -1441,7 +1442,8 @@ int main(int argc, char **argv) {
         CHECK(rope_statistics.total.spatialIndexPublications == 1U);
         CHECK(rope_statistics.total.intraTickHostReadbacks == 0U);
         CHECK(rope_statistics.couplingEdgeCount == 2U);
-        CHECK(rope_statistics.couplingSweeps == 4U);
+        CHECK(rope_statistics.couplingSweeps ==
+              rope_statistics.couplingEdgeCount * 4U);
         const auto *rope_header =
             static_cast<const PmDomainOutputHeader *>(rope_output_map);
         const auto *rope_nodes = reinterpret_cast<const PmRopeNodeState *>(
@@ -1865,7 +1867,8 @@ int main(int argc, char **argv) {
         CHECK(coupling_statistics.couplingEdgeCount ==
             (smoke_couplings_only ? 15U :
              expected_particle_coupling_edges));
-        CHECK(coupling_statistics.couplingSweeps == 12U);
+        CHECK(coupling_statistics.couplingSweeps ==
+              coupling_statistics.couplingEdgeCount * 4U);
         CHECK(coupling_statistics.timeAdvances == 1U);
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
         CHECK(coupling_statistics.total.spatialIndexPublications == 1U);
@@ -2014,7 +2017,8 @@ int main(int argc, char **argv) {
             sizeof grid_coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
         CHECK(grid_coupling_statistics.couplingEdgeCount == 15U);
-        CHECK(grid_coupling_statistics.couplingSweeps == 12U);
+        CHECK(grid_coupling_statistics.couplingSweeps ==
+              grid_coupling_statistics.couplingEdgeCount * 4U);
         CHECK(grid_coupling_statistics.timeAdvances == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexBuilds == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexPublications == 1U);
@@ -2087,6 +2091,42 @@ int main(int argc, char **argv) {
             CHECK(state.age == fixture::timestep_seconds);
             CHECK(speed <= particle_smoke_material.maximumSpeed + 1.0e-4F);
         }
+
+        smoke.particlesPerSecond = 0.0F;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopySmokeState(
+            commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        smoke_particles = reinterpret_cast<const PmSmokeParticleState *>(
+            smoke_header + 1U);
+        CHECK(smoke_header->activeCount == 2U);
+        CHECK(smoke_particles[0].age == 2.0F * fixture::timestep_seconds);
+
+        smoke.wind.x += 1.0F;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
+        execute(PM_ERROR_INVALID_ARGUMENT);
+        smoke.wind.x -= 1.0F;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdCopySmokeState(
+            commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        smoke_particles = reinterpret_cast<const PmSmokeParticleState *>(
+            smoke_header + 1U);
+        CHECK(smoke_header->activeCount == 2U);
+        CHECK(smoke_particles[0].age == 2.0F * fixture::timestep_seconds);
+        smoke.particlesPerSecond = 120.0F;
 
         if (!production) {
             std::array<std::byte, 4096U> smoke_before_failure{};
@@ -2276,10 +2316,30 @@ int main(int argc, char **argv) {
     if (!production) {
     CHECK(setenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+    CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
     execute(PM_ERROR_CAPACITY_EXCEEDED);
     CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
+    CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
+        sizeof statistics, &statistics, sizeof statistics,
+        PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+    CHECK(statistics.step.executionResult == PM_ERROR_CAPACITY_EXCEEDED);
+    CHECK(statistics.total.dispatches == 0U);
+    CHECK(statistics.total.workgroups == 0U);
+    CHECK(statistics.total.spatialIndexBuilds == 0U);
+    CHECK(statistics.total.spatialIndexRefits == 0U);
+    CHECK(statistics.total.spatialIndexPublications == 0U);
+    CHECK(statistics.total.queueSubmissions == 1U);
+    CHECK(statistics.timeAdvances == 0U);
+    CHECK(statistics.couplingEdgeCount == 0U);
+    CHECK(statistics.couplingSweeps == 0U);
+    for (const auto &phase : statistics.phases)
+        CHECK(phase.dispatches == 0U);
+    for (const auto iterations : statistics.domainIterations)
+        CHECK(iterations == 0U);
 
     constexpr std::array fields{
         "dispatches", "workgroups", "bytes_moved", "index_builds",

@@ -62,10 +62,11 @@ def fixture_result(definition: dict) -> dict:
             initial_velocity[1], initial_velocity[2],
         ]
         force = [-0.5 * impulse / definition["timestep_seconds"], 0.0, 0.0]
-        final_positions = [
-            [-0.12, -0.015, 0.0],
-            [-0.12, 0.015, 0.0],
-        ]
+        final_positions = [[
+            position[0],
+            position[1] + initial_velocity[1] * definition["timestep_seconds"],
+            position[2] + initial_velocity[2] * definition["timestep_seconds"],
+        ] for position in definition["prepared_rope_nodes_m"]]
         fixture["final"] = {
             "rope": [
                 rope_state(index, position, final_rope_velocity, force)
@@ -123,7 +124,8 @@ class RopeRigidContactQualityTests(unittest.TestCase):
         self.assertEqual(report["sample_count"], 2)
         impact = report["observations"]["rope-segment-centered-cube-impact"]
         self.assertAlmostEqual(
-            impact["minimum_capsule_geometry_clearance_m"], 0.02)
+            impact["minimum_capsule_geometry_clearance_m"],
+            self.profile["fixtures"][0]["combined_clearance_m"])
         self.assertAlmostEqual(
             impact["expected_normal_impulse_n_s"],
             self.profile["fixtures"][0][

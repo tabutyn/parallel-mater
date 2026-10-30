@@ -36,7 +36,7 @@ void solve_smoke_realtime_density_pressure(
     const std::uint32_t *candidate_indices,
     std::uint32_t candidates_per_particle, float timestep,
     std::uint32_t profile_version, float *densities, float *pressures,
-    std::uint32_t *status) noexcept;
+    void *position_deltas, std::uint32_t *status) noexcept;
 
 void solve_smoke_realtime_position_delta(
     device::DispatchSize grid, device::DispatchSize block,

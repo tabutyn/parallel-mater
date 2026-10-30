@@ -26,7 +26,7 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 0.01F;
+constexpr float timestep = 1.0F / 60.0F;
 constexpr std::uint32_t warmup_steps = 2U;
 constexpr std::uint32_t quality_steps = 1U;
 constexpr std::uint32_t smoke_capacity = 1U;
@@ -38,14 +38,18 @@ constexpr float grid_spacing = grid_edge_length /
     static_cast<float>(grid_resolution);
 constexpr float cube_half_extent = 0.02F;
 constexpr float contact_distance = 0.015F;
-constexpr float particle_radius = 0.005F;
+constexpr float particle_radius = 0.006F;
 constexpr float rigid_mass = 0.01F;
 constexpr float rigid_collision_margin = 0.001F;
 constexpr float cube_inertia = (1.0F / 6.0F) * rigid_mass *
     (2.0F * cube_half_extent) * (2.0F * cube_half_extent);
 constexpr float air_density = 1'000.0F;
 constexpr float drag_coefficient = 1.0F;
-constexpr float quality_emission_rate = 60.0F;
+constexpr float quality_emission_rate = 30.0F;
+
+[[nodiscard]] constexpr float quality_emitter_x(bool grid) noexcept {
+    return grid ? -0.043F : -0.049F;
+}
 
 constexpr std::array<PmFloat3, 8U> cube_vertices{{
     {-cube_half_extent, -cube_half_extent, -cube_half_extent},
@@ -175,10 +179,10 @@ void require_contact_capability(const Context &context, bool grid) {
     material.pressureStiffness = 0.0F;
     material.viscosity = 0.0F;
     material.vorticityConfinement = 0.0F;
-    material.maximumSpeed = 2.0F;
+    material.maximumSpeed = grid ? 0.59F : 0.53F;
     material.gridResolution = grid ? grid_resolution : 0U;
     material.gridVerticalResolution = grid ? grid_resolution : 0U;
-    material.gridPressureIterations = grid ? 8U : 0U;
+    material.gridPressureIterations = grid ? 12U : 0U;
     material.gridPressureTolerance = 1.0e-5F;
     return material;
 }
@@ -366,7 +370,7 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
         throw std::runtime_error("unsupported: smoke and rigid features");
     require_contact_capability(context, grid);
     FixtureObjects fixture = create_fixture(context, grid, 1U);
-    initialize_endpoints(context, fixture, -0.043F,
+    initialize_endpoints(context, fixture, quality_emitter_x(grid),
                          {1.0F, 0.25F, 0.0F});
     const PmStepInfo step{timestep, 1U, {0.0F, 0.0F, 0.0F}, 0U};
     for (std::uint32_t index = 0U; index < warmup_steps; ++index) {
@@ -475,6 +479,7 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
 }
 
 [[nodiscard]] Json quality_fixture_json(bool grid, DriverInfo &driver) {
+    const PmSmokeMaterialState material = smoke_material(grid);
     QualityRun control = run_quality_fixture(grid, false);
     QualityRun coupled = run_quality_fixture(grid, true);
     if (!same_driver(control.driver, coupled.driver))
@@ -524,7 +529,7 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
     result["smoke_particle_capacity"] =
         static_cast<std::uint64_t>(smoke_capacity);
     result["smoke_emitter_center_m"] =
-        vector_json(PmFloat3{-0.043F, 0.0F, 0.0F});
+        vector_json(PmFloat3{quality_emitter_x(grid), 0.0F, 0.0F});
     Json extents = Json::array();
     extents.push_back(1.0e-6);
     extents.push_back(1.0e-6);
@@ -539,7 +544,8 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
     result["smoke_rest_number_density"] = 1.0;
     result["smoke_pressure_stiffness_m2_s2"] = 0.0;
     result["smoke_viscosity_m2_s"] = 0.0;
-    result["smoke_maximum_speed_m_s"] = 2.0;
+    result["smoke_maximum_speed_m_s"] =
+        static_cast<double>(material.maximumSpeed);
     result["smoke_grid_resolution"] =
         static_cast<std::uint64_t>(grid ? grid_resolution : 0U);
     result["smoke_grid_vertical_resolution"] =

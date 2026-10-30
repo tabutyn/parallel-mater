@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import math
 import sys
 import unittest
 from pathlib import Path
@@ -45,19 +46,29 @@ def snapshot(definition: dict, position: list[float],
 def fixture(definition: dict) -> dict:
     actual = copy.deepcopy(definition)
     initial = [-0.020, 0.015, 0.0]
-    initial_velocity = [1.0, 0.25, 0.0]
+    authored_velocity = definition["smoke_initial_velocity_m_s"]
+    authored_speed = math.sqrt(sum(value * value
+                                   for value in authored_velocity))
+    scale = min(1.0, definition["smoke_maximum_speed_m_s"] / authored_speed)
+    initial_velocity = [value * scale for value in authored_velocity]
+    timestep = definition["timestep_seconds"]
+    control_final = [initial[axis] + initial_velocity[axis] * timestep
+                     for axis in range(3)]
+    coupled_final = copy.deepcopy(control_final)
+    coupled_final[0] = -definition["expected_clearance_m"]
+    redirected = [0.0, initial_velocity[1], initial_velocity[2]]
     actual["runs"] = [
         {
             "id": "control",
             "initial": snapshot(definition, initial, initial_velocity, 0.0),
-            "final": snapshot(definition, [-0.010, 0.0175, 0.0],
-                              initial_velocity, 0.01),
+            "final": snapshot(definition, control_final,
+                              initial_velocity, timestep),
         },
         {
             "id": "coupled",
             "initial": snapshot(definition, initial, initial_velocity, 0.0),
-            "final": snapshot(definition, [-0.015, 0.0175, 0.0],
-                              [0.0, 0.25, 0.0], 0.01),
+            "final": snapshot(definition, coupled_final,
+                              redirected, timestep),
         },
     ]
     return actual

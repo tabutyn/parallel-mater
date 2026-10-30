@@ -96,6 +96,8 @@ struct Fixture {
     Vec3 *body_position_deltas{managed<Vec3>(count)};
     Vec3 *endpoint_impulses{managed<Vec3>(count)};
     Vec3 *body_angular_impulses{managed<Vec3>(count)};
+    float *rope_rest_lengths{managed<float>(count)};
+    Vec3 *rope_anchor_targets{managed<Vec3>(2U)};
     unsigned *status{managed<unsigned>(1U)};
 
     Fixture() {
@@ -120,6 +122,7 @@ struct Fixture {
             RigidCouplingMode::drag,
         };
         for (unsigned index = 0U; index < count; ++index) {
+            rope_rest_lengths[index] = 0.1F;
             endpoint_inverse_masses[index] = 1.0F;
             endpoint_generations[index] = 1U;
             body_parameters[index].motion = MotionType::dynamic;
@@ -184,7 +187,8 @@ struct Fixture {
                  constraint_frictions, constraint_responses,
                  constraint_active, endpoint_position_deltas,
                  body_position_deltas, endpoint_impulses,
-                 body_angular_impulses, status})
+                 body_angular_impulses, rope_rest_lengths,
+                 rope_anchor_targets, status})
             if (pointer != nullptr) cudaFree(pointer);
     }
 
@@ -201,7 +205,8 @@ struct Fixture {
             constraint_frictions && constraint_responses &&
             constraint_active && endpoint_position_deltas &&
             body_position_deltas && endpoint_impulses &&
-            body_angular_impulses && status;
+            body_angular_impulses && rope_rest_lengths &&
+            rope_anchor_targets && status;
     }
 
     void reset_correction_budget() {
@@ -255,6 +260,18 @@ struct Fixture {
                 reinterpret_cast<Vec3_0 *>(body_angular_impulses), 0.1F,
                 dt, profile, sweep, status);
         }
+        rigid_rope_sync_attachments<<<1U, threads>>>(
+            reinterpret_cast<Vec3_0 *>(endpoint_positions),
+            reinterpret_cast<Vec3_0 *>(endpoint_previous),
+            reinterpret_cast<Vec3_0 *>(endpoint_velocities), count,
+            rope_rest_lengths,
+            reinterpret_cast<Vec3_0 *>(rope_anchor_targets),
+            reinterpret_cast<BodyParameters_0 *>(body_parameters),
+            reinterpret_cast<RigidBodyState_0 *>(body_states),
+            body_generations, count, constraint_endpoints + 3U,
+            constraint_bodies + 3U, constraint_body_generations + 3U,
+            reinterpret_cast<Vec3_0 *>(constraint_body_local_points + 3U),
+            constraint_active + 3U, 1U, dt);
     }
 };
 
@@ -402,6 +419,51 @@ void test_generation_rebinding_and_profile_rejection() {
               "invalid_profile=atomic");
 }
 
+void test_static_rope_attachment_preserves_rest_lengths() {
+    Fixture fixture;
+    CHECK(fixture.allocated());
+    if (!fixture.allocated()) return;
+    for (unsigned index = 0U; index < count; ++index) {
+        fixture.endpoint_positions[index] = {0.1F * float(index), 0.0F, 0.0F};
+        fixture.endpoint_previous[index] = fixture.endpoint_positions[index];
+        fixture.endpoint_velocities[index] = {};
+        fixture.rope_rest_lengths[index] = 0.1F;
+        fixture.constraint_active[index] = 0U;
+    }
+    fixture.endpoint_positions[6].x = 0.52F;
+    fixture.endpoint_previous[6].x = 0.52F;
+    fixture.constraint_active[3] = 1U;
+    fixture.constraint_endpoints[3] = count - 1U;
+    fixture.constraint_bodies[3] = 3U;
+    fixture.body_parameters[3].motion = MotionType::static_body;
+    fixture.body_states[3].position = {0.7F, 0.0F, 0.0F};
+
+    rigid_rope_sync_attachments<<<1U, threads>>>(
+        reinterpret_cast<Vec3_0 *>(fixture.endpoint_positions),
+        reinterpret_cast<Vec3_0 *>(fixture.endpoint_previous),
+        reinterpret_cast<Vec3_0 *>(fixture.endpoint_velocities), count,
+        fixture.rope_rest_lengths,
+        reinterpret_cast<Vec3_0 *>(fixture.rope_anchor_targets),
+        reinterpret_cast<BodyParameters_0 *>(fixture.body_parameters),
+        reinterpret_cast<RigidBodyState_0 *>(fixture.body_states),
+        fixture.body_generations, count, fixture.constraint_endpoints + 3U,
+        fixture.constraint_bodies + 3U,
+        fixture.constraint_body_generations + 3U,
+        reinterpret_cast<Vec3_0 *>(
+            fixture.constraint_body_local_points + 3U),
+        fixture.constraint_active + 3U, 1U,
+        rigid_coupling_realtime_timestep);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK(std::abs(fixture.endpoint_positions[count - 1U].x - 0.7F) <
+        1.0e-6F);
+    for (unsigned index = 0U; index + 1U < count; ++index) {
+        const float length = length_host(subtract_host(
+            fixture.endpoint_positions[index + 1U],
+            fixture.endpoint_positions[index]));
+        CHECK(std::abs(length - 0.1F) < 1.0e-6F);
+    }
+}
+
 void test_long_run_and_timing() {
     Fixture fixture;
     CHECK(fixture.allocated());
@@ -460,6 +522,7 @@ int main() {
     }
     test_balanced_modes_thin_contact_and_mass_ratio();
     test_generation_rebinding_and_profile_rejection();
+    test_static_rope_attachment_preserves_rest_lengths();
     test_long_run_and_timing();
     if (failures == 0)
         std::puts("F8-17 rigid coupling physical CUDA tests passed");

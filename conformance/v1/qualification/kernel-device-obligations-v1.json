@@ -125,7 +125,8 @@
         "fluid_copy_initial",
         "fluid_emit_spatial_particles",
         "fluid_emit_spatial_source_proposals",
-        "fluid_apply_spatial_source_admission"
+        "fluid_apply_spatial_source_admission",
+        "fluid_gather_spatial_payloads"
       ],
       "domains": ["FLUID", "SPATIAL_INDEX"],
       "advertised_modes": [],
@@ -354,7 +355,7 @@
     {
       "id": "cloth-rope-coupling",
       "module": "cloth_rope",
-      "entries": ["rope_cloth_sample_anchor", "rope_cloth_apply_anchor"],
+      "entries": ["rope_cloth_sample_anchor", "rope_cloth_apply_anchor", "rope_cloth_accumulate_reaction"],
       "domains": ["CLOTH", "ROPE"],
       "advertised_modes": ["ATTACHMENT"],
       "public_case_sets": ["rope"],
@@ -364,7 +365,7 @@
     {
       "id": "soft-body-rope-coupling",
       "module": "soft_body_rope",
-      "entries": ["rope_soft_sample_anchor", "rope_soft_scatter_anchor", "rope_soft_apply"],
+      "entries": ["rope_soft_realtime_contact", "rope_soft_sample_anchor", "rope_soft_scatter_anchor", "rope_soft_apply", "rope_soft_sync_attachment", "rope_soft_accumulate_attachment_reaction"],
       "domains": ["SOFT_BODY", "ROPE"],
       "advertised_modes": ["ATTACHMENT", "CONTACT"],
       "public_case_sets": ["rope"],
@@ -394,7 +395,7 @@
     {
       "id": "fluid-smoke-coupling",
       "module": "fluid_smoke",
-      "entries": ["fluid_smoke_drag", "fluid_smoke_grid_drag", "fluid_smoke_exchange", "fluid_clear_inactive_keep"],
+      "entries": ["fluid_smoke_drag", "fluid_smoke_realtime_drag", "fluid_smoke_grid_drag", "fluid_smoke_exchange", "fluid_clear_inactive_keep"],
       "domains": ["FLUID", "SMOKE"],
       "advertised_modes": ["DRAG", "PHASE", "THERMAL"],
       "public_case_sets": ["smoke"],
@@ -569,7 +570,9 @@
       "entries": [
         "rigid_coupling_project",
         "rigid_coupling_apply_endpoints",
-        "rigid_coupling_apply_bodies"
+        "rigid_coupling_apply_bodies",
+        "rigid_rope_sync_attachments",
+        "rigid_rope_apply_attachment_reactions"
       ],
       "domains": ["RIGID_BODY", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE", "SPATIAL_INDEX"],
       "advertised_modes": ["ATTACHMENT", "CONTACT", "DRAG"],
@@ -608,7 +611,7 @@
     {
       "id": "rope-core",
       "module": "rope",
-      "entries": ["rope_realtime_predict", "rope_realtime_project_constraints", "rope_realtime_apply_position_delta", "rope_realtime_project_contacts", "rope_realtime_commit", "rope_advance"],
+      "entries": ["rope_realtime_predict", "rope_realtime_project_constraints", "rope_realtime_apply_position_delta", "rope_realtime_project_contacts", "rope_realtime_finalize_self_contacts", "rope_realtime_commit", "rope_advance"],
       "domains": ["ROPE"],
       "advertised_modes": ["CONTACT"],
       "public_case_sets": ["rope"],

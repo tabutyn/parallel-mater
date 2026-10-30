@@ -42,6 +42,7 @@ def soft_state(index: int, position: list[float], velocity: list[float],
 
 def valid_result(profile: dict) -> dict:
     fixture = copy.deepcopy(profile["fixture"])
+    force_scale = 1.0 / fixture["timestep_seconds"]
     nodes = fixture["soft_nodes_m"]
     surface = fixture["surface_vertices_m"]
     response_inverse_mass = 1.0 + 0.5 * (0.6**2 + 0.2**2 + 0.2**2)
@@ -52,7 +53,7 @@ def valid_result(profile: dict) -> dict:
         [-0.1, 0.2, 0.2], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0])]
     fixture["final_fluid_state"] = [fluid_state(
         [-0.1, 0.2, 0.2], [1.0 - impulse, 0.0, 0.0],
-        [-100.0 * impulse, 0.0, 0.0])]
+        [-force_scale * impulse, 0.0, 0.0])]
     weights = fixture["expected_contact_node_weights"]
     fixture["initial_soft_node_state"] = [
         soft_state(index, position, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
@@ -60,7 +61,7 @@ def valid_result(profile: dict) -> dict:
     fixture["final_soft_node_state"] = [
         soft_state(index, position,
                    [0.5 * weight * impulse, 0.0, 0.0],
-                   [100.0 * weight * impulse, 0.0, 0.0])
+                   [force_scale * weight * impulse, 0.0, 0.0])
         for index, (position, weight) in enumerate(zip(nodes, weights))]
     fixture["initial_surface_state_m"] = copy.deepcopy(surface)
     fixture["final_surface_state_m"] = copy.deepcopy(surface)
@@ -117,14 +118,15 @@ class FluidSoftContactQualityTests(unittest.TestCase):
 
     def test_surface_incidence_mass_multiplier_fails(self):
         result = valid_result(self.profile)
+        force_scale = 1.0 / result["fixture"]["timestep_seconds"]
         result["fixture"]["final_fluid_state"][0]["velocity_m_s"][0] = 2.0 / 3.0
         result["fixture"]["final_fluid_state"][0][
-            "acceleration_m_s2"][0] = -100.0 / 3.0
+            "acceleration_m_s2"][0] = -force_scale / 3.0
         weights = result["fixture"]["expected_contact_node_weights"]
         for node, weight in zip(
                 result["fixture"]["final_soft_node_state"], weights):
             node["velocity_m_s"][0] = weight / 6.0
-            node["liquid_contact_force_n"][0] = weight * 100.0 / 3.0
+            node["liquid_contact_force_n"][0] = weight * force_scale / 3.0
         self.assert_rejected(
             result, "does not use each uniquely bound node mass once")
 

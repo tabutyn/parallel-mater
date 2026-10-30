@@ -87,7 +87,7 @@ class SmokeRopeDragQualityTests(unittest.TestCase):
             self.assertAlmostEqual(
                 observation["minimum_tracer_segment_clearance_m"], 0.15)
             self.assertAlmostEqual(
-                observation["maximum_drag_acceleration_m_s2"], 10.0)
+                observation["maximum_drag_acceleration_m_s2"], 6.0)
 
     def test_rejects_reverse_smoke_force(self) -> None:
         result = copy.deepcopy(self.result)
@@ -137,7 +137,7 @@ class SmokeRopeDragQualityTests(unittest.TestCase):
     def test_rejects_acceleration_above_cap(self) -> None:
         result = copy.deepcopy(self.result)
         for node in result["fixtures"][0]["runs"][1]["final"]["rope"]:
-            node["velocity_m_s"][0] = 0.11
+            node["velocity_m_s"][0] = 0.18
         report = self.evaluate(result)
         self.assertFalse(report["passed"])
         self.assertTrue(any("acceleration cap" in item["message"]

@@ -479,9 +479,9 @@ int main() {
     PmBufferRange particle_output{
         destination, 128U, sizeof(PmDomainOutputHeader) +
             2U * sizeof(PmFluidParticleOutput)};
-    const PmFloat3 cloth_vertices[3]{{-0.5F, 1.0F, 0.0F},
-                                     {0.5F, 1.0F, 0.0F},
-                                     {0.0F, 2.0F, 0.0F}};
+    const PmFloat3 cloth_vertices[3]{{1.5F, 1.0F, 0.0F},
+                                     {2.5F, 1.0F, 0.0F},
+                                     {2.0F, 2.0F, 0.0F}};
     const std::uint32_t cloth_indices[3]{0U, 1U, 2U};
     const float cloth_inverse_masses[3]{1.0F, 1.0F, 1.0F};
     const PmClothInfo cloth{PM_TRUE, 0U, 3U, cloth_vertices, 3U,

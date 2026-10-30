@@ -21,9 +21,9 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float preparation_timestep = 0.01F;
-constexpr PmFloat3 preparation_gravity{100.0F, -100.0F, 0.0F};
-constexpr float contact_timestep = 0.01F;
+constexpr float preparation_timestep = 1.0F / 60.0F;
+constexpr PmFloat3 preparation_gravity{60.0F, -60.0F, 0.0F};
+constexpr float contact_timestep = 1.0F / 60.0F;
 constexpr float contact_distance = 0.1F;
 constexpr float soft_node_mass = 2.0F;
 constexpr float rope_mass = 3.0F;
@@ -35,10 +35,10 @@ constexpr std::array<PmFloat3, 2U> rope_centerline{{
     {0.2F, 0.0F, 0.0F}}};
 
 constexpr std::array<PmFloat3, 4U> soft_nodes{{
-    {-0.01F, 0.02F, 0.0F},
-    {0.49F, 0.5F, -0.5F},
-    {-0.51F, 0.5F, -0.5F},
-    {-0.01F, 0.5F, 0.5F}}};
+    {-0.016666667F, 0.026666667F, 0.0F},
+    {0.483333333F, 0.506666667F, -0.5F},
+    {-0.516666667F, 0.506666667F, -0.5F},
+    {-0.016666667F, 0.506666667F, 0.5F}}};
 constexpr std::array<PmFloat3, 4U> prepared_soft_nodes{{
     {0.0F, 0.01F, 0.0F},
     {0.5F, 0.49F, -0.5F},
@@ -55,9 +55,12 @@ constexpr std::array<PmSoftBodyBond, 6U> soft_bonds{{
     {2U, 3U, 1.118033988749895F}}};
 constexpr std::array<PmFloat3, 10U> surface_vertices{{
     soft_nodes[0], soft_nodes[1], soft_nodes[2], soft_nodes[3],
-    {0.24F, 0.26F, -0.25F}, {-0.26F, 0.26F, -0.25F},
-    {-0.01F, 0.26F, 0.25F}, {-0.01F, 0.5F, -0.5F},
-    {0.24F, 0.5F, 0.0F}, {-0.26F, 0.5F, 0.0F}}};
+    {0.233333333F, 0.266666667F, -0.25F},
+    {-0.266666667F, 0.266666667F, -0.25F},
+    {-0.016666667F, 0.266666667F, 0.25F},
+    {-0.016666667F, 0.506666667F, -0.5F},
+    {0.233333333F, 0.506666667F, 0.0F},
+    {-0.266666667F, 0.506666667F, 0.0F}}};
 constexpr std::array<std::uint32_t, 48U> surface_indices{{
     0U, 5U, 4U, 5U, 2U, 7U, 4U, 7U, 1U, 5U, 7U, 4U,
     0U, 4U, 6U, 4U, 1U, 8U, 6U, 8U, 3U, 4U, 8U, 6U,
@@ -197,11 +200,11 @@ template <std::size_t Size>
     material.nodeSpacing = rope_spacing;
     material.radius = 0.1F;
     material.mass = rope_mass;
-    material.stretchCompliance = 1.0F;
+    material.stretchCompliance = 0.005F;
     material.velocityDamping = 0.0F;
     material.maximumSubstepTimestep = contact_timestep;
     material.friction = 0.0F;
-    material.maximumSpeed = 20.0F;
+    material.maximumSpeed = 5.9F;
     material.solverIterations = 1U;
     material.selfCollision = PM_FALSE;
     return material;
@@ -211,7 +214,7 @@ template <std::size_t Size>
     PmSoftBodyMaterialState material{};
     material.nodeMass = soft_node_mass;
     material.nodeRadius = 0.05F;
-    material.stretchCompliance = 1.0F;
+    material.stretchCompliance = 0.005F;
     material.velocityDamping = 0.0F;
     material.springDamping = 0.0F;
     material.contactFriction = 0.0F;
@@ -236,7 +239,7 @@ template <std::size_t Size>
     coupling.parameters.mechanical.contactDistance = contact_distance;
     coupling.parameters.mechanical.friction = 0.0F;
     coupling.parameters.mechanical.twoWay = PM_TRUE;
-    coupling.parameters.attachment.maximumAcceleration = 1000.0F;
+    coupling.parameters.attachment.maximumAcceleration = 100.0F;
     coupling.parameters.attachment.supportRadiusScale = 2.0F;
     coupling.parameters.attachment.contactSupportRadiusScale = 1.0F;
     coupling.parameters.attachment.attachFirst = PM_FALSE;
@@ -481,7 +484,7 @@ void record_copies(Context &context, const FixtureObjects &fixture,
     result["two_way"] = true;
     result["attach_first"] = false;
     result["attach_last"] = false;
-    result["maximum_soft_body_acceleration_m_s2"] = 1000.0;
+    result["maximum_soft_body_acceleration_m_s2"] = 100.0;
     result["anchor_support_radius_scale"] = 2.0;
     result["anchor_contact_support_radius_scale"] = 1.0;
     result["authored_soft_nodes_m"] = vectors_json(soft_nodes);
