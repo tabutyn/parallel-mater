@@ -93,27 +93,31 @@ rewriting their history or treating unsupported results as passes.
    and public-case matrix, and F8-61 refreezes the resulting closure. F8-24's
    physical Linux CUDA run rejects that candidate, F8-62 repairs the three
    required Gallery failures, and F8-63 freezes the exact repaired source.
-   F8-24 through F8-30 qualify the F8-63 candidate on their registered GPU
-   targets; F8-53 supplies final CPU/public-contract qualification. F8-31
+   F8-24 rejects that candidate on the mandatory installed-public CUDA suite,
+   F8-64 repairs the public execution path, and F8-65 freezes the exact final
+   source. F8-24 through F8-30 qualify the F8-65 candidate on their registered
+   GPU targets; F8-53 supplies final CPU/public-contract qualification. F8-31
    packages and deploys verified builds; F8-99 audits the sole production path
    and all required results.
 
 F8-38 completed the narrowly scoped rigid-path refreeze, and F8-23 completed
 its interim qualification. F8-52 preserved the first complete single-path
 candidate, but it predates the executable scenario and final repaired matrix.
-F8-61's `realtime-single-step-v1-cfb104b` then failed the required physical
-Linux CUDA suite and remains rejected history. F8-63 replaces it with
-`realtime-single-step-v1-fc2ffba`, manifest SHA-256
-`6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9`.
+F8-61's `realtime-single-step-v1-cfb104b` failed the required physical Linux
+CUDA suite. F8-63's `realtime-single-step-v1-fc2ffba` then failed the mandatory
+installed-public CUDA suite. Both remain rejected history. F8-65 replaces them
+with `realtime-single-step-v1-05f8b04`, manifest SHA-256
+`15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f`.
 F8-24 through F8-30 and F8-53 accept only that exact candidate. All earlier
 records remain immutable provenance; evidence from different candidates may
 not be combined into a pass. See the
-[F8-63 freeze record](F8-63-CANDIDATE-FREEZE.md).
+[F8-65 freeze record](F8-65-CANDIDATE-FREEZE.md).
 
 The frozen `realtime-profile-v1.json` and earlier candidate records remain
 unchanged historical inputs. F8-50 updates the executable contract, and F8-61
-captures the repaired matrix, scenarios and validator. F8-63 captures the
-post-CUDA-repair source and exact replacement hashes.
+captures the repaired matrix, scenarios and validator. F8-65 captures the
+installed-public CUDA repair, expanded executable contract closure and exact
+replacement hashes.
 Numeric quality limits may not be weakened to make this migration pass.
 
 Existing branches may temporarily contain migration scaffolding, but "F8 done"

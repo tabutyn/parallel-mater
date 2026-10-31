@@ -1,0 +1,110 @@
+{
+  "schema": "parallel-mater-f8-65-sole-path-audit/v1",
+  "task": "F8-65",
+  "status": "passed",
+  "audited_source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+  "audited_source_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+  "baseline_candidate": {
+    "id": "realtime-single-step-v1-fc2ffba",
+    "source_revision": "fc2ffbafdb81631c4c7393336970cefc3d65f55e",
+    "source_tree": "fccd57eabd07dd4ae40cd38fdce8020d079a09da",
+    "manifest_sha256": "6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9",
+    "status": "rejected-required-installed-public-cuda-suite"
+  },
+  "protected_delta": {
+    "method": "Compare every file selected by candidate-v7 protected closure patterns between the rejected candidate-v6 source and the repaired candidate-v7 source.",
+    "changed_categories": [
+      "adapter_binding",
+      "api_abi",
+      "contract",
+      "gallery",
+      "kernel",
+      "public_oracle",
+      "runtime",
+      "schedule_telemetry",
+      "work_budget"
+    ],
+    "changed_unique_file_count": 164,
+    "changed_file_counts_by_category": {
+      "api_abi": 4,
+      "kernel": 17,
+      "adapter_binding": 6,
+      "runtime": 41,
+      "schedule_telemetry": 2,
+      "contract": 2,
+      "public_oracle": 90,
+      "work_budget": 1,
+      "gallery": 6
+    },
+    "unchanged_categories": [],
+    "reason": "F8-64 repairs the public installed-CUDA execution path and its executable conformance contracts; the final exact-source commit also repairs generated D3D12 binding coverage. Candidate v7 expands the API, adapter and public-oracle closure patterns so public scene headers, dispatch generators, cases, goldens, capture producer and validators cannot drift outside the freeze."
+  },
+  "public_contract": {
+    "api_version": "0.3",
+    "driver_abi_version": 2,
+    "creation": "ordinary PmSimulationCreateInfo with no execution-profile extension",
+    "step": "ordinary pmCmdStepSimulation fixed to one 1/60-second substep",
+    "production_schedule_count": 1,
+    "retired_selector_symbols_found": 0,
+    "retired_schedule_sources_found": 0
+  },
+  "surface": {
+    "domains": [
+      "RIGID_BODY",
+      "FLUID",
+      "CLOTH",
+      "SOFT_BODY",
+      "ROPE",
+      "SMOKE"
+    ],
+    "advertised_interaction_modes": [
+      "ATTACHMENT",
+      "CONTACT",
+      "CONTAINMENT",
+      "DRAG",
+      "PHASE",
+      "PRESSURE",
+      "THERMAL",
+      "VISCOSITY"
+    ],
+    "interaction_capabilities": 49,
+    "public_cases": 30,
+    "scenario_fixtures": 12,
+    "independent_measurements": 37,
+    "kernel_groups": 32,
+    "canonical_modules": 26,
+    "canonical_entries": 234,
+    "runtime_variants": [
+      "cpu-runtime",
+      "cuda-runtime",
+      "vulkan-runtime",
+      "d3d12-runtime",
+      "metal-runtime"
+    ],
+    "physical_target_rows": 8,
+    "capability_reductions": 0
+  },
+  "negative_findings": {
+    "selectable_legacy_runtime": false,
+    "blanket_domain_or_interaction_rejection": false,
+    "private_test_only_required_path": false,
+    "runtime_derived_work_budget": false,
+    "compile_only_qualification": false,
+    "missing_executable_scenario_contract": false,
+    "missing_capture_validator_contract": false,
+    "missing_capture_producer_contract": false,
+    "missing_public_case_or_golden_contract": false,
+    "changed_fixed_tick_schedule": false,
+    "evidence_union_across_candidates": false
+  },
+  "verification": [
+    "git diff --name-only fc2ffbafdb81631c4c7393336970cefc3d65f55e 05f8b04a14fc34cfb1ba322f363ea7165fcf3d48 -- <candidate-v7 protected closure patterns>",
+    "python3 tools/generate_realtime_candidate.py --ci-evidence docs/roadmap/evidence/F8-65-PROTECTED-CI.json --route",
+    "python3 tools/check_realtime_candidate.py",
+    "python3 tests/solver/check_slang_architecture.py",
+    "python3 -m unittest conformance.v1.tests.test_realtime_oracle conformance.v1.tests.test_realtime_device_suite conformance.v1.tests.test_realtime_scenario_fixtures",
+    "GitHub Actions manual exact-source run 41213026819: 17/17 required jobs passed",
+    "F8-65 exact-source physical Linux CUDA suite: 131/131 passed, including 42 CUDA-labeled tests",
+    "F8-65 installed-public CUDA capture: 49 capabilities, 30 cases, 12 scenarios, 37 measurements, 5 negative controls and 5 workloads passed"
+  ]
+}

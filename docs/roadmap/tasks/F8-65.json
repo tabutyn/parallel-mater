@@ -1,7 +1,7 @@
 {
   "id": "F8-65",
   "title": "Refreeze candidate after public CUDA repairs",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-64"
   ],
@@ -19,15 +19,31 @@
     "A coordination-only change writes the replacement candidate id, manifest hash, source/tree, exact CI run and failure provenance into F8-24 through F8-30 and F8-53 before any qualification task becomes ready.",
     "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances or schedule. Any later protected change creates another candidate rather than mutating this freeze."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "89aa50b5-7aa2-4043-ae5b-1eee4ea7cc8d",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-65/ThomasLaptop",
-    "claimed_at": "2026-10-31T15:00:28Z",
-    "heartbeat_at": "2026-10-31T15:00:28Z",
-    "expires_at": "2026-11-01T15:00:28Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-65-CANDIDATE-V7-FREEZE.json freezes realtime-single-step-v1-05f8b04 at manifest SHA-256 15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f.",
+    "PASS: exact-source GitHub Actions run 41213026819 completed all 17 required jobs and hashed 10 artifacts.",
+    "PASS: exact-source physical Linux CUDA passed 131/131 registered tests, 42 CUDA-labelled tests, 12/12 relocated SDK checks, 49 capabilities, 30 cases, 12 scenarios and 72,000 measured workload ticks."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "89aa50b5-7aa2-4043-ae5b-1eee4ea7cc8d",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-65/ThomasLaptop",
+        "claimed_at": "2026-10-31T15:00:28Z",
+        "heartbeat_at": "2026-10-31T15:00:28Z",
+        "expires_at": "2026-11-01T15:00:28Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-31T15:30:56Z",
+      "reason": "Freeze repaired candidate v7 with exact-source CI and physical installed-public Linux CUDA evidence",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-65-CANDIDATE-V7-FREEZE.json freezes realtime-single-step-v1-05f8b04 at manifest SHA-256 15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f.",
+        "PASS: exact-source GitHub Actions run 41213026819 completed all 17 required jobs and hashed 10 artifacts.",
+        "PASS: exact-source physical Linux CUDA passed 131/131 registered tests, 42 CUDA-labelled tests, 12/12 relocated SDK checks, 49 capabilities, 30 cases, 12 scenarios and 72,000 measured workload ticks."
+      ]
+    }
+  ]
 }
