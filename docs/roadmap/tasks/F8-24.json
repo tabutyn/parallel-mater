@@ -1,7 +1,7 @@
 {
   "id": "F8-24",
   "title": "Qualify the candidate on Linux CUDA devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -26,7 +26,15 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bcc93f70-af25-4147-8bf2-9cddf84a37b6",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-24/ThomasLaptop-v7",
+    "claimed_at": "2026-10-31T15:54:02Z",
+    "heartbeat_at": "2026-10-31T15:54:02Z",
+    "expires_at": "2026-11-01T15:54:02Z"
+  },
   "history": [
     {
       "lease": {
