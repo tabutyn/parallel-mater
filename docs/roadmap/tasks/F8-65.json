@@ -1,7 +1,7 @@
 {
   "id": "F8-65",
   "title": "Refreeze candidate after public CUDA repairs",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-64"
   ],
@@ -20,6 +20,14 @@
     "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances or schedule. Any later protected change creates another candidate rather than mutating this freeze."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "89aa50b5-7aa2-4043-ae5b-1eee4ea7cc8d",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-65/ThomasLaptop",
+    "claimed_at": "2026-10-31T15:00:28Z",
+    "heartbeat_at": "2026-10-31T15:00:28Z",
+    "expires_at": "2026-11-01T15:00:28Z"
+  },
   "history": []
 }
