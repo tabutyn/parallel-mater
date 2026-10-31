@@ -1,7 +1,7 @@
 {
   "id": "F8-25",
   "title": "Qualify the candidate on Linux Vulkan devices",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -26,14 +26,22 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
   "evidence": [],
-  "lease": {
-    "token": "42084b9f-e43d-4a99-a8e2-042d92ae8f60",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-25/ThomasLaptop-v7",
-    "claimed_at": "2026-10-31T16:15:08Z",
-    "heartbeat_at": "2026-10-31T16:15:08Z",
-    "expires_at": "2026-11-01T16:15:08Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "42084b9f-e43d-4a99-a8e2-042d92ae8f60",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-25/ThomasLaptop-v7",
+        "claimed_at": "2026-10-31T16:15:08Z",
+        "heartbeat_at": "2026-10-31T16:15:08Z",
+        "expires_at": "2026-11-01T16:15:08Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-31T17:02:19Z",
+      "reason": "Candidate v7 fails the mandatory physical Linux Vulkan Gallery suite under pinned SDK 1.4.341.0: session contract times out, ClothPaint publishes no paint output, and all five smoke scenes return invalid argument. Preserve exact failure evidence and add bounded repair/refreeze leaves before requalification.",
+      "evidence": []
+    }
+  ]
 }
