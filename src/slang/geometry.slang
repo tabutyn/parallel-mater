@@ -510,6 +510,17 @@ bool constrained_collision_disabled(
     return false;
 }
 
+float rigid_solver_correction_reach(BodyParameters body,
+    TriangleMeshResource mesh)
+{
+    if (body.motion != MotionType.dynamic) return 0.0f;
+    Vec3 extent = subtract(mesh.maximum, mesh.minimum);
+    // The sole F8 schedule permits one quarter of the characteristic length
+    // per dynamic body and caps that length at two metres.
+    return min(0.5f, 0.25f * max(0.0f,
+        min(extent.x, min(extent.y, extent.z))));
+}
+
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void pm_integrate_rigid_bodies(
@@ -769,7 +780,12 @@ void pm_emit_rigid_spatial_proxies(
 
     float reach = vector_length(mesh.bounding_center) +
         mesh.bounding_radius + body.collision_margin + epsilon;
-    Vec3 expansion = add(add(path_deviation, correction_budget),
+    float correctionReach = rigid_solver_correction_reach(body, mesh);
+    Vec3 boundedCorrection = {
+        min(correction_budget.x, correctionReach),
+        min(correction_budget.y, correctionReach),
+        min(correction_budget.z, correctionReach)};
+    Vec3 expansion = add(add(path_deviation, boundedCorrection),
         Vec3(reach, reach, reach));
     Vec3 minimum = subtract(component_min(previous_states[dense].position,
         predicted_states[dense].position), expansion);
@@ -804,7 +820,9 @@ void pm_emit_rigid_spatial_proxies(
     bounds[source] = proxy;
     build_flags[source] = PMResourceUint8(1u);
     query_bounds[dense] = proxy;
-    query_masks[dense] = query_mask;
+    // Only dynamic bodies consume body-indexed query results. Static and
+    // kinematic bodies remain leaves so dynamic queries can still find them.
+    query_masks[dense] = body.motion == MotionType.dynamic ? query_mask : 0u;
     excluded_sort_keys[dense] = sort_key;
 }
 
@@ -2718,19 +2736,6 @@ void pm_reduce_rigid_leaf_manifolds(
                 canonicalize_swept_witness);
     }
     manifolds[activeIndex] = result;
-}
-
-float rigid_solver_correction_reach(BodyParameters body,
-    TriangleMeshResource mesh)
-{
-    if (body.motion != MotionType.dynamic) return 0.0f;
-    Vec3 extent = subtract(mesh.maximum, mesh.minimum);
-    // The sole F8 schedule permits one quarter of the characteristic length
-    // per dynamic body and caps that length at two metres. The shared BVH
-    // already publishes this envelope; retain the same pairs in narrow phase
-    // so an earlier solver correction cannot create an unobserved overlap.
-    return min(0.5f, 0.25f * max(0.0f,
-        min(extent.x, min(extent.y, extent.z))));
 }
 
 [shader("compute")]

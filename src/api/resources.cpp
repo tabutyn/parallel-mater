@@ -123,7 +123,8 @@ struct RealtimeSpatialCapacities {
             !add_realtime_capacity(output.queries, cloth_queries))
             return false;
         output.candidates_per_query = std::max(
-            output.candidates_per_query, 64U);
+            output.candidates_per_query,
+            capacity.triangleIndexCapacity / 3U);
     }
     for (const auto capacity :
          std::span(info.pRopeCapacities, info.ropeCount)) {

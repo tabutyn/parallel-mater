@@ -12,8 +12,6 @@ bool CommandScene::create(const SceneDefinition &scene,
     output = {};
     instance = {};
     auto next = std::make_unique<Impl>();
-    next->selected_backend = backend;
-    next->validation_enabled = enable_validation;
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -91,6 +89,9 @@ bool CommandScene::create(const SceneDefinition &scene,
         !checked(pmAllocateCommandBuffers(next->device, next->command_pool, 1U,
                                           &next->commands),
                  "allocate command buffer", error) ||
+        !checked(pmAllocateCommandBuffers(next->device, next->command_pool, 1U,
+                                          &next->reset_commands),
+                 "allocate reset command buffer", error) ||
         !checked(pmCreateFence(next->device, 0U, &next->fence),
                  "create queue fence", error))
         return false;
@@ -807,11 +808,12 @@ bool CommandScene::create(const SceneDefinition &scene,
         }
         next->original_scene = scene;
         next->rigid_bodies = rigid_bodies;
+        next->initial_rigid_bodies = rigid_bodies;
+        next->initial_constraints = next->constraints;
         next->cloth_active.assign(scene.cloths.size(), 1U);
         next->rope_active.assign(scene.ropes.size(), 1U);
         next->soft_body_active.assign(scene.soft_bodies.size(), 1U);
         next->smoke_active = scene.has_smoke;
-        next->debug_frame_capacity = debug_frame_capacity;
     } catch (const std::bad_alloc &) {
         error = "assemble scene resources: out of host memory";
         return false;
@@ -828,96 +830,119 @@ bool CommandScene::create(const SceneDefinition &scene,
                         initial_particles.size() * sizeof(PmParticleState));
     }
 
-    if (!next->begin(error)) return false;
-    for (const auto &geometry : next->geometries)
-        if (!checked(pmCmdBuildGeometry(next->commands, geometry.handle),
-                     "record geometry build", error))
+    const auto record_initial_state = [&](PmCommandBuffer commands) {
+        for (const auto &geometry : next->geometries)
+            if (!checked(pmCmdBuildGeometry(commands, geometry.handle),
+                         "record geometry build", error))
+                return false;
+        if (!rigid_bodies.empty() &&
+            !checked(pmCmdWriteRigidBodies(
+                         commands, next->simulation, 0U,
+                         static_cast<std::uint32_t>(rigid_bodies.size()),
+                         rigid_bodies.data()),
+                     "record rigid bodies", error))
             return false;
-    if (!rigid_bodies.empty() &&
-        !checked(pmCmdWriteRigidBodies(next->commands, next->simulation, 0U,
-                                       static_cast<std::uint32_t>(
-                                           rigid_bodies.size()),
-                                       rigid_bodies.data()),
-                 "record rigid bodies", error))
-        return false;
-    if (!next->constraints.empty() &&
-        !checked(pmCmdWriteRigidConstraints(
-                     next->commands, next->simulation, 0U,
-                     static_cast<std::uint32_t>(next->constraints.size()),
-                     next->constraints.data()),
-                 "record rigid constraints", error))
-        return false;
-    if (requires_fluid) {
-        const PmBufferView view{{next->particle_input.handle, 0U,
-                                 next->particle_input.size},
-                                PM_FORMAT_PARTICLE_STATE,
-                                static_cast<std::uint32_t>(
-                                    initial_particles.size()),
-                                sizeof(PmParticleState)};
-        if (!checked(pmCmdSetFluidParticles(next->commands, next->simulation,
-                                            0U, &view),
-                     "record fluid particles", error))
+        if (!next->constraints.empty() &&
+            !checked(pmCmdWriteRigidConstraints(
+                         commands, next->simulation, 0U,
+                         static_cast<std::uint32_t>(next->constraints.size()),
+                         next->constraints.data()),
+                     "record rigid constraints", error))
             return false;
-    }
-    if (!cloths.empty() &&
-        !checked(pmCmdWriteCloths(next->commands, next->simulation, 0U,
-                                  static_cast<std::uint32_t>(cloths.size()),
-                                  cloths.data()),
-                 "record cloths", error))
-        return false;
-    if (!ropes.empty() &&
-        !checked(pmCmdWriteRopes(next->commands, next->simulation, 0U,
-                                 static_cast<std::uint32_t>(ropes.size()),
-                                 ropes.data()),
-                 "record ropes", error))
-        return false;
-    if (!soft_bodies.empty() &&
-        !checked(pmCmdWriteSoftBodies(
-                     next->commands, next->simulation, 0U,
-                     static_cast<std::uint32_t>(soft_bodies.size()),
-                     soft_bodies.data()),
-                 "record soft bodies", error))
-        return false;
-    if (scene.has_smoke) {
-        const auto &source = scene.smoke_options;
-        const PmSmokeInfo smoke{PM_TRUE, 0U, source.capacity,
-            pm(source.emitter_center),
-            {source.emitter_half_extents.x, source.emitter_half_extents.y},
-            pm(source.initial_velocity), pm(source.wind),
-            source.particles_per_second, source.lifetime,
-            pm(source.grid_minimum), source.grid_edge_length};
-        if (!checked(pmCmdWriteSmoke(next->commands, next->simulation, 0U, 1U,
-                                     &smoke),
-                     "record smoke", error))
+        if (requires_fluid) {
+            const PmBufferView view{{next->particle_input.handle, 0U,
+                                     next->particle_input.size},
+                                    PM_FORMAT_PARTICLE_STATE,
+                                    static_cast<std::uint32_t>(
+                                        initial_particles.size()),
+                                    sizeof(PmParticleState)};
+            if (!checked(pmCmdSetFluidParticles(
+                             commands, next->simulation, 0U, &view),
+                         "record fluid particles", error))
+                return false;
+        }
+        if (!cloths.empty() &&
+            !checked(pmCmdWriteCloths(
+                         commands, next->simulation, 0U,
+                         static_cast<std::uint32_t>(cloths.size()),
+                         cloths.data()),
+                     "record cloths", error))
             return false;
-    }
-    if (!emitters.empty() &&
-        !checked(pmCmdWriteParticleEmitters(
-                     next->commands, next->simulation, 0U,
-                     static_cast<std::uint32_t>(emitters.size()),
-                     emitters.data()),
-                 "record particle emitters", error))
+        if (!ropes.empty() &&
+            !checked(pmCmdWriteRopes(
+                         commands, next->simulation, 0U,
+                         static_cast<std::uint32_t>(ropes.size()), ropes.data()),
+                     "record ropes", error))
+            return false;
+        if (!soft_bodies.empty() &&
+            !checked(pmCmdWriteSoftBodies(
+                         commands, next->simulation, 0U,
+                         static_cast<std::uint32_t>(soft_bodies.size()),
+                         soft_bodies.data()),
+                     "record soft bodies", error))
+            return false;
+        if (scene.has_smoke) {
+            const auto &source = scene.smoke_options;
+            const PmSmokeInfo smoke{
+                PM_TRUE, 0U, source.capacity, pm(source.emitter_center),
+                {source.emitter_half_extents.x,
+                 source.emitter_half_extents.y},
+                pm(source.initial_velocity), pm(source.wind),
+                source.particles_per_second, source.lifetime,
+                pm(source.grid_minimum), source.grid_edge_length};
+            if (!checked(pmCmdWriteSmoke(
+                             commands, next->simulation, 0U, 1U, &smoke),
+                         "record smoke", error))
+                return false;
+        }
+        if (!emitters.empty() &&
+            !checked(pmCmdWriteParticleEmitters(
+                         commands, next->simulation, 0U,
+                         static_cast<std::uint32_t>(emitters.size()),
+                         emitters.data()),
+                     "record particle emitters", error))
+            return false;
+        if (!destroyers.empty() &&
+            !checked(pmCmdWriteParticleDestroyers(
+                         commands, next->simulation, 0U,
+                         static_cast<std::uint32_t>(destroyers.size()),
+                         destroyers.data()),
+                     "record particle destroyers", error))
+            return false;
+        if (!paint_fields.empty() &&
+            (!checked(pmCmdWritePaintFields(
+                          commands, next->simulation, 0U,
+                          static_cast<std::uint32_t>(paint_fields.size()),
+                          paint_fields.data()),
+                      "record paint fields", error) ||
+             !checked(pmCmdWritePaintRules(
+                          commands, next->simulation, 0U,
+                          static_cast<std::uint32_t>(paint_rules.size()),
+                          paint_rules.data()),
+                      "record paint rules", error)))
+            return false;
+        return true;
+    };
+
+    if (!next->begin(error) ||
+        !record_initial_state(next->commands) ||
+        !next->submit(error))
         return false;
-    if (!destroyers.empty() &&
-        !checked(pmCmdWriteParticleDestroyers(
-                     next->commands, next->simulation, 0U,
-                     static_cast<std::uint32_t>(destroyers.size()),
-                     destroyers.data()),
-                 "record particle destroyers", error))
+
+    PmCommandBufferBeginInfo reset_begin{};
+    reset_begin.sType = PM_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    if (!checked(pmBeginCommandBuffer(next->reset_commands, &reset_begin),
+                 "begin reusable reset commands", error) ||
+        !checked(pmCmdResetSimulation(
+                     next->reset_commands, next->simulation),
+                 "record simulation reset", error) ||
+        !checked(pmCmdBindPhysicsPipeline(
+                     next->reset_commands, next->pipeline),
+                 "bind reset physics pipeline", error) ||
+        !record_initial_state(next->reset_commands) ||
+        !checked(pmEndCommandBuffer(next->reset_commands),
+                 "end reusable reset commands", error))
         return false;
-    if (!paint_fields.empty() &&
-        (!checked(pmCmdWritePaintFields(
-                      next->commands, next->simulation, 0U,
-                      static_cast<std::uint32_t>(paint_fields.size()),
-                      paint_fields.data()),
-                  "record paint fields", error) ||
-         !checked(pmCmdWritePaintRules(
-                      next->commands, next->simulation, 0U,
-                      static_cast<std::uint32_t>(paint_rules.size()),
-                      paint_rules.data()),
-                  "record paint rules", error)))
-        return false;
-    if (!next->submit(error)) return false;
 
     PmDeviceSize output_size = 0U;
     const auto append_region = [&](PmDeviceSize bytes, Impl::Region &region) {

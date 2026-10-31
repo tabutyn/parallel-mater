@@ -147,8 +147,26 @@ bool GalleryRuntime::reset(std::string &error) {
         error = "Gallery scene has no reset recipe";
         return false;
     }
-    GalleryRuntimeCreateInfo recipe = *recipe_;
-    return replace(std::move(recipe), error);
+    if (!simulation.reset(error)) return false;
+
+    frame = {};
+    capture_history = PhysicsDebugHistory(recipe_->capture_history_capacity);
+    render_frame = {};
+    gpu_ready = false;
+    camera = {};
+    fixed_collector = {};
+    arrow_forces = {};
+    dump_bed = {};
+    suspension_steering_joints.clear();
+    gravity_tilt_bodies.clear();
+    kinematic_index = static_cast<std::size_t>(-1);
+    kinematic_target = {};
+    if (!initialize_controllers(error)) return false;
+    if (recipe_->prepare_runtime && !recipe_->prepare_runtime(*this, error)) {
+        if (error.empty()) error = "runtime preparation failed";
+        return false;
+    }
+    return true;
 }
 
 bool GalleryRuntime::step(const GalleryStepOptions &options,
