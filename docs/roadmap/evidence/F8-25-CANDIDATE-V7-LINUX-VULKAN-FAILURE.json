@@ -1,0 +1,229 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification-failure/v3",
+  "status": "failed-required-physical-suite",
+  "captured_at": "2026-10-31T16:59:42Z",
+  "task": "F8-25",
+  "lease_token": "42084b9f-e43d-4a99-a8e2-042d92ae8f60",
+  "candidate": {
+    "id": "realtime-single-step-v1-05f8b04",
+    "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "source_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v7.json",
+    "manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
+    "freeze_evidence": "docs/roadmap/evidence/F8-65-CANDIDATE-V7-FREEZE.json",
+    "freeze_evidence_sha256": "61a2d15ec694d3d4d292a15b650cb8e9bbc026c414af6de27cba56857e7cd784",
+    "exact_source_ci_run": 41213026819,
+    "target": "linux-rtx3050ti-slang-vulkan",
+    "runtime_variant": "vulkan-runtime"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": "0x10de",
+    "device_id": "0x25a0",
+    "vulkan_api": "1.4.325",
+    "driver": "590.44.01",
+    "gpu_temperature_celsius_before": 50,
+    "gpu_temperature_celsius_after": 49,
+    "installed_public_provenance": {
+      "device_ordinal": 0,
+      "device_name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "vendor_id": 4318,
+      "device_id": 9632,
+      "source_commit": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+      "host_compiler": "12.2.0"
+    }
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18",
+    "vulkan_headers_and_loader": "1.3.239",
+    "pinned_validation_sdk": {
+      "version": "1.4.341.0",
+      "archive_sha256": "ed66477d587a5587dc3601b1c2cdcc1fab5529c505f53a00171876cecd9b4fbe",
+      "pin_manifest_sha256": "40c17bb2ae968c59f2bf5f655e5ace32f24299e438bd7cc5691d6141ce06d773",
+      "spirv_val_sha256": "cf341751800f75429d546af0ffef33643e4d3e7af22c87018782f8a202a394e3",
+      "validation_layer_sha256": "d532be81a907ac464e281209b3334e1b4f15e49c8eea8a632c23750488820a2c",
+      "validation_manifest_sha256": "9c1ad32382836d329a4bdfcd54ef408c777cef7969c50f891816003f3e942449"
+    }
+  },
+  "commands": {
+    "configure": "cmake -S /tmp/parallel-mater-f8-64 -B /tmp/parallel-mater-f8-25-v7-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/parallel-mater-f8-25-v7-install -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=OFF -DPARALLEL_MATER_BUILD_VULKAN=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON -DPARALLEL_MATER_SLANGC_EXECUTABLE=<Slang-2026.18>/bin/slangc",
+    "build": "cmake --build /tmp/parallel-mater-f8-25-v7-build -j2",
+    "full_physical_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-25-v7-build/Release/manifests/slang-vulkan.json PM_LAYER_FILES=/tmp/parallel-mater-f8-25-v7-build/Release/manifests/validation.json ctest --test-dir /tmp/parallel-mater-f8-25-v7-build --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "pinned_renderer_reclassification": "VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir /tmp/parallel-mater-f8-25-v7-build --output-on-failure -R 'parallel-mater-vulkan-gallery-(renderer|surface)-tests' -j1",
+    "pinned_required_failure_reproduction": "VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir /tmp/parallel-mater-f8-25-v7-build --output-on-failure -R '^(parallel-mater-gallery-session-contract-tests|parallel-mater-vulkan-gallery-(ClothPaint|Smoke|SmokeWater|SmokeSoftbody|SmokeCloth|SmokeRope))$' -j1",
+    "isolated_discovery_suite": "VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir /tmp/parallel-mater-f8-25-v7-build --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-25-v7-build --output /tmp/f8-25-v7-sdk-evidence-05f8",
+    "installed_device_check": "<relocated-sdk>/bin/parallel-mater-conformance --case rigid-direct --root <exact-source> --output /tmp/f8-25-v7-device-check"
+  },
+  "passing_prerequisites": {
+    "clean_exact_source_build": {
+      "status": "passed",
+      "targets": 671
+    },
+    "spirv_validation": {
+      "status": "passed",
+      "modules_passed": 23,
+      "modules_failed": 0,
+      "target_environment": "vulkan1.3 --scalar-block-layout"
+    },
+    "isolated_discovery_and_launcher": {
+      "status": "passed",
+      "passed": 3,
+      "failed": 0,
+      "total": 3
+    },
+    "relocated_sdk": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+      "source_dirty": false,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    },
+    "installed_public_device_check": {
+      "status": "passed",
+      "case": "rigid-direct",
+      "execution_status": "completed",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "normal_tick_time_advances": 1,
+      "normal_tick_spatial_publications": 1,
+      "normal_tick_queue_submissions": 1,
+      "normal_tick_host_readbacks": 0
+    },
+    "pinned_renderer_tests": {
+      "status": "passed",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "elapsed_seconds": 252.88,
+      "tests": [
+        "parallel-mater-vulkan-gallery-renderer-tests",
+        "parallel-mater-vulkan-gallery-surface-tests"
+      ]
+    }
+  },
+  "required_failures": [
+    {
+      "test": "parallel-mater-gallery-session-contract-tests",
+      "result": "timeout",
+      "elapsed_seconds": 600.07,
+      "limit_seconds": 600,
+      "reproduction": "failed with the pinned Vulkan SDK 1.4.341.0 validation layer",
+      "effect": "The shared Gallery cannot complete its full scene/session contract inside the mandatory timeout on this target."
+    },
+    {
+      "test": "parallel-mater-vulkan-gallery-ClothPaint",
+      "result": "failed",
+      "elapsed_seconds": 21.09,
+      "observation": "paint field remained empty after 120 frames",
+      "reproduction": "failed identically with and without the pinned Vulkan validation layer",
+      "effect": "Required public paint integration does not publish output on the Vulkan Gallery path."
+    },
+    {
+      "test": "parallel-mater-vulkan-gallery-Smoke",
+      "result": "failed",
+      "observation": "frame 0 wait for commands returned PM_ERROR_INVALID_ARGUMENT",
+      "reproduction": "failed with the pinned Vulkan SDK 1.4.341.0 validation layer"
+    },
+    {
+      "test": "parallel-mater-vulkan-gallery-SmokeWater",
+      "result": "failed",
+      "observation": "frame 1 wait for commands returned PM_ERROR_INVALID_ARGUMENT",
+      "reproduction": "failed with the pinned Vulkan SDK 1.4.341.0 validation layer"
+    },
+    {
+      "test": "parallel-mater-vulkan-gallery-SmokeSoftbody",
+      "result": "failed",
+      "observation": "frame 0 wait for commands returned PM_ERROR_INVALID_ARGUMENT",
+      "reproduction": "failed with the pinned Vulkan SDK 1.4.341.0 validation layer"
+    },
+    {
+      "test": "parallel-mater-vulkan-gallery-SmokeCloth",
+      "result": "failed",
+      "observation": "frame 0 wait for commands returned PM_ERROR_INVALID_ARGUMENT",
+      "reproduction": "failed with the pinned Vulkan SDK 1.4.341.0 validation layer"
+    },
+    {
+      "test": "parallel-mater-vulkan-gallery-SmokeRope",
+      "result": "failed",
+      "observation": "frame 1 wait for commands returned PM_ERROR_INVALID_ARGUMENT",
+      "reproduction": "failed with the pinned Vulkan SDK 1.4.341.0 validation layer",
+      "effect": "All five required particle/grid smoke Gallery scenes fail through the normal public simulation path."
+    }
+  ],
+  "full_matrix_observation": {
+    "system_layer_triage_run": {
+      "total": 154,
+      "passed": 143,
+      "failed": 9,
+      "skipped": 2,
+      "elapsed_seconds": 928.63,
+      "vulkan_labeled_tests": 41,
+      "classification": "coverage inventory only; the system 1.3.239 validation layer is not the pinned qualification toolchain"
+    },
+    "pinned_reclassification": {
+      "system_layer_renderer_crashes_reclassified_as_toolchain_only": 2,
+      "renderer_tests_passed_with_pinned_layer": 2,
+      "mandatory_candidate_failures_reproduced_with_pinned_layer": 7,
+      "candidate_pass_declared": false
+    },
+    "explicit_unsupported": [
+      {
+        "test": "parallel-mater-vulkan-fluid-pair-graph-lifecycle-tests",
+        "reason": "The target does not advertise the liquidLiquidCoupling feature required by the separate-system fluid-pair fixture."
+      },
+      {
+        "test": "parallel-mater-vulkan-fluid-pair-quality-tests",
+        "reason": "The target does not advertise the liquidLiquidCoupling feature required by the separate-system fluid-pair fixture."
+      }
+    ]
+  },
+  "not_promoted_after_required_failure": {
+    "installed_public_49_capability_and_30_case_capture": "not promoted",
+    "twelve_scenario_and_thirty_seven_measurement_capture": "not promoted",
+    "five_workload_cold_and_sustained_distributions": "not promoted",
+    "performance_qualification": "not promoted",
+    "reason": "Required physical Gallery integration fails before final candidate qualification; passing prerequisites and one device-identity case cannot be unioned into a pass."
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.tar.zst",
+    "tracked_archive_sha256": "7facdbf9d31f9abe4a01a7ade4dc324f76524299c8366fe1b900b53e9c2907c2",
+    "tracked_archive_uncompressed_bytes": 296960,
+    "full_ctest_log_sha256": "e4bb50f07132b45fc2c37d0e328a43be5e82987c0d11c25467f1a728c54f8840",
+    "pinned_renderer_log_sha256": "1bcd0dedba5e5b6cc78255fe699ccfe348c9e9cfd4ffae4bea78ac58f11c048c",
+    "pinned_failure_log_sha256": "329269740f10f468e403594fe1dd8545e5d8a9f4d11c43de6489eec2f6006bf0",
+    "isolated_ctest_log_sha256": "140542bed8329ea359f1232d3b8417389d5f1bb8ab5bdfae73f77c142c5b3b4c",
+    "explicit_skip_log_sha256": "3cdc7fa5237a7d387092fc2559e3c47210350a0128d33c96f44d7d723a24c49e",
+    "sdk_report_sha256": "147036f9b642af2053929cf6a8372132c5e076a1fe979796cb9c259c824b75ce",
+    "sdk_evidence_file_count": 666,
+    "sdk_evidence_tree_sha256": "6aea5c16b9b986ec42dfa540a7ae665397ec172c9bc90e470e9dcba65f5282da",
+    "test_inventory_sha256": "7a62c3f77ede21bca30f605fcafe0a1682af8e45c6d1de796650df771589cca5",
+    "vulkan_inventory_sha256": "b2682c647c46327cd105dd7e717fb7a7f58d43320c57a522a6695939dab9ced7",
+    "spirv_validation_log_sha256": "e734ef981db72e2b1e3f51dbdade6995fc49e7d43d10a99f4f635ff01419a487",
+    "installed_device_check_sha256": "870c192ccd97ca5ac836da53b9b5f68c98161d1dfe7cf1e49c9f7f6179fc9e2a",
+    "build_runner_sha256": "5924b40da44c896600d8796ba5fd3fba46ab8a53fc157b97030314f530fff302",
+    "build_driver_sha256": "204bf85a1cc58df84d0d2a44232cc9642dc4e7385a28b1e10617bd143785f4ee",
+    "build_driver_manifest_sha256": "34811f8a51539ddfdc0380bf4a2677b6883ce2f325e325311173d93d6219fd2d",
+    "installed_runner_sha256": "0f4b3cd370077bacfb44e92145f3735ec499621d396a35b03fdec3ae454522a6",
+    "installed_driver_sha256": "204bf85a1cc58df84d0d2a44232cc9642dc4e7385a28b1e10617bd143785f4ee",
+    "installed_driver_manifest_sha256": "824ba64eefb9cf789ce2c952f5e049c1bacb9b3746dd9255f3fa6428c62afade",
+    "installed_validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "installed_validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "rejected_history": {
+    "candidate_v5_failure_evidence_sha256": "529f43bf26c36cd989c8bd72c936ecdd1306b372d70d194071b71f5c0e9453dd",
+    "candidate_v6_failure_evidence_sha256": "1be323331ac05533be95ec448c5be121604d734c7b3f43185c6c7f58f5465d07",
+    "evidence_union_allowed": false
+  },
+  "qualification_effect": "F8-25 remains incomplete. Candidate v7 cannot pass its mandatory physical Linux Vulkan Gallery row and must be repaired and refrozen before requalification. The passing build, SPIR-V, discovery, relocation, renderer and rigid-case observations are prerequisites only and cannot be unioned with a replacement candidate. Preserve this failure and create bounded repair and refreeze leaves; do not disable validation, extend mandatory timeouts, lower budgets, weaken output assertions, or classify required paint/smoke integration as unsupported."
+}
