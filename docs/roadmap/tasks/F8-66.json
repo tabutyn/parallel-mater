@@ -1,0 +1,25 @@
+{
+  "id": "F8-66",
+  "title": "Repair Linux Vulkan Gallery candidate failures",
+  "status": "open",
+  "dependencies": [
+    "F8-65"
+  ],
+  "locks": [
+    "f8-linux-vulkan-gallery-repair"
+  ],
+  "requires": [
+    "Physical Linux NVIDIA Vulkan device, pinned Vulkan validation SDK, installed public SDK/Gallery, and current shared Slang toolchain"
+  ],
+  "scope": "Repair the mandatory physical Linux Vulkan failures exposed by F8-25 on exact candidate realtime-single-step-v1-05f8b04. Reproduce the 600-second shared Gallery session timeout, empty ClothPaint output after 120 frames, and PM_ERROR_INVALID_ARGUMENT command completion in Smoke, SmokeWater, SmokeSoftbody, SmokeCloth and SmokeRope from docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.json. Repair production Vulkan schedule, resource binding, paint/output and shared Gallery integration without disabling pinned validation, extending required timeouts, reducing scene/domain/coupling coverage, changing the sole schedule, lowering work budgets, weakening quality assertions or reclassifying required paint/smoke behavior as unsupported. Candidate v7 remains rejected for final qualification and none of its partial passing observations can be unioned with repaired-source evidence.",
+  "acceptance": [
+    "Reproduce every F8-25 candidate-v7 failure on exact source 05f8b04 with the hash-pinned Vulkan SDK 1.4.341.0 layer before repair; retain hash-bound before/after outputs and preserve the system-layer crash as toolchain-only provenance.",
+    "The shared Gallery session contract completes within the existing 600-second limit; ClothPaint publishes a non-empty paint field after 120 frames; all five particle/grid smoke scenes complete 120 frames without invalid-argument, validation, device-loss or hidden fallback errors.",
+    "The normal public API path remains backend-neutral and uses one fixed dt=1/60 tick, one spatial publication, bounded dispatch/iteration/synchronization work and no execution-profile opt-in. Do not disable validation, replace physical execution with software rendering or make the target silently select another adapter.",
+    "A clean exact-source Release build passes every required registered test, all Vulkan-labelled tests, 23/23 pinned SPIR-V checks, isolated discovery/launcher checks and installed SDK relocation. The two separate-system fluid-pair rows may remain explicitly unsupported only while the driver truthfully does not advertise liquidLiquidCoupling.",
+    "Run the installed-public candidate capture through plain and validation-enabled execution: record all 49 capability obligations, 30 public cases, 12 scenarios, 37 measurements, five negative controls and five desktop workloads with unchanged quality and fixed performance budgets. Attach exact source/tree, binary, manifest, device, driver, validation SDK and raw artifact hashes for F8-67."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
