@@ -1,7 +1,7 @@
 {
   "id": "F8-53",
   "title": "Requalify CPU and public contracts on the sole-path candidate",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-23",
     "F8-52",
@@ -25,14 +25,22 @@
     "Attach durable exact-candidate/device/toolchain/artifact evidence and preserve failures. Add separately leased repair and requalification leaves when needed; unsupported or missing required cases do not count as passes."
   ],
   "evidence": [],
-  "lease": {
-    "token": "f80b977e-dc92-4d59-b237-9172aba1aab8",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-53/ThomasLaptop-v8",
-    "claimed_at": "2026-10-31T23:47:19Z",
-    "heartbeat_at": "2026-10-31T23:47:19Z",
-    "expires_at": "2026-11-01T23:47:19Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "f80b977e-dc92-4d59-b237-9172aba1aab8",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-53/ThomasLaptop-v8",
+        "claimed_at": "2026-10-31T23:47:19Z",
+        "heartbeat_at": "2026-10-31T23:47:19Z",
+        "expires_at": "2026-11-01T23:47:19Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-31T23:57:06Z",
+      "reason": "Candidate v8 fails the required shared Gallery CPU lifecycle gate: the first session passes, but recreation returns 'selected device does not expose every scene capability'. Exact-source suite: 96 passed, 15 explicit unsupported skips, 1 failed; installed SDK 14/14 and isolated discovery 3/3 pass. Preserve work/F8-53/ThomasLaptop-v8 and add separate repair/refreeze/requalification leaves.",
+      "evidence": []
+    }
+  ]
 }
