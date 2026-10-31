@@ -1,5 +1,10 @@
 # F8-63 post-CUDA-repair candidate freeze
 
+> Historical record: F8-24 later rejected candidate v6 on the mandatory
+> installed-public CUDA suite. F8-64 repaired that path and
+> [F8-65](F8-65-CANDIDATE-FREEZE.md) froze replacement candidate v7. Candidate
+> v6 and this record remain immutable provenance and cannot supply a pass.
+
 F8-63 freezes replacement candidate `realtime-single-step-v1-fc2ffba` at
 source revision `fc2ffbafdb81631c4c7393336970cefc3d65f55e` and tree
 `fccd57eabd07dd4ae40cd38fdce8020d079a09da`. Its machine-readable manifest is

@@ -19,7 +19,7 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v6.json"
+    ROOT / "conformance/v1/qualification/realtime-candidate-v7.json"
 )
 ACTIVE_POINTER_PATH = (
     ROOT / "conformance/v1/qualification/active-realtime-candidate.json"
@@ -57,6 +57,9 @@ V4_CANDIDATE_PATH = (
 V5_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v5.json"
 )
+V6_CANDIDATE_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v6.json"
+)
 V5_FAILURE_PATH = (
     ROOT / "docs/roadmap/evidence/"
     "F8-24-CANDIDATE-V5-LINUX-CUDA-FAILURE.json"
@@ -69,6 +72,10 @@ F8_64_REPAIR_PATH = (
     ROOT / "docs/roadmap/evidence/"
     "F8-64-INSTALLED-PUBLIC-CUDA-REPAIR.json"
 )
+F8_65_PHYSICAL_PATH = (
+    ROOT / "docs/roadmap/evidence/"
+    "F8-65-EXACT-SOURCE-LINUX-CUDA.json"
+)
 INVENTORY_PATH = (
     ROOT / "conformance/v1/qualification/kernel-device-obligations-v1.json"
 )
@@ -80,15 +87,16 @@ ORACLE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
 MANIFEST_PATH = ROOT / "cmake/SlangKernelManifest.cmake"
 TASK_DIR = ROOT / "docs/roadmap/tasks"
 
-ACTIVE_ID = "realtime-single-step-v1-fc2ffba"
-ACTIVE_SOURCE_REVISION = "fc2ffbafdb81631c4c7393336970cefc3d65f55e"
-ACTIVE_SOURCE_TREE = "fccd57eabd07dd4ae40cd38fdce8020d079a09da"
-ACTIVE_CI_RUN_ID = 40982968850
+ACTIVE_ID = "realtime-single-step-v1-05f8b04"
+ACTIVE_SOURCE_REVISION = "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48"
+ACTIVE_SOURCE_TREE = "e99f19d6af7ddca416b68b0a9a59755a738345f0"
+ACTIVE_CI_RUN_ID = 41213026819
 V1_REJECTED_ID = "realtime-single-step-v1-dea47c1"
 V2_REJECTED_ID = "realtime-single-step-v1-fd78fa8"
 V3_REJECTED_ID = "realtime-single-step-v1-3671f18"
 V4_REJECTED_ID = "realtime-single-step-v1-5a811c4"
 V5_REJECTED_ID = "realtime-single-step-v1-cfb104b"
+V6_REJECTED_ID = "realtime-single-step-v1-fc2ffba"
 V1_MANIFEST_SHA256 = (
     "c25c010be3a0e908537e3c6542c1759b28b10cfb4a4169b51bb2834233411d43"
 )
@@ -167,6 +175,7 @@ PREREQUISITE_EVIDENCE = {
     "F8-56": "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
     "F8-60": "docs/roadmap/evidence/F8-60-capability-case-reconciliation.json",
     "F8-62": "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
+    "F8-64": "docs/roadmap/evidence/F8-64-INSTALLED-PUBLIC-CUDA-REPAIR.json",
 }
 
 
@@ -205,6 +214,28 @@ def closure_identity(root: Path, patterns: list[str]) -> tuple[int, str]:
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return len(files), digest.hexdigest()
+
+
+@functools.lru_cache(maxsize=64)
+def revision_file_sha256(root_text: str, revision: str, relative: str) -> str:
+    content = subprocess.run(
+        ["git", "show", f"{revision}:{relative}"],
+        cwd=Path(root_text),
+        check=True,
+        capture_output=True,
+    ).stdout
+    return hashlib.sha256(content).hexdigest()
+
+
+def safe_revision_file_sha256(
+    root_text: str, revision: str, relative: str
+) -> str | None:
+    if not relative:
+        return None
+    try:
+        return revision_file_sha256(root_text, revision, relative)
+    except (OSError, subprocess.CalledProcessError):
+        return None
 
 
 @functools.lru_cache(maxsize=4)
@@ -254,9 +285,11 @@ def validate_candidate(
     v3_candidate_path = root / V3_CANDIDATE_PATH.relative_to(ROOT)
     v4_candidate_path = root / V4_CANDIDATE_PATH.relative_to(ROOT)
     v5_candidate_path = root / V5_CANDIDATE_PATH.relative_to(ROOT)
+    v6_candidate_path = root / V6_CANDIDATE_PATH.relative_to(ROOT)
     v5_failure_path = root / V5_FAILURE_PATH.relative_to(ROOT)
     v6_failure_path = root / V6_FAILURE_PATH.relative_to(ROOT)
     f8_64_repair_path = root / F8_64_REPAIR_PATH.relative_to(ROOT)
+    f8_65_physical_path = root / F8_65_PHYSICAL_PATH.relative_to(ROOT)
     inventory = load_json(root / INVENTORY_PATH.relative_to(ROOT))
     profile = load_json(root / PROFILE_PATH.relative_to(ROOT))
     oracle = load_json(root / ORACLE_PATH.relative_to(ROOT))
@@ -275,7 +308,7 @@ def validate_candidate(
         candidate = frozen_candidate
 
     v6_rejected = (
-        v6_rejection.get("candidate_id") == ACTIVE_ID and
+        v6_rejection.get("candidate_id") == V6_REJECTED_ID and
         v6_rejection.get("candidate_manifest_sha256") == V6_MANIFEST_SHA256 and
         v6_rejection.get("status") ==
         "rejected-required-installed-public-cuda-suite"
@@ -300,8 +333,8 @@ def validate_candidate(
             "candidate schema is not v3")
     _expect(errors, candidate.get("id") == ACTIVE_ID,
             "active candidate id changed")
-    _expect(errors, candidate.get("task") == "F8-63",
-            "candidate freeze task is not F8-63")
+    _expect(errors, candidate.get("task") == "F8-65",
+            "candidate freeze task is not F8-65")
     _expect(errors, candidate.get("status") == "frozen-awaiting-physical-qualification",
             "candidate status is not frozen")
     source = candidate.get("source", {})
@@ -314,12 +347,12 @@ def validate_candidate(
             "active source tree drift")
     _expect(errors,
             source.get("repair_evidence") ==
-            "docs/roadmap/evidence/F8-62-LINUX-CUDA-GALLERY-REPAIR.json",
-            "candidate does not bind the F8-62 repair evidence")
+            "docs/roadmap/evidence/F8-64-INSTALLED-PUBLIC-CUDA-REPAIR.json",
+            "candidate does not bind the F8-64 repair evidence")
     repair_path = root / str(source.get("repair_evidence", ""))
     _expect(errors, repair_path.is_file() and
             source.get("repair_evidence_sha256") == file_sha256(repair_path),
-            "F8-62 repair evidence hash drift")
+            "F8-64 repair evidence hash drift")
 
     closures = {
         item.get("category"): item
@@ -385,11 +418,8 @@ def validate_candidate(
     fixture = inputs.get("scenario_fixtures", {})
     fixture_path = root / str(fixture.get("path", ""))
     _expect(errors, fixture_path.is_file(), "scenario fixture contract is missing")
-    frozen_fixture = frozen_candidate.get("contract_inputs", {}).get(
-        "scenario_fixtures", {})
-    expected_fixture_sha256 = (frozen_fixture.get("sha256") if v6_rejected
-                               else (file_sha256(fixture_path)
-                                     if fixture_path.is_file() else None))
+    expected_fixture_sha256 = safe_revision_file_sha256(
+        str(root.resolve()), ACTIVE_SOURCE_REVISION, str(fixture.get("path", "")))
     _expect(errors, fixture.get("sha256") == expected_fixture_sha256,
             "scenario fixture contract hash drift")
     _expect(errors, fixture.get("scenario_count") == 12 and
@@ -399,24 +429,42 @@ def validate_candidate(
     capture_validator_path = root / str(capture_validator.get("path", ""))
     _expect(errors, capture_validator_path.is_file(),
             "capture validator contract is missing")
-    frozen_capture_validator = frozen_candidate.get(
-        "contract_inputs", {}).get("capture_validator", {})
-    expected_capture_sha256 = (
-        frozen_capture_validator.get("sha256") if v6_rejected
-        else (file_sha256(capture_validator_path)
-              if capture_validator_path.is_file() else None)
-    )
+    expected_capture_sha256 = safe_revision_file_sha256(
+        str(root.resolve()), ACTIVE_SOURCE_REVISION,
+        str(capture_validator.get("path", "")))
     _expect(errors, capture_validator.get("sha256") == expected_capture_sha256,
             "capture validator contract hash drift")
     _expect(errors,
             capture_validator.get("schema") ==
             "parallel-mater-realtime-device-suite-capture/v1",
             "capture validator schema drift")
-    _expect(errors, inputs.get("capability_rows") == 49 and
-            inputs.get("public_cases") == 30,
+    for key, message in (
+        ("capture_producer", "capture producer"),
+        ("capability_obligations", "capability obligations"),
+        ("kernel_device_obligations", "kernel/device obligations"),
+        ("oracle_suite", "oracle suite"),
+        ("case_and_golden_manifest", "case/golden manifest"),
+        ("budgets_and_tolerances", "budget and tolerance contract"),
+    ):
+        record = inputs.get(key, {})
+        relative = str(record.get("path", ""))
+        path = root / relative
+        _expect(errors, path.is_file(), f"{message} is missing")
+        expected = safe_revision_file_sha256(
+            str(root.resolve()), ACTIVE_SOURCE_REVISION, relative)
+        _expect(errors, record.get("sha256") == expected,
+                f"{message} hash drift")
+    producer = inputs.get("capture_producer", {})
+    _expect(errors,
+            producer.get("schema") ==
+            "parallel-mater-realtime-device-suite-capture/v1",
+            "capture producer schema drift")
+    _expect(errors,
+            inputs.get("capability_obligations", {}).get("rows") == 49 and
+            inputs.get("oracle_suite", {}).get("public_cases") == 30,
             "candidate contract matrix drift")
     _expect(errors,
-            inputs.get("budgets_and_tolerances") ==
+            inputs.get("budgets_and_tolerances", {}).get("path") ==
             PROFILE_PATH.relative_to(ROOT).as_posix(),
             "candidate budget and tolerance contract drift")
 
@@ -480,15 +528,9 @@ def validate_candidate(
         _expect(errors, set(covered[module]) == set(entries),
                 f"canonical entry coverage drift in {module}")
     coverage = candidate.get("kernel_coverage", {})
-    frozen_coverage = frozen_candidate.get("kernel_coverage", {})
-    expected_module_count = (frozen_coverage.get("canonical_module_count")
-                             if v6_rejected else len(canonical))
-    expected_entry_count = (frozen_coverage.get("canonical_entry_count")
-                            if v6_rejected else
-                            sum(len(entries) for entries in canonical.values()))
-    expected_group_count = (frozen_coverage.get("kernel_group_count")
-                            if v6_rejected else
-                            len(inventory.get("kernel_groups", [])))
+    expected_module_count = len(canonical)
+    expected_entry_count = sum(len(entries) for entries in canonical.values())
+    expected_group_count = len(inventory.get("kernel_groups", []))
     _expect(errors, coverage.get("canonical_module_count") ==
             expected_module_count, "canonical module count drift")
     _expect(errors, coverage.get("canonical_entry_count") ==
@@ -658,36 +700,68 @@ def validate_candidate(
                     f"{task_id} evidence hash drift")
 
     execution_path = root / str(candidate.get("execution_evidence", ""))
+    _expect(errors, execution_path == f8_65_physical_path,
+            "candidate names the wrong F8-65 execution evidence")
     _expect(errors, execution_path.is_file(),
-            "F8-62 physical repair evidence is missing")
+            "F8-65 exact-source physical evidence is missing")
     execution = load_json(execution_path) if execution_path.is_file() else {}
-    repair_source = execution.get("repair_source", {})
+    repair_source = execution.get("source", {})
     _expect(errors,
             repair_source.get("revision") == ACTIVE_SOURCE_REVISION and
             repair_source.get("tree") == ACTIVE_SOURCE_TREE and
-            repair_source.get("working_tree_during_final_build") == "clean",
-            "F8-62 did not execute the exact clean frozen source")
-    physical = execution.get("results", {}).get("physical_ctest", {})
+            repair_source.get("working_tree") == "clean",
+            "F8-65 did not execute the exact clean frozen source")
+    physical = execution.get("results", {}).get("registered_tests", {})
     _expect(errors,
             physical.get("status") == "passed" and
-            physical.get("passed") == 130 and
+            physical.get("passed") == 131 and
             physical.get("failed") == 0 and
             physical.get("skipped") == 0 and
-            physical.get("total") == 130 and
+            physical.get("total") == 131 and
             physical.get("cuda_labeled_tests_executed") == 42,
-            "F8-62 complete physical Linux CUDA regression did not pass")
-    relocated = execution.get("results", {}).get("relocated_sdk", {})
+            "F8-65 complete physical Linux CUDA regression did not pass")
+    relocated = execution.get("results", {}).get("installed_sdk_relocation", {})
     _expect(errors,
             relocated.get("status") == "passed" and
             relocated.get("source_revision") == ACTIVE_SOURCE_REVISION and
             relocated.get("source_dirty") is False and
             relocated.get("checks_passed") == 12,
-            "F8-62 relocated SDK evidence is incomplete")
+            "F8-65 relocated SDK evidence is incomplete")
+    capture = execution.get("results", {}).get("installed_public_capture", {})
+    _expect(errors,
+            capture.get("status") == "passed" and
+            capture.get("failure_count") == 0 and
+            capture.get("capability_rows") == 49 and
+            capture.get("public_cases_completed") == 30 and
+            capture.get("scenarios_passed") == 12 and
+            capture.get("unique_named_measurements") == 37 and
+            capture.get("negative_controls_passed") == 5 and
+            capture.get("workloads_passed") == 5 and
+            capture.get("total_measured_workload_ticks") == 72000 and
+            capture.get("failed_workload_ticks") == 0,
+            "F8-65 installed-public capture is incomplete")
+    binding = execution.get("candidate_binding", {})
+    raw_binding = binding.get("raw_capture_candidate", {})
+    _expect(errors,
+            binding.get("candidate_id") == ACTIVE_ID and
+            binding.get("manifest_sha256") == file_sha256(candidate_path) and
+            raw_binding.get("id") == V6_REJECTED_ID and
+            raw_binding.get("manifest_sha256") == V6_MANIFEST_SHA256 and
+            raw_binding.get("execution_identity_claimed") is False and
+            raw_binding.get("qualification_status") == "remains-rejected",
+            "exact-source capture relabels or loses rejected-v6 provenance")
+    archive = execution.get("artifacts", {})
+    archive_path = root / str(archive.get("tracked_capture_archive", ""))
+    _expect(errors,
+            archive_path.is_file() and
+            archive.get("tracked_capture_archive_sha256") ==
+            file_sha256(archive_path),
+            "F8-65 tracked capture archive hash drift")
 
     supersedes = candidate.get("supersedes", {})
-    _expect(errors, supersedes.get("candidate_id") == V5_REJECTED_ID and
-            supersedes.get("manifest_sha256") == V5_MANIFEST_SHA256,
-            "candidate does not supersede exact v5 identity")
+    _expect(errors, supersedes.get("candidate_id") == V6_REJECTED_ID and
+            supersedes.get("manifest_sha256") == V6_MANIFEST_SHA256,
+            "candidate does not supersede exact v6 identity")
     _expect(errors, file_sha256(v1_candidate_path) == V1_MANIFEST_SHA256,
             "rejected v1 candidate manifest changed")
     _expect(errors, file_sha256(v2_candidate_path) == V2_MANIFEST_SHA256,
@@ -698,6 +772,8 @@ def validate_candidate(
             "superseded v4 candidate manifest changed")
     _expect(errors, file_sha256(v5_candidate_path) == V5_MANIFEST_SHA256,
             "rejected v5 candidate manifest changed")
+    _expect(errors, file_sha256(v6_candidate_path) == V6_MANIFEST_SHA256,
+            "rejected v6 candidate manifest changed")
     _expect(errors, file_sha256(v5_failure_path) == V5_FAILURE_SHA256,
             "candidate-v5 F8-24 failure evidence changed")
     _expect(errors, v1_rejection.get("candidate_id") == V1_REJECTED_ID and
@@ -758,10 +834,10 @@ def validate_candidate(
             v5_rejection.get("failure_evidence_sha256") == V5_FAILURE_SHA256,
             "v5 rejection record lost its exact failure evidence")
     v5_replacement = v5_rejection.get("replacement", {})
-    _expect(errors, v5_replacement.get("candidate_id") == ACTIVE_ID and
+    _expect(errors, v5_replacement.get("candidate_id") == V6_REJECTED_ID and
             v5_replacement.get("candidate_manifest_sha256") ==
-            file_sha256(candidate_path),
-            "v5 rejection record routes to the wrong replacement")
+            V6_MANIFEST_SHA256,
+            "v5 rejection record no longer routes to exact v6")
     for label, rejection in (("v1", v1_rejection), ("v2", v2_rejection),
                              ("v3", v3_rejection), ("v4", v4_rejection),
                              ("v5", v5_rejection)):
@@ -778,8 +854,6 @@ def validate_candidate(
                     item.get("status") == "invalidated-requalify-replacement",
                     f"{label} rejected row {target_id} is not invalidated")
 
-    _expect(errors, file_sha256(candidate_path) == V6_MANIFEST_SHA256,
-            "rejected v6 candidate manifest changed")
     _expect(errors, v6_failure_path.is_file() and
             file_sha256(v6_failure_path) == V6_FAILURE_SHA256,
             "candidate-v6 F8-24 failure evidence changed")
@@ -801,13 +875,16 @@ def validate_candidate(
             "v6 rejection record lost its exact repair evidence")
     v6_replacement = v6_rejection.get("replacement", {})
     _expect(errors,
-            v6_replacement.get("status") == "pending-refreeze" and
+            v6_replacement.get("status") ==
+            "frozen-awaiting-physical-qualification" and
             v6_replacement.get("freeze_task") == "F8-65" and
-            v6_replacement.get("source_revision") ==
-            "861e8f11ccd2412968bb156daf59937c8f1a8c49" and
-            v6_replacement.get("source_tree") ==
-            "05558f64cd4d07e6de0ba573857188ef2cd7430f",
-            "v6 rejection does not route to exact F8-65 input")
+            v6_replacement.get("candidate_id") == ACTIVE_ID and
+            v6_replacement.get("candidate_manifest_sha256") ==
+            file_sha256(candidate_path) and
+            v6_replacement.get("source_revision") == ACTIVE_SOURCE_REVISION and
+            v6_replacement.get("source_tree") == ACTIVE_SOURCE_TREE and
+            v6_replacement.get("ci_run_id") == ACTIVE_CI_RUN_ID,
+            "v6 rejection does not route to exact F8-65 replacement")
     _expect(errors, v6_rejection.get("evidence_union_allowed") is False,
             "v6 rejection record permits evidence union")
     v6_invalidated = {
@@ -818,8 +895,8 @@ def validate_candidate(
             "v6 rejection does not invalidate every physical row")
     for target_id, item in v6_invalidated.items():
         _expect(errors,
-                item.get("status") == "invalidated-awaiting-f8-65",
-                f"v6 rejected row {target_id} is not awaiting F8-65")
+                item.get("status") == "invalidated-requalify-replacement",
+                f"v6 rejected row {target_id} is not routed to replacement")
 
     routing = candidate.get("qualification_routing", {})
     _expect(errors, set(routing.get("tasks", [])) == QUALIFICATION_TASKS,
@@ -831,8 +908,8 @@ def validate_candidate(
     candidate_sha256 = file_sha256(candidate_path)
     for task_id in sorted(QUALIFICATION_TASKS):
         task = load_json(root / TASK_DIR.relative_to(ROOT) / f"{task_id}.json")
-        _expect(errors, "F8-63" in task.get("dependencies", []),
-                f"{task_id} does not depend on F8-63")
+        _expect(errors, "F8-65" in task.get("dependencies", []),
+                f"{task_id} does not depend on F8-65")
         scope = task.get("scope", "")
         _expect(errors, ACTIVE_ID in scope,
                 f"{task_id} does not route to the exact replacement")
@@ -843,7 +920,8 @@ def validate_candidate(
                 f"{task_id} does not bind exact candidate manifest")
         _expect(errors, str(ACTIVE_CI_RUN_ID) in scope,
                 f"{task_id} does not bind exact protected CI run")
-        _expect(errors, V5_REJECTED_ID in scope and V4_REJECTED_ID in scope and
+        _expect(errors, V6_REJECTED_ID in scope and V5_REJECTED_ID in scope and
+                V4_REJECTED_ID in scope and
                 V3_REJECTED_ID in scope and
                 "interim" in scope and "cannot be unioned" in scope,
                 f"{task_id} does not preserve candidate history")
@@ -852,7 +930,7 @@ def validate_candidate(
     ).get("dependencies", []))
     _expect(errors, QUALIFICATION_TASKS |
             {"F8-33", "F8-34", "F8-35", "F8-36", "F8-37", "F8-38",
-             "F8-52", "F8-61", "F8-62", "F8-63"}
+             "F8-52", "F8-61", "F8-62", "F8-63", "F8-64", "F8-65"}
             <= exit_dependencies,
             "F8-99 lacks a repair, refreeze or qualification dependency")
     return errors

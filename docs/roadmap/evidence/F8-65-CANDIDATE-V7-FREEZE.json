@@ -1,0 +1,174 @@
+{
+  "schema": "parallel-mater-f8-65-candidate-v7-freeze/v1",
+  "task": "F8-65",
+  "status": "passed",
+  "captured_at": "2026-10-31T15:30:00Z",
+  "lease_token": "89aa50b5-7aa2-4043-ae5b-1eee4ea7cc8d",
+  "candidate": {
+    "id": "realtime-single-step-v1-05f8b04",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v7.json",
+    "manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
+    "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "source_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "active_pointer_sha256": "194ce52149a3288109b629caa71bd098ebee3d1ee4aa0c2f0f1a76777317d253"
+  },
+  "protected_closure": {
+    "generation_command": "python3 tools/generate_realtime_candidate.py --ci-evidence docs/roadmap/evidence/F8-65-PROTECTED-CI.json --route",
+    "generator_sha256": "be498b5c3cda2d59365dc6bbec9e295701f1698a2ab93983bb02ffde3f383036",
+    "independent_check_command": "python3 tools/check_realtime_candidate.py",
+    "checker_sha256": "5405022c453ecfa5c3f49db385c918e7861e588817f715792256ea58d0532828",
+    "categories": 9,
+    "files_by_category": {
+      "api_abi": 18,
+      "kernel": 39,
+      "adapter_binding": 49,
+      "runtime": 127,
+      "schedule_telemetry": 6,
+      "contract": 6,
+      "public_oracle": 538,
+      "work_budget": 7,
+      "gallery": 160
+    },
+    "explicit_contract_hashes": [
+      "scenario_fixtures",
+      "capture_validator",
+      "capture_producer",
+      "capability_obligations",
+      "kernel_device_obligations",
+      "oracle_suite",
+      "case_and_golden_manifest",
+      "budgets_and_tolerances"
+    ],
+    "result": "independent generation and validation hashes agree"
+  },
+  "portable_ci": {
+    "evidence": "docs/roadmap/evidence/F8-65-PROTECTED-CI.json",
+    "evidence_sha256": "568f1e1f1b4c747c9b03e8975fb7d8dad37358fe7f7377b49a8207f30397af3e",
+    "run_id": 41213026819,
+    "run_url": "https://github.com/tabutyn/parallel-mater/actions/runs/41213026819",
+    "event": "workflow_dispatch",
+    "head_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "head_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "result": "success",
+    "required_jobs_passed": 17,
+    "required_jobs_total": 17,
+    "artifacts_hashed": 10,
+    "native_binaries_hashed": 5,
+    "application_artifacts_hashed": 6,
+    "source_clean_reports": [
+      "linux",
+      "macos",
+      "windows",
+      "ipados"
+    ]
+  },
+  "physical_linux_cuda": {
+    "evidence": "docs/roadmap/evidence/F8-65-EXACT-SOURCE-LINUX-CUDA.json",
+    "evidence_sha256": "7a80a5a7e4b1072b95cd639e842cf3cdbd6b69e419a4dbfafa154ba396b0875f",
+    "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "source_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "working_tree": "clean",
+    "registered_suite": {
+      "passed": 131,
+      "failed": 0,
+      "skipped": 0,
+      "total": 131,
+      "cuda_labeled_tests_executed": 42
+    },
+    "relocated_sdk_checks": {
+      "passed": 12,
+      "total": 12
+    },
+    "installed_public_capture": {
+      "capabilities_passed": 49,
+      "public_cases_passed": 30,
+      "scenarios_passed": 12,
+      "named_measurements": 37,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "measured_ticks": 72000,
+      "failed_ticks": 0
+    },
+    "capture_archive": "docs/roadmap/evidence/F8-65-installed-public-capture.tar.zst",
+    "capture_archive_sha256": "eb2689d5df4d10bf02138e7759d5341f0a4c9fb27a673d1f1b41c83da925908d"
+  },
+  "sole_path_audit": {
+    "evidence": "docs/roadmap/evidence/F8-65-SOLE-PATH-AUDIT.json",
+    "evidence_sha256": "6d79ddacd8b2305d3433f67e22fa8877116cdc2a33f9c166ce0568248b5c6f9e",
+    "capabilities": 49,
+    "public_cases": 30,
+    "scenarios": 12,
+    "measurements": 37,
+    "canonical_modules": 26,
+    "canonical_entries": 234,
+    "kernel_groups": 32,
+    "runtime_variants": 5,
+    "physical_targets": 8,
+    "status": "passed"
+  },
+  "rejected_history": {
+    "candidate_v5": {
+      "id": "realtime-single-step-v1-cfb104b",
+      "manifest_sha256": "3435be0a4d4caa2d014d82faba7272aaadeba546a555a2e35a77ff18d0d8a000",
+      "failure_evidence_sha256": "529f43bf26c36cd989c8bd72c936ecdd1306b372d70d194071b71f5c0e9453dd",
+      "rejection_record_sha256": "374a862d2228254be7093c4fa3358da1c139a31d149d07d063e3bff0bcf919d5",
+      "verified_immutable": true
+    },
+    "candidate_v6": {
+      "id": "realtime-single-step-v1-fc2ffba",
+      "manifest_sha256": "6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9",
+      "failure_evidence_sha256": "1be323331ac05533be95ec448c5be121604d734c7b3f43185c6c7f58f5465d07",
+      "rejection_record_sha256": "31cce0ab9f50b71fe14d1f98f22fbfbe7d39208aa18d7794aedfbd185fc36e2c",
+      "raw_capture_execution_identity_claimed": false,
+      "verified_immutable": true
+    },
+    "evidence_union_allowed": false
+  },
+  "qualification_routing": {
+    "tasks": [
+      "F8-24",
+      "F8-25",
+      "F8-26",
+      "F8-27",
+      "F8-28",
+      "F8-29",
+      "F8-30",
+      "F8-53"
+    ],
+    "bound_fields": [
+      "candidate_id",
+      "manifest_sha256",
+      "source_revision",
+      "source_tree",
+      "ci_run_id"
+    ],
+    "status": "passed"
+  },
+  "verification": [
+    {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 tests/solver/check_slang_architecture.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m unittest conformance.v1.tests.test_realtime_oracle conformance.v1.tests.test_realtime_device_suite conformance.v1.tests.test_realtime_scenario_fixtures",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "passed"
+    },
+    {
+      "command": "python3 tools/roadmap.py check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "invalidation_rule": "Any later protected-file change creates a new candidate and reruns every affected physical row; candidate v7 and its hashes are immutable."
+}

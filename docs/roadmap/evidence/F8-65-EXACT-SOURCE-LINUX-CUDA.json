@@ -1,0 +1,174 @@
+{
+  "schema": "parallel-mater-f8-65-exact-source-linux-cuda/v1",
+  "task": "F8-65",
+  "status": "passed",
+  "captured_at": "2026-10-31T15:16:09Z",
+  "lease_token": "89aa50b5-7aa2-4043-ae5b-1eee4ea7cc8d",
+  "source": {
+    "revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "branch": "freeze/F8-65-source-ThomasLaptop",
+    "working_tree": "clean",
+    "repair_revision": "861e8f11ccd2412968bb156daf59937c8f1a8c49",
+    "repair_tree": "05558f64cd4d07e6de0ba573857188ef2cd7430f",
+    "repair_evidence": "docs/roadmap/evidence/F8-64-INSTALLED-PUBLIC-CUDA-REPAIR.json",
+    "repair_evidence_sha256": "27411fa368aa3f08f003b7593ed9be89c5094d4e1cdf68df577038e5ece926cd"
+  },
+  "candidate_binding": {
+    "candidate_id": "realtime-single-step-v1-05f8b04",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v7.json",
+    "manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
+    "raw_capture_candidate": {
+      "id": "realtime-single-step-v1-fc2ffba",
+      "manifest_sha256": "6d418e610601337ed4aa25a3c09d9791bcc4ccbb3fa281a69f45e4c7775fe2c9",
+      "execution_identity_claimed": false,
+      "qualification_status": "remains-rejected"
+    },
+    "rule": "The source capture was produced before freeze metadata existed and therefore preserves the then-active candidate-v6 qualification-input label with execution_identity_claimed=false. F8-65 binds the complete observation set to one exact 05f8b04 source and named binary set; it does not relabel or union any candidate-v6 qualification result."
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01",
+    "cuda_driver_version": 13010,
+    "gpu_temperature_celsius_after": 48
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "cuda": "13.1.80",
+    "cuda_architectures": "86",
+    "slang": "2026.18"
+  },
+  "commands": {
+    "configure": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake -S . -B /tmp/parallel-mater-f8-64-cuda4-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_INSTALL_PREFIX=/tmp/parallel-mater-f8-64-cuda4-install -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON -DPARALLEL_MATER_SLANGC_EXECUTABLE=/home/thomas/Repos/ballroller-2026/parallel-mater/build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc",
+    "build": "cmake --build /tmp/parallel-mater-f8-64-cuda4-build -j2",
+    "physical_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/slang-cuda.json PM_LAYER_FILES=/tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/validation.json ctest --test-dir /tmp/parallel-mater-f8-64-cuda4-build --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_discovery_suite": "ctest --test-dir /tmp/parallel-mater-f8-64-cuda4-build --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-64-cuda4-build --output /tmp/f8-65-sdk-evidence-05f8b04",
+    "device_capture": "python3 conformance/v1/realtime_device_capture.py --runner /tmp/parallel-mater-f8-64-cuda4-build/parallel-mater-conformance --driver-manifest /tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/slang-cuda.json --validation-layer-manifest /tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/validation.json --output /tmp/f8-65-full-capture-05f8b04"
+  },
+  "results": {
+    "clean_release_build": "passed",
+    "registered_tests": {
+      "status": "passed",
+      "passed": 131,
+      "failed": 0,
+      "skipped": 0,
+      "total": 131,
+      "cuda_aware_run": 128,
+      "isolated_discovery_and_install_run": 3,
+      "cuda_labeled_tests_executed": 42,
+      "cuda_aware_elapsed_seconds": 76.3,
+      "isolated_elapsed_seconds": 0.2
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+      "source_dirty": false,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    },
+    "installed_public_capture": {
+      "status": "passed",
+      "failure_count": 0,
+      "runtime_variant": "cuda-runtime",
+      "target_id": "linux-rtx3050ti-slang-cuda",
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "public_cases_completed": 30,
+      "scenarios_passed": 12,
+      "unique_named_measurements": 37,
+      "scenario_measurement_observations": 176,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0,
+      "reported_distributions": [
+        "cpu_ms.p50/p95/p99/maximum",
+        "gpu_ms.p50/p95/p99/maximum",
+        "physics_ms.p50/p95/p99/maximum",
+        "frame_ms.p50/p95/p99/maximum"
+      ]
+    }
+  },
+  "workload_summary": [
+    {
+      "id": "rigid-wall",
+      "simulated_to_wall_time_ratio": 5.164317237975318,
+      "frame_p95_ms": 3.311294,
+      "frame_maximum_ms": 5.013169,
+      "gpu_p95_ms": 3.185664,
+      "gpu_maximum_ms": 3.376128
+    },
+    {
+      "id": "fluid-rigid",
+      "simulated_to_wall_time_ratio": 7.267554102186856,
+      "frame_p95_ms": 2.360197,
+      "frame_maximum_ms": 5.429719,
+      "gpu_p95_ms": 2.23744,
+      "gpu_maximum_ms": 2.410496
+    },
+    {
+      "id": "deformable-mixed",
+      "simulated_to_wall_time_ratio": 2.991077096349843,
+      "frame_p95_ms": 5.667913,
+      "frame_maximum_ms": 10.250528,
+      "gpu_p95_ms": 5.554176,
+      "gpu_maximum_ms": 5.989376
+    },
+    {
+      "id": "smoke-coupled",
+      "simulated_to_wall_time_ratio": 12.6042459805585,
+      "frame_p95_ms": 1.587623,
+      "frame_maximum_ms": 2.202434,
+      "gpu_p95_ms": 1.517568,
+      "gpu_maximum_ms": 2.093568
+    },
+    {
+      "id": "six-family-mixed",
+      "simulated_to_wall_time_ratio": 2.037847079052727,
+      "frame_p95_ms": 8.753097,
+      "frame_maximum_ms": 19.302944,
+      "gpu_p95_ms": 8.636416,
+      "gpu_maximum_ms": 11.784192
+    }
+  ],
+  "artifacts": {
+    "tracked_capture_archive": "docs/roadmap/evidence/F8-65-installed-public-capture.tar.zst",
+    "tracked_capture_archive_sha256": "eb2689d5df4d10bf02138e7759d5341f0a4c9fb27a673d1f1b41c83da925908d",
+    "tracked_capture_archive_contents": "capture.json, report.json, all raw plain/validation public cases, scenarios and workload tick streams, and producer logs",
+    "raw_file_count": 128,
+    "raw_tree_sha256": "dd2dbb82c871c2d0b51e7941ec5154e15a3a6e4037ec6c75fcb766320ecea574",
+    "capture_sha256": "a0f74337dd6e619708a906e8b3af827fb4c06bd29c8d42761ab16600b657cf10",
+    "report_sha256": "403b2d6213ebbd60524723d2d60139685f13b41220f0f2e88f668fb04ada7e0e",
+    "runner_sha256": "d9363dd86afd19238737aef8e39ae4ee23f41202e7b8eefe95c6d75a94144f9d",
+    "driver_sha256": "2b41c0269073495c92e3f973dc3321c3348f3c3246ec231281860e3d351712de",
+    "gallery_sha256": "028a226c91053e4813f850a9970afe9d86bd51e80a2976ed7b260715930151d5",
+    "driver_manifest_sha256": "887d827dc6ecd5c4d993fd01312430b009a958484aaef277ee45cabca5e025a2",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "validation_manifest_sha256": "fb6b83ef8055b96f536a777b8806095631d0328dd1cff615b9a44c93af1b5016",
+    "cuda_ctest_log_sha256": "bb73466023941a70ee441237947fd31728ff5efd7348b4af77dd880d84f2f58e",
+    "isolated_ctest_log_sha256": "f11ee031205a629de731cb3e72bcdeaecefd8ce968d692c9ae66263e89fe3f88",
+    "sdk_report_sha256": "b33aeca98a146a3e9ecfc616d53c81212abac183b7be923a520c7e9e87ca2a80",
+    "sdk_evidence_file_count": 666,
+    "sdk_evidence_tree_sha256": "3e4febd99830e687576508a0f94f347e0c3fd36e112b80000536e5c0eada9acd"
+  },
+  "qualification_effect": "This complete observation set is eligible only for candidate v7 frozen at source 05f8b04. Candidates v5 and v6 and both F8-24 failure records remain rejected immutable history; no passing observation is relabeled or unioned across candidates."
+}

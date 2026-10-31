@@ -17,53 +17,59 @@
     "Candidate-v6 passing observations remain immutable rejected provenance and cannot qualify or be unioned with the F8-64 repaired-source evidence."
   ],
   "replacement": {
-    "status": "pending-refreeze",
+    "status": "frozen-awaiting-physical-qualification",
+    "candidate_id": "realtime-single-step-v1-05f8b04",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v7.json",
+    "candidate_manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
     "freeze_task": "F8-65",
-    "source_revision": "861e8f11ccd2412968bb156daf59937c8f1a8c49",
-    "source_tree": "05558f64cd4d07e6de0ba573857188ef2cd7430f"
+    "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "source_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "ci_run_id": 41213026819
   },
   "evidence_union_allowed": false,
   "invalidated_physical_rows": [
     {
       "target": "windows-gtx1080-slang-cuda",
       "qualification_owner": "F8-26",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     },
     {
       "target": "windows-gtx1080-slang-d3d12",
       "qualification_owner": "F8-27",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     },
     {
       "target": "linux-thomas-laptop-slang-cpu",
       "qualification_owner": "F8-53",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     },
     {
       "target": "linux-rtx3050ti-slang-cuda",
       "qualification_owner": "F8-24",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     },
     {
       "target": "linux-rtx3050ti-slang-vulkan",
       "qualification_owner": "F8-25",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     },
     {
       "target": "macos-m4-slang-metal",
       "qualification_owner": "F8-28",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     },
     {
       "target": "ipados-m1-slang-metal",
       "qualification_owner": "F8-29",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     },
     {
       "target": "android-pixel7-slang-vulkan",
       "qualification_owner": "F8-30",
-      "status": "invalidated-awaiting-f8-65"
+      "status": "invalidated-requalify-replacement"
     }
   ],
-  "qualification_rule": "No final F8 qualification report may name or reuse candidate v6. F8-65 must freeze an exact replacement before F8-24 through F8-30 and F8-53 can be rerouted or become ready."
+  "qualification_rule": "No final F8 qualification report may name or reuse candidate v6. F8-24 through F8-30 and F8-53 must execute only realtime-single-step-v1-05f8b04 from F8-65.",
+  "superseded_at": "2026-10-31",
+  "supersession_task": "F8-65"
 }
