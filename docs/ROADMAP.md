@@ -151,7 +151,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | done | F8-01, F8-03, F8-20, F8-21 | — |
 | [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | done | F8-22, F8-36, F8-38 | — |
 | [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | — |
-| [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | ready | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | — |
+| [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | leased | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | codex-linux-thomas-laptop / ThomasLaptop / 2026-11-01T16:15:08Z |
 | [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | ready | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | — |
 | [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | ready | F8-22, F8-36, F8-38, P1-59, F8-52, F8-61, F8-63, F8-65 | — |
 | [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | — |
