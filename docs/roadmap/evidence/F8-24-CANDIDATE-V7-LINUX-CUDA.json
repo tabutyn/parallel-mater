@@ -1,0 +1,213 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v1",
+  "status": "passed",
+  "captured_at": "2026-10-31T16:12:00Z",
+  "task": "F8-24",
+  "lease_token": "bcc93f70-af25-4147-8bf2-9cddf84a37b6",
+  "candidate": {
+    "id": "realtime-single-step-v1-05f8b04",
+    "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "source_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v7.json",
+    "manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
+    "freeze_evidence": "docs/roadmap/evidence/F8-65-CANDIDATE-V7-FREEZE.json",
+    "freeze_evidence_sha256": "61a2d15ec694d3d4d292a15b650cb8e9bbc026c414af6de27cba56857e7cd784",
+    "exact_source_ci_run": 41213026819,
+    "target": "linux-rtx3050ti-slang-cuda",
+    "runtime_variant": "cuda-runtime"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01",
+    "cuda_driver_version": 13010,
+    "gpu_temperature_celsius_before": 41,
+    "gpu_temperature_celsius_after": 50
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "cuda": "13.1.80",
+    "cuda_architectures": "86",
+    "slang": "2026.18"
+  },
+  "commands": {
+    "physical_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/slang-cuda.json PM_LAYER_FILES=/tmp/parallel-mater-f8-64-cuda4-build/Release/manifests/validation.json ctest --test-dir /tmp/parallel-mater-f8-64-cuda4-build --output-on-failure --output-log /tmp/f8-24-v7-cuda-ctest.log -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_discovery_suite": "ctest --test-dir /tmp/parallel-mater-f8-64-cuda4-build --output-on-failure --output-log /tmp/f8-24-v7-isolated-ctest.log -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-64-cuda4-build --output /tmp/f8-24-v7-sdk-evidence-05f8",
+    "device_capture": "python3 conformance/v1/realtime_device_capture.py --runner /tmp/f8-24-v7-sdk-evidence-05f8/relocated-sdk/bin/parallel-mater-conformance --driver-manifest /tmp/f8-24-v7-sdk-evidence-05f8/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json --validation-layer-manifest /tmp/f8-24-v7-sdk-evidence-05f8/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json --runtime-variant cuda-runtime --target-id linux-rtx3050ti-slang-cuda --output /tmp/f8-24-v7-final-capture-2",
+    "independent_validation": "python3 conformance/v1/realtime_device_suite.py --capture /tmp/f8-24-v7-final-capture-2/capture.json --candidate-manifest conformance/v1/qualification/realtime-candidate-v7.json --output /tmp/f8-24-v7-validation-report.json"
+  },
+  "results": {
+    "registered_tests": {
+      "status": "passed",
+      "passed": 131,
+      "failed": 0,
+      "skipped": 0,
+      "total": 131,
+      "cuda_aware_run": 128,
+      "isolated_discovery_and_install_run": 3,
+      "cuda_labeled_tests_executed": 42,
+      "cuda_aware_elapsed_seconds": 76.05,
+      "isolated_elapsed_seconds": 0.43
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+      "source_dirty": false,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    },
+    "installed_public_capture": {
+      "status": "passed",
+      "failure_count": 0,
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "public_cases_completed": 30,
+      "unsupported_required_cases": 0,
+      "scenarios_passed": 12,
+      "scenario_execution_rows": 24,
+      "unique_named_measurements": 37,
+      "scenario_measurement_observations": 176,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each_mode": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0,
+      "reported_distributions": [
+        "cpu_ms.p50/p95/p99/maximum",
+        "gpu_ms.p50/p95/p99/maximum",
+        "physics_ms.p50/p95/p99/maximum",
+        "frame_ms.p50/p95/p99/maximum"
+      ]
+    },
+    "fixed_tick_contract": {
+      "status": "passed",
+      "dt_seconds": 0.016666666666666666,
+      "normal_tick_time_advances": 1,
+      "normal_tick_spatial_publications": 1,
+      "normal_tick_queue_submissions": 1,
+      "normal_tick_host_readbacks": 0,
+      "fixed_dispatch_iteration_and_synchronization_budgets": "passed",
+      "high_rate_interpolation": "passed: parallel-mater-gallery-presentation-interpolation-tests",
+      "low_rate_slow_motion_no_catch_up": "passed: parallel-mater-gallery-session-clock-tests",
+      "atomic_failure_recovery": "passed: expected capacity overflow preserved clock, committed state, and pending inputs with zero time advances and zero spatial publications"
+    },
+    "installed_gallery_behavior": {
+      "applicability": "The Linux Gallery application is not installed by the SDK; the shared headless presentation path and installed Linux launcher are applicable.",
+      "presentation_interpolation": "passed",
+      "session_clock": "passed",
+      "headless_frame_timing": "passed",
+      "installed_launcher": "passed"
+    },
+    "cold_and_sustained_coverage": {
+      "cold_start_scenarios": [
+        "rigid-cold-impact-rotation",
+        "cloth-stiff-pin-impact",
+        "six-family-mixed"
+      ],
+      "long_run_scenarios": [
+        "rigid-settled-long-run",
+        "fluid-closed-container-source-outflow",
+        "smoke-analytic-transport-long-run",
+        "six-family-mixed"
+      ],
+      "status": "passed"
+    }
+  },
+  "performance": {
+    "tier": "desktop-full-v1",
+    "physics_p95_ms_maximum": 10.0,
+    "frame_budget_ms": 16.666666666666668,
+    "workloads": [
+      {
+        "id": "rigid-wall",
+        "simulated_to_wall_time_ratio": 5.158541970120899,
+        "cpu_ms": {"p50": 0.014623, "p95": 0.019189, "p99": 0.024479, "maximum": 0.081733},
+        "gpu_ms": {"p50": 3.141632, "p95": 3.181568, "p99": 3.217408, "maximum": 3.369984},
+        "physics_ms": {"p50": 3.21267, "p95": 3.308685, "p99": 3.351154, "maximum": 4.856145},
+        "frame_ms": {"p50": 3.21267, "p95": 3.308685, "p99": 3.351154, "maximum": 4.856145}
+      },
+      {
+        "id": "fluid-rigid",
+        "simulated_to_wall_time_ratio": 7.2828813329206135,
+        "cpu_ms": {"p50": 0.014531, "p95": 0.017975, "p99": 0.022703, "maximum": 0.059406},
+        "gpu_ms": {"p50": 2.194688, "p95": 2.225152, "p99": 2.24768, "maximum": 2.468864},
+        "physics_ms": {"p50": 2.279855, "p95": 2.350301, "p99": 2.386587, "maximum": 5.273016},
+        "frame_ms": {"p50": 2.279855, "p95": 2.350301, "p99": 2.386587, "maximum": 5.273016}
+      },
+      {
+        "id": "deformable-mixed",
+        "simulated_to_wall_time_ratio": 3.0018664286883756,
+        "cpu_ms": {"p50": 0.014701, "p95": 0.020104, "p99": 0.026361, "maximum": 0.118893},
+        "gpu_ms": {"p50": 5.439488, "p95": 5.52448, "p99": 5.59104, "maximum": 6.094848},
+        "physics_ms": {"p50": 5.538518, "p95": 5.63537, "p99": 5.715954, "maximum": 19.00834},
+        "frame_ms": {"p50": 5.538518, "p95": 5.63537, "p99": 5.715954, "maximum": 19.00834}
+      },
+      {
+        "id": "smoke-coupled",
+        "simulated_to_wall_time_ratio": 12.715087659950463,
+        "cpu_ms": {"p50": 0.01453, "p95": 0.016961, "p99": 0.020621, "maximum": 0.036739},
+        "gpu_ms": {"p50": 1.197056, "p95": 1.472512, "p99": 1.65888, "maximum": 4.043776},
+        "physics_ms": {"p50": 1.264823, "p95": 1.566184, "p99": 1.764135, "maximum": 4.169945},
+        "frame_ms": {"p50": 1.264823, "p95": 1.566184, "p99": 1.764135, "maximum": 4.169945}
+      },
+      {
+        "id": "six-family-mixed",
+        "simulated_to_wall_time_ratio": 2.0579072660795146,
+        "cpu_ms": {"p50": 0.014914, "p95": 0.021157, "p99": 0.026798, "maximum": 0.043105},
+        "gpu_ms": {"p50": 7.970816, "p95": 8.572928, "p99": 8.759296, "maximum": 9.1648},
+        "physics_ms": {"p50": 8.0423, "p95": 8.660336, "p99": 8.874566, "maximum": 11.074988},
+        "frame_ms": {"p50": 8.0423, "p95": 8.660336, "p99": 8.874566, "maximum": 11.074988}
+      }
+    ],
+    "status": "passed"
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.tar.zst",
+    "tracked_archive_sha256": "127b00849c4744faba0543d3eb15971ea6b273e2dd2c0064d99417c538bd1e3c",
+    "tracked_archive_uncompressed_bytes": 130252800,
+    "tracked_archive_contents": "complete installed-public capture tree, CUDA-aware and isolated CTest logs, and exact-source relocated-SDK report",
+    "capture_file_count": 128,
+    "capture_tree_sha256": "9a041f123719e0f385b5b7d401dbfcfad7050887338256e85f24188a3dc292d8",
+    "capture_sha256": "91ec894fe1a507811bcb61a19a9f470e152c3341baa680c62259b3d61d64e9a3",
+    "report_sha256": "040a7e8bd6fb91e9f0bdba22af19fb7e5e1daf5683686c279376d8e0de70f9e8",
+    "independent_validation_report_sha256": "040a7e8bd6fb91e9f0bdba22af19fb7e5e1daf5683686c279376d8e0de70f9e8",
+    "cuda_ctest_log_sha256": "4611c4e2ecf2237c15e3636ac04ad23fa8136d8cf6f24cf44687afab5d570311",
+    "isolated_ctest_log_sha256": "be35e7ad80d78967c4a7b8d082e9968f04253208bce962deb5fc7c204ee832c9",
+    "sdk_report_sha256": "b33aeca98a146a3e9ecfc616d53c81212abac183b7be923a520c7e9e87ca2a80",
+    "sdk_evidence_file_count": 666,
+    "sdk_evidence_tree_sha256": "fd1f1c1d64d2c741eade5170e3234ad936cf44e1685fcb9d41dd41eea5d8b882",
+    "runner_sha256": "f1ba20c8d2da2072dcda6d02c0f2ebca2c47ad15860895cfab66916eeb77f7a6",
+    "driver_sha256": "319959bcd35738d2296689412194e2becaec5c7ca387735413cbf40d68b7da58",
+    "driver_manifest_sha256": "ce3e696e32bdf45a76e1d03428080f1ea6786d36d20355b121e5201fe60dd1e7",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "discarded_attempts": [
+    "A stale pre-F8-64 install prefix lacked the --scenario-raw runner integration and was not used as evidence.",
+    "An initial relocation report was launched from the task worktree rather than the exact frozen source and was replaced; only the exact 05f8b04 clean-source report is archived."
+  ],
+  "rejected_history": {
+    "candidate_v5_failure_evidence_sha256": "529f43bf26c36cd989c8bd72c936ecdd1306b372d70d194071b71f5c0e9453dd",
+    "candidate_v6_failure_evidence_sha256": "1be323331ac05533be95ec448c5be121604d734c7b3f43185c6c7f58f5465d07",
+    "evidence_union_allowed": false
+  },
+  "qualification_effect": "Candidate v7 passes the final Linux RTX 3050 Ti CUDA row. This report uses only a fresh exact-source candidate-v7 suite, relocated SDK and installed-public capture. Candidates v5 and v6 and their F8-24 failure records remain immutable rejected history and contribute no passing observation."
+}

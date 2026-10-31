@@ -57,6 +57,13 @@ capture, reports and streams are preserved in
 and bound by
 [`F8-65-EXACT-SOURCE-LINUX-CUDA.json`](evidence/F8-65-EXACT-SOURCE-LINUX-CUDA.json).
 
+F8-24 independently reran the final gate from the exact frozen source through a
+fresh relocated SDK on the same physical RTX 3050 Ti. Candidate v7 passed all
+131 registered tests, all 12 relocation checks, 49 capability rows, 30 public
+cases, 12 scenarios, five negative controls, and five sustained workloads over
+72,000 measured ticks. The reviewable raw capture and test logs are bound by
+[`F8-24-CANDIDATE-V7-LINUX-CUDA.json`](evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.json).
+
 ## Reproduction
 
 ```sh
