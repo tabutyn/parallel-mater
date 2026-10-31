@@ -909,8 +909,10 @@ void pm_emit_deformable_spatial_primitives(
         return;
     }
 
-    Vec3 minimum = Vec3(3.402823466e+38f);
-    Vec3 maximum = Vec3(-3.402823466e+38f);
+    Vec3 minimum = {
+        3.402823466e+38f, 3.402823466e+38f, 3.402823466e+38f};
+    Vec3 maximum = {
+        -3.402823466e+38f, -3.402823466e+38f, -3.402823466e+38f};
     uint base = primitive * vertices_per_primitive;
     for (uint corner = 0u; corner < vertices_per_primitive; ++corner)
     {

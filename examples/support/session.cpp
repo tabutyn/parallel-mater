@@ -445,7 +445,10 @@ FrameTimingStatistics GallerySession::qualify(
         throw std::runtime_error("Qualification frame count must be 1..100000");
     struct DiagnosticScope { bool &flag; ~DiagnosticScope() { flag = false; } } scope{diagnostics_};
     diagnostics_ = true;
-    set_active(true); set_paused(false); reset();
+    set_active(true); set_paused(false);
+    const std::uint64_t initial_frames = frames;
+    timing.clear_history();
+    frame_policy_.reset();
     for (unsigned i = 0; i < frame_count; ++i) {
         frame();
         validate_snapshot();
@@ -453,14 +456,18 @@ FrameTimingStatistics GallerySession::qualify(
             observer(*timing.latest(), output().realtime_statistics);
     }
     const auto statistics = timing.statistics();
-    require(frames == frame_count, "Qualification simulation count mismatch");
+    require(frames == initial_frames + frame_count,
+            "Qualification simulation count mismatch");
     set_paused(true); frame();
-    require(frames == frame_count && timing.latest() && timing.latest()->physics_steps == 0,
+    require(frames == initial_frames + frame_count && timing.latest() &&
+        timing.latest()->physics_steps == 0,
         "Paused frame advanced physics");
     set_active(false); frame();
-    require(frames == frame_count && !timing.latest(), "Inactive session advanced");
+    require(frames == initial_frames + frame_count && !timing.latest(),
+        "Inactive session advanced");
     set_active(true); set_paused(false); frame(); validate_snapshot();
-    require(frames == frame_count + 1, "Foreground session did not resume");
+    require(frames == initial_frames + frame_count + 1,
+            "Foreground session did not resume");
     reset();
     require(frames == 0 && !timing.latest(), "Reset retained frames or timing history");
     frame(); validate_snapshot();

@@ -197,6 +197,7 @@ struct CommandScene::Impl {
     PmQueue queue{};
     PmCommandPool command_pool{};
     PmCommandBuffer commands{};
+    PmCommandBuffer reset_commands{};
     PmFence fence{};
     PmSimulation simulation{};
     PmDeviceMemory persistent_memory{};
@@ -221,7 +222,9 @@ struct CommandScene::Impl {
     Region contact_output;
     Region debug_output;
     std::vector<PmRigidConstraintInfo> constraints;
+    std::vector<PmRigidConstraintInfo> initial_constraints;
     std::vector<PmRigidBodyInfo> rigid_bodies;
+    std::vector<PmRigidBodyInfo> initial_rigid_bodies;
     std::vector<std::uint8_t> cloth_active;
     std::vector<std::uint8_t> rope_active;
     std::vector<std::uint8_t> soft_body_active;
@@ -236,9 +239,6 @@ struct CommandScene::Impl {
     std::uint32_t contact_capacity{};
     std::uint32_t debug_capacity{};
     SceneDefinition original_scene;
-    std::optional<PmNativeBackend> selected_backend;
-    std::uint32_t debug_frame_capacity{};
-    bool validation_enabled{};
     bool fence_submitted{};
     bool output_ready{};
     bool contacts_available{};
@@ -283,6 +283,9 @@ struct CommandScene::Impl {
         if (device != nullptr && command_pool != nullptr) {
             if (commands != nullptr)
                 pmFreeCommandBuffers(device, command_pool, 1U, &commands);
+            if (reset_commands != nullptr)
+                pmFreeCommandBuffers(
+                    device, command_pool, 1U, &reset_commands);
             pmDestroyCommandPool(device, command_pool);
         }
         if (device != nullptr) pmDestroyDevice(device);
@@ -359,6 +362,25 @@ struct CommandScene::Impl {
             return false;
         }
         return true;
+    }
+
+    [[nodiscard]] bool submit_reset(std::string &error) {
+        if (fence_submitted) {
+            if (!checked(pmResetFences(device, 1U, &fence), "reset fence",
+                         error))
+                return false;
+            fence_submitted = false;
+        }
+        const PmSubmitInfo submit_info{
+            PM_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0U, nullptr, 1U,
+            &reset_commands, 0U, nullptr};
+        if (!checked(pmQueueSubmit(queue, &submit_info, fence),
+                     "submit reset commands", error))
+            return false;
+        fence_submitted = true;
+        return checked(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                                       PM_TIMEOUT_INFINITE),
+                       "wait for reset commands", error);
     }
 
     [[nodiscard]] bool create_geometry(

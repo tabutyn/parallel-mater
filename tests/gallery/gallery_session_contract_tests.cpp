@@ -449,6 +449,10 @@ int main() {
                     gallery::GalleryRuntime::live_runtime_count() == 1U,
                 "Direct runtime did not own one scene");
         const PmDevice preserved_device = runtime.simulation.device();
+        require(runtime.reset(failure) && runtime.ready() &&
+                    runtime.simulation.device() == preserved_device &&
+                    gallery::GalleryRuntime::live_runtime_count() == 1U,
+                "Runtime reset recreated its physical device");
 
         auto missing = valid;
         missing.asset = root / "examples/assets/Missing.glb";
