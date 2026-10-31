@@ -1,0 +1,26 @@
+{
+  "id": "F8-68",
+  "title": "Requalify the replacement candidate on Linux CUDA devices",
+  "status": "open",
+  "dependencies": [
+    "F8-24",
+    "F8-67"
+  ],
+  "locks": [
+    "f8-qualification-linux-cuda"
+  ],
+  "requires": [
+    "Registered physical Linux NVIDIA CUDA devices and current shared Slang toolchain"
+  ],
+  "scope": "FINAL RELEASE GATE FOLLOW-UP: F8-24 completed candidate-v7 Linux CUDA qualification, but candidate v7 was rejected by F8-25 Linux Vulkan. Preserve F8-24 evidence as immutable historical provenance. After F8-67 writes the exact replacement candidate id, manifest hash, source/tree and protected CI run into this card, rerun every Linux CUDA device, installed-public scenario and workload obligation without unioning any candidate-v7 observation.",
+  "acceptance": [
+    "A coordination-only F8-67 change records the exact replacement candidate id, manifest hash, source commit/tree and exact-source protected CI run in this card before claim.",
+    "Run every applicable kernel/variant, domain, coupling, lifecycle and negative case in the frozen replacement matrix; record unsupported and missing cases explicitly. All required rows execute and pass.",
+    "Prove one dt=1/60 advance and one spatial publication per tick; verify high-rate interpolation, low-rate slow-motion, no catch-up and fixed dispatch/iteration/synchronization budgets.",
+    "Run the installed-public capture for all 49 capability obligations, 30 public cases, 12 scenarios, five negative controls and five desktop workloads with unchanged quality and performance budgets.",
+    "Attach durable exact-candidate, binary, device, driver, toolchain and raw artifact hashes. Candidate-v7 F8-24 evidence remains separate historical provenance and cannot satisfy this follow-up."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
