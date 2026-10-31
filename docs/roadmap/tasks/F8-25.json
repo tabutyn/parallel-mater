@@ -1,7 +1,7 @@
 {
   "id": "F8-25",
   "title": "Qualify the candidate on Linux Vulkan devices",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -26,16 +26,10 @@
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success.",
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "05135d8d-5bd4-4779-a255-99aff4443200",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-25/ThomasLaptop-v8",
-    "claimed_at": "2026-10-31T22:58:03Z",
-    "heartbeat_at": "2026-10-31T22:58:03Z",
-    "expires_at": "2026-11-01T22:58:03Z"
-  },
+  "evidence": [
+    "docs/roadmap/evidence/F8-25-CANDIDATE-V8-LINUX-VULKAN.json"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -51,6 +45,23 @@
       "at": "2026-10-31T17:02:19Z",
       "reason": "Candidate v7 fails the mandatory physical Linux Vulkan Gallery suite under pinned SDK 1.4.341.0: session contract times out, ClothPaint publishes no paint output, and all five smoke scenes return invalid argument. Preserve exact failure evidence and add bounded repair/refreeze leaves before requalification.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "05135d8d-5bd4-4779-a255-99aff4443200",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-25/ThomasLaptop-v8",
+        "claimed_at": "2026-10-31T22:58:03Z",
+        "heartbeat_at": "2026-10-31T22:58:03Z",
+        "expires_at": "2026-11-01T22:58:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-31T23:45:28Z",
+      "reason": "Candidate v8 passes the complete physical Linux RTX 3050 Ti Vulkan row: 157/157 split tests, pinned native validation, relocated SDK, 49 capabilities, 30 cases, 12 scenarios, five workloads and 72,000 measured ticks.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-25-CANDIDATE-V8-LINUX-VULKAN.json"
+      ]
     }
   ]
 }
