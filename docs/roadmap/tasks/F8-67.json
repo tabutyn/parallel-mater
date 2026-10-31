@@ -1,7 +1,7 @@
 {
   "id": "F8-67",
   "title": "Refreeze candidate after Linux Vulkan repairs",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-66"
   ],
@@ -19,15 +19,31 @@
     "A coordination-only change writes the replacement candidate id, manifest hash, source/tree, exact CI run and failure provenance into F8-25 through F8-30 and F8-53, and adds F8-68 as a new Linux CUDA requalification follow-up preserving F8-24 as completed history, before any device task becomes ready.",
     "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances, required timeouts or schedule. Any later protected change creates another candidate rather than mutating this freeze."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "fb93fd79-4318-410d-8479-2a66c7af9cd6",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-67/ThomasLaptop",
-    "claimed_at": "2026-10-31T21:58:27Z",
-    "heartbeat_at": "2026-10-31T21:58:27Z",
-    "expires_at": "2026-11-01T21:58:27Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-67-CANDIDATE-V8-FREEZE.json freezes realtime-single-step-v1-c05d320 at manifest SHA-256 7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33.",
+    "PASS: exact-source GitHub Actions run 41246222115 completed all 17 required jobs and independently hashed 10 artifacts.",
+    "PASS: F8-66 exact-source physical Linux Vulkan passed 157/157 tests, pinned validation, 12/12 relocation, 49 capabilities, 30 cases, 12 scenarios and 72,000 measured workload ticks; candidate-v7 F8-24 pass and F8-25 failure remain separate immutable history."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "fb93fd79-4318-410d-8479-2a66c7af9cd6",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-67/ThomasLaptop",
+        "claimed_at": "2026-10-31T21:58:27Z",
+        "heartbeat_at": "2026-10-31T21:58:27Z",
+        "expires_at": "2026-11-01T21:58:27Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-31T22:26:02Z",
+      "reason": "Freeze repaired candidate v8 with exact-source protected CI, complete physical Linux Vulkan evidence, immutable v7 history and replacement routing",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-67-CANDIDATE-V8-FREEZE.json freezes realtime-single-step-v1-c05d320 at manifest SHA-256 7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33.",
+        "PASS: exact-source GitHub Actions run 41246222115 completed all 17 required jobs and independently hashed 10 artifacts.",
+        "PASS: F8-66 exact-source physical Linux Vulkan passed 157/157 tests, pinned validation, 12/12 relocation, 49 capabilities, 30 cases, 12 scenarios and 72,000 measured workload ticks; candidate-v7 F8-24 pass and F8-25 failure remain separate immutable history."
+      ]
+    }
+  ]
 }

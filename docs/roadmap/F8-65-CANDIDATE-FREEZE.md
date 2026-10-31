@@ -1,5 +1,11 @@
 # F8-65 installed-public CUDA repair candidate freeze
 
+> Historical record: F8-24 passed candidate v7 on Linux CUDA, but F8-25 later
+> rejected it on the mandatory physical Linux Vulkan suite. F8-66 repaired that
+> path and [F8-67](F8-67-CANDIDATE-FREEZE.md) froze replacement candidate v8.
+> Candidate v7 and this record remain immutable provenance and cannot supply a
+> replacement-candidate pass.
+
 F8-65 freezes replacement candidate `realtime-single-step-v1-05f8b04` at
 source revision `05f8b04a14fc34cfb1ba322f363ea7165fcf3d48` and tree
 `e99f19d6af7ddca416b68b0a9a59755a738345f0`. Its machine-readable manifest is

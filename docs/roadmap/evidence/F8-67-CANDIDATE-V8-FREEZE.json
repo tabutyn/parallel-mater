@@ -1,0 +1,209 @@
+{
+  "schema": "parallel-mater-f8-67-candidate-v8-freeze/v1",
+  "task": "F8-67",
+  "status": "passed",
+  "captured_at": "2026-10-31T22:26:00Z",
+  "lease_token": "fb93fd79-4318-410d-8479-2a66c7af9cd6",
+  "candidate": {
+    "id": "realtime-single-step-v1-c05d320",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v8.json",
+    "manifest_sha256": "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33",
+    "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "source_tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "active_pointer_sha256": "ed74d0051bef53f86297a96ab8caeb7f3a01112f6938749e1e9d2c1b794cedcb"
+  },
+  "protected_closure": {
+    "generation_command": "python3 tools/generate_realtime_candidate.py --ci-evidence docs/roadmap/evidence/F8-67-PROTECTED-CI.json --route",
+    "generator_sha256": "260e8f2c9346956ce510653988416a6e2f0d73f7a71bca5eb4c5d477395fb28e",
+    "independent_check_command": "python3 tools/check_realtime_candidate.py",
+    "checker_sha256": "cf5dbedbc61cfcc47bf4ace896ac5822645e0091a4fbec2e22c262873484b612",
+    "categories": 9,
+    "files_by_category": {
+      "api_abi": 18,
+      "kernel": 39,
+      "adapter_binding": 49,
+      "runtime": 127,
+      "schedule_telemetry": 6,
+      "contract": 6,
+      "public_oracle": 539,
+      "work_budget": 7,
+      "gallery": 160
+    },
+    "explicit_contract_hashes": [
+      "scenario_fixtures",
+      "capture_validator",
+      "capture_producer",
+      "capability_obligations",
+      "kernel_device_obligations",
+      "oracle_suite",
+      "case_and_golden_manifest",
+      "budgets_and_tolerances"
+    ],
+    "result": "independent generation and validation hashes agree"
+  },
+  "portable_ci": {
+    "evidence": "docs/roadmap/evidence/F8-67-PROTECTED-CI.json",
+    "evidence_sha256": "70aa6ae39fbff25826a5f9f22e32527c9c4fa96ea5eaa5cd600edea5ed0334b7",
+    "run_id": 41246222115,
+    "run_url": "https://github.com/tabutyn/parallel-mater/actions/runs/41246222115",
+    "event": "workflow_dispatch",
+    "head_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "head_tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "result": "success",
+    "required_jobs_passed": 17,
+    "required_jobs_total": 17,
+    "artifacts_hashed": 10,
+    "native_binaries_hashed": 6,
+    "application_artifacts_hashed": 6,
+    "source_clean_reports": [
+      "linux",
+      "macos",
+      "windows",
+      "ipados"
+    ]
+  },
+  "physical_linux_vulkan": {
+    "evidence": "docs/roadmap/evidence/F8-66-LINUX-VULKAN-REPAIR.json",
+    "evidence_sha256": "c5d7f944a3e593373dff5bd886e65bc79a9b15a58389b09cda403b323108dea1",
+    "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "source_tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "working_tree": "clean",
+    "registered_suite": {
+      "status": "passed",
+      "passed": 157,
+      "failed": 0,
+      "skipped": 0,
+      "total": 157,
+      "physical_manifest_run": 154,
+      "isolated_discovery_and_launcher_run": 3,
+      "split_reason": "The three isolation tests control and assert their own driver manifests; inheriting the forced physical manifest invalidates their discovery contract.",
+      "vulkan_labeled_tests_executed": 41,
+      "spirv_modules_passed": 27,
+      "spirv_modules_failed": 0,
+      "physical_elapsed_seconds": 831.76,
+      "isolated_elapsed_seconds": 0.17,
+      "native_validation_errors": 0
+    },
+    "gallery_regressions": {
+      "session_contract": {
+        "status": "passed",
+        "elapsed_seconds": 364.69,
+        "limit_seconds": 600
+      },
+      "cloth_paint_120_frames": "passed with non-empty paint output",
+      "smoke_120_frames": "passed",
+      "smoke_water_120_frames": "passed",
+      "smoke_softbody_120_frames": "passed",
+      "smoke_cloth_120_frames": "passed",
+      "smoke_rope_120_frames": "passed"
+    },
+    "relocated_sdk_checks": {
+      "passed": 12,
+      "total": 12
+    },
+    "installed_public_capture": {
+      "status": "passed",
+      "failure_count": 0,
+      "runtime_variant": "vulkan-runtime",
+      "target_id": "linux-rtx3050ti-slang-vulkan",
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "separate_system_equal_fluid_rows_passed": 3,
+      "public_cases_completed": 30,
+      "scenarios_passed": 12,
+      "scenario_execution_rows": 24,
+      "unique_named_measurements": 37,
+      "scenario_measurement_observations": 176,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each_mode": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0
+    },
+    "capture_archive": "docs/roadmap/evidence/F8-66-LINUX-VULKAN-REPAIR.tar.zst",
+    "capture_archive_sha256": "7aa8478cce40d7685882c64f3dea74ea49bdaa2d223bb8fb2697e36b505ff5d3"
+  },
+  "sole_path_audit": {
+    "evidence": "docs/roadmap/evidence/F8-67-SOLE-PATH-AUDIT.json",
+    "evidence_sha256": "4f3e931913655a57b0420efefdfaec0add28af2534ca3f5fec9ce15dda71a8c2",
+    "capabilities": 49,
+    "public_cases": 30,
+    "scenarios": 12,
+    "measurements": 37,
+    "canonical_modules": 26,
+    "canonical_entries": 234,
+    "kernel_groups": 32,
+    "runtime_variants": 5,
+    "physical_targets": 8,
+    "status": "passed"
+  },
+  "rejected_history": {
+    "candidate_v7": {
+      "id": "realtime-single-step-v1-05f8b04",
+      "manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
+      "linux_cuda_pass_evidence_sha256": "49a2e57dd43af1a5735e3b9838d6280de80d4f688ff61ca56035ecc173881764",
+      "linux_cuda_pass_archive_sha256": "127b00849c4744faba0543d3eb15971ea6b273e2dd2c0064d99417c538bd1e3c",
+      "linux_vulkan_failure_evidence_sha256": "2adbc20a1ef42d2d6f2c0f3f0e4d977aeeb14d65f72219fafac42cad9efbf6db",
+      "linux_vulkan_failure_archive_sha256": "7facdbf9d31f9abe4a01a7ade4dc324f76524299c8366fe1b900b53e9c2907c2",
+      "rejection_record_sha256": "14d9897430c1020ad4d7d2fa5dea1c23389c667a456e42487036af64127d2662",
+      "verified_immutable": true
+    },
+    "evidence_union_allowed": false
+  },
+  "qualification_routing": {
+    "tasks": [
+      "F8-25",
+      "F8-26",
+      "F8-27",
+      "F8-28",
+      "F8-29",
+      "F8-30",
+      "F8-53",
+      "F8-68"
+    ],
+    "historical_completed_task": "F8-24",
+    "replacement_cuda_task": "F8-68",
+    "bound_fields": [
+      "candidate_id",
+      "manifest_sha256",
+      "source_revision",
+      "source_tree",
+      "ci_run_id"
+    ],
+    "status": "passed"
+  },
+  "verification": [
+    {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 tests/solver/check_slang_architecture.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m unittest conformance.v1.tests.test_realtime_oracle conformance.v1.tests.test_realtime_device_suite conformance.v1.tests.test_realtime_scenario_fixtures",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "passed"
+    },
+    {
+      "command": "python3 tools/roadmap.py check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "invalidation_rule": "Any later protected-file change creates a new candidate and reruns every affected physical row; candidate v8 and its hashes are immutable."
+}
