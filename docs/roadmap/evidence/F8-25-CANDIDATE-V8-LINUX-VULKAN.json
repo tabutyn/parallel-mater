@@ -1,0 +1,273 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v1",
+  "status": "passed",
+  "captured_at": "2026-10-31T23:44:42Z",
+  "task": "F8-25",
+  "lease_token": "05135d8d-5bd4-4779-a255-99aff4443200",
+  "candidate": {
+    "id": "realtime-single-step-v1-c05d320",
+    "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "source_tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v8.json",
+    "manifest_sha256": "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33",
+    "freeze_evidence": "docs/roadmap/evidence/F8-67-CANDIDATE-V8-FREEZE.json",
+    "freeze_evidence_sha256": "ac1ef282b6b4e8e60d125e98ec04b9ef46b8401e9dc836f87c26a2ef8580d4b6",
+    "exact_source_ci_run": 41246222115,
+    "target": "linux-rtx3050ti-slang-vulkan",
+    "runtime_variant": "vulkan-runtime"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": "0x10de",
+    "device_id": "0x25a0",
+    "driver": "590.44.01",
+    "vbios": "94.07.42.00.3A",
+    "uuid": "GPU-2d010adb-af2c-99d1-bf34-a89a8551e301",
+    "gpu_temperature_celsius_after": 55,
+    "installed_public_provenance": {
+      "device_name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "driver_binary_sha256": "90d61dbbb6f1940b3304464ffaafde36bc8b78c93821c29f1197b49b7eedc8a7",
+      "source_commit": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+      "host_compiler": "12.2.0"
+    }
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18",
+    "pinned_validation_sdk": {
+      "version": "1.4.341.0",
+      "archive_sha256": "ed66477d587a5587dc3601b1c2cdcc1fab5529c505f53a00171876cecd9b4fbe",
+      "pin_manifest_sha256": "40c17bb2ae968c59f2bf5f655e5ace32f24299e438bd7cc5691d6141ce06d773",
+      "validation_layer_sha256": "d532be81a907ac464e281209b3334e1b4f15e49c8eea8a632c23750488820a2c",
+      "validation_manifest_sha256": "9c1ad32382836d329a4bdfcd54ef408c777cef7969c50f891816003f3e942449",
+      "spirv_val_sha256": "cf341751800f75429d546af0ffef33643e4d3e7af22c87018782f8a202a394e3"
+    }
+  },
+  "commands": {
+    "configure": "cmake -S . -B /tmp/parallel-mater-f8-25-v8-vulkan-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPARALLEL_MATER_BUILD_CUDA=OFF -DPARALLEL_MATER_BUILD_VULKAN=ON -DPARALLEL_MATER_BUILD_GALLERY=ON",
+    "build": "cmake --build /tmp/parallel-mater-f8-25-v8-vulkan-build --config Release --parallel 2",
+    "physical_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-25-v8-vulkan-build/Release/manifests/slang-vulkan.json PM_LAYER_FILES=/tmp/parallel-mater-f8-25-v8-vulkan-build/Release/manifests/validation.json VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir /tmp/parallel-mater-f8-25-v8-vulkan-build -C Release --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_discovery_suite": "PM_DRIVER_FILES, PM_LAYER_FILES, VK_LAYER_PATH, LD_LIBRARY_PATH and VK_INSTANCE_LAYERS unset; ctest --test-dir /tmp/parallel-mater-f8-25-v8-vulkan-build -C Release --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-25-v8-vulkan-build --output /tmp/f8-25-v8-evidence/sdk --config Release",
+    "device_capture": "VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib python3 conformance/v1/realtime_device_capture.py --runner /tmp/f8-25-v8-evidence/sdk/relocated-sdk/bin/parallel-mater-conformance --driver-manifest /tmp/f8-25-v8-evidence/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_vulkan.json --validation-layer-manifest /tmp/f8-25-v8-evidence/sdk/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json --runtime-variant vulkan-runtime --target-id linux-rtx3050ti-slang-vulkan --output /tmp/f8-25-v8-evidence/capture-v8",
+    "independent_validation": "python3 conformance/v1/realtime_device_suite.py --capture /tmp/f8-25-v8-evidence/capture-v8/capture.json --candidate-manifest conformance/v1/qualification/realtime-candidate-v8.json --output /tmp/f8-25-v8-evidence/validation-report-v8.json",
+    "capture_unit_tests": "python3 -m unittest conformance/v1/tests/test_realtime_device_capture.py conformance/v1/tests/test_realtime_device_suite.py conformance/v1/tests/test_realtime_oracle.py",
+    "roadmap_tests": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+    "reflected_abi_tests": "python3 tests/solver/test_slang_abi.py",
+    "candidate_check": "python3 tools/check_realtime_candidate.py"
+  },
+  "results": {
+    "clean_release_build": "passed",
+    "registered_tests": {
+      "status": "passed",
+      "passed": 157,
+      "failed": 0,
+      "skipped": 0,
+      "total": 157,
+      "physical_manifest_run": 154,
+      "isolated_discovery_and_launcher_run": 3,
+      "split_reason": "The three isolation tests control and assert their own driver manifests; inheriting the forced physical manifest invalidates their discovery contract.",
+      "vulkan_labeled_tests_executed": 41,
+      "spirv_modules_passed": 27,
+      "spirv_modules_failed": 0,
+      "physical_elapsed_seconds": 869.76,
+      "isolated_elapsed_seconds": 0.19,
+      "native_validation_errors": 0
+    },
+    "required_gallery_regressions": {
+      "session_contract": {
+        "status": "passed",
+        "elapsed_seconds": 381.01,
+        "limit_seconds": 600
+      },
+      "cloth_paint_120_frames": "passed with non-empty paint output",
+      "smoke_120_frames": "passed",
+      "smoke_water_120_frames": "passed",
+      "smoke_softbody_120_frames": "passed",
+      "smoke_cloth_120_frames": "passed",
+      "smoke_rope_120_frames": "passed"
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+      "source_dirty": false,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    },
+    "installed_public_capture": {
+      "status": "passed",
+      "failure_count": 0,
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "public_cases_completed": 30,
+      "unsupported_required_cases": 0,
+      "scenarios_passed": 12,
+      "scenario_execution_rows": 24,
+      "unique_named_measurements": 37,
+      "scenario_measurement_observations_each_mode": 176,
+      "scenario_measurement_observations_total": 352,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each_mode": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0,
+      "reported_distributions": [
+        "cpu_ms.p50/p95/p99/maximum",
+        "gpu_ms.p50/p95/p99/maximum",
+        "physics_ms.p50/p95/p99/maximum",
+        "frame_ms.p50/p95/p99/maximum"
+      ]
+    },
+    "fixed_tick_contract": {
+      "status": "passed",
+      "dt_seconds": 0.016666666666666666,
+      "normal_tick_time_advances": 1,
+      "normal_tick_spatial_publications": 1,
+      "normal_tick_queue_submissions": 1,
+      "normal_tick_host_readbacks": 0,
+      "fixed_dispatch_iteration_and_synchronization_budgets": "passed",
+      "high_rate_interpolation": "passed: parallel-mater-gallery-presentation-interpolation-tests",
+      "low_rate_slow_motion_no_catch_up": "passed: parallel-mater-gallery-session-clock-tests",
+      "atomic_failure_recovery": "passed: expected capacity overflow preserved clock, committed state and pending inputs with zero time advances and zero spatial publications"
+    },
+    "installed_gallery_behavior": {
+      "applicability": "The Linux Gallery application is not installed by the SDK; the shared physical headless presentation path and installed Linux launcher are applicable.",
+      "presentation_interpolation": "passed",
+      "session_clock": "passed",
+      "headless_frame_timing": "passed",
+      "installed_launcher": "passed"
+    },
+    "cold_and_sustained_coverage": {
+      "cold_start_scenarios": [
+        "rigid-cold-impact-rotation",
+        "cloth-stiff-pin-impact",
+        "six-family-mixed"
+      ],
+      "long_run_scenarios": [
+        "rigid-settled-long-run",
+        "fluid-closed-container-source-outflow",
+        "smoke-analytic-transport-long-run",
+        "six-family-mixed"
+      ],
+      "status": "passed"
+    },
+    "supporting_tests": {
+      "capture_oracle": "40/40 passed",
+      "reflected_abi": "10/10 passed",
+      "roadmap": "89/89 passed",
+      "candidate_closure": "passed"
+    }
+  },
+  "performance": {
+    "tier": "desktop-full-v1",
+    "physics_p95_ms_maximum": 10.0,
+    "frame_budget_ms": 16.666666666666668,
+    "workloads": [
+      {
+        "id": "rigid-wall",
+        "simulated_to_wall_time_ratio": 6.795495574748166,
+        "cpu_ms": {"p50": 0.015056, "p95": 0.020616, "p99": 0.026842, "maximum": 0.056318},
+        "gpu_ms": {"p50": 2.296832, "p95": 2.44736, "p99": 2.522112, "maximum": 20.025344},
+        "physics_ms": {"p50": 2.415377, "p95": 2.625137, "p99": 2.739679, "maximum": 20.519985},
+        "frame_ms": {"p50": 2.415377, "p95": 2.625137, "p99": 2.739679, "maximum": 20.519985}
+      },
+      {
+        "id": "fluid-rigid",
+        "simulated_to_wall_time_ratio": 7.179871934096186,
+        "cpu_ms": {"p50": 0.015119, "p95": 0.019451, "p99": 0.025451, "maximum": 0.053896},
+        "gpu_ms": {"p50": 2.159616, "p95": 2.315264, "p99": 2.400256, "maximum": 8.456192},
+        "physics_ms": {"p50": 2.28576, "p95": 2.497849, "p99": 2.607003, "maximum": 18.383651},
+        "frame_ms": {"p50": 2.28576, "p95": 2.497849, "p99": 2.607003, "maximum": 18.383651}
+      },
+      {
+        "id": "deformable-mixed",
+        "simulated_to_wall_time_ratio": 3.6560371536230365,
+        "cpu_ms": {"p50": 0.015335, "p95": 0.021476, "p99": 0.028069, "maximum": 0.052892},
+        "gpu_ms": {"p50": 4.38784, "p95": 4.675584, "p99": 4.847616, "maximum": 7.473152},
+        "physics_ms": {"p50": 4.513198, "p95": 4.834434, "p99": 5.044537, "maximum": 7.639941},
+        "frame_ms": {"p50": 4.513198, "p95": 4.834434, "p99": 5.044537, "maximum": 7.639941}
+      },
+      {
+        "id": "smoke-coupled",
+        "simulated_to_wall_time_ratio": 11.473676264995438,
+        "cpu_ms": {"p50": 0.014174, "p95": 0.017745, "p99": 0.021511, "maximum": 0.049647},
+        "gpu_ms": {"p50": 1.32096, "p95": 1.445632, "p99": 1.891328, "maximum": 5.09952},
+        "physics_ms": {"p50": 1.445637, "p95": 1.57212, "p99": 2.162747, "maximum": 5.583613},
+        "frame_ms": {"p50": 1.445637, "p95": 1.57212, "p99": 2.162747, "maximum": 5.583613}
+      },
+      {
+        "id": "six-family-mixed",
+        "simulated_to_wall_time_ratio": 1.8081973925038737,
+        "cpu_ms": {"p50": 0.015894, "p95": 0.025041, "p99": 0.033067, "maximum": 0.096423},
+        "gpu_ms": {"p50": 9.03168, "p95": 9.455616, "p99": 9.691136, "maximum": 18.432},
+        "physics_ms": {"p50": 9.18225, "p95": 9.638021, "p99": 9.886776, "maximum": 18.966552},
+        "frame_ms": {"p50": 9.18225, "p95": 9.638021, "p99": 9.886776, "maximum": 18.966552}
+      }
+    ],
+    "status": "passed"
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-25-CANDIDATE-V8-LINUX-VULKAN.tar.zst",
+    "tracked_archive_sha256": "66dc30be8f4e5e1945eed339df6416c1d4318ab639ccf938bcaae454388606b5",
+    "tracked_archive_bytes": 20574260,
+    "tracked_archive_uncompressed_bytes": 262062080,
+    "tracked_archive_contents": "complete candidate-v8 installed-public capture tree, independent evaluator report, physical and isolated CTest logs, exact-source relocated-SDK report, frozen manifest, and complete discarded stale-v7-metadata capture and rejection report",
+    "tracked_archive_file_count": 262,
+    "tracked_archive_tree_sha256": "6f5dc04612f92aa6397bb2ba4909755d6612e0f54870cb3f8ee4e0b6a6f0ce5c",
+    "tree_hash_method": "SHA-256 of sorted repository-relative sha256sum records",
+    "capture_file_count": 128,
+    "capture_tree_sha256": "5a943319779f7ad5a67e20e4a94099851354f10a1ef09d7883d127791c2e353b",
+    "capture_sha256": "d96123c7c46f1b9fe9e8a8b9592e9d16534b1dfe9b0a26d73a30d4ddbe043c5d",
+    "independent_validation_report_sha256": "e23aa21b43924f709c4aec22d9cd55248ee8484cfb86ea9b5740951e1c4df3b7",
+    "physical_ctest_log_sha256": "8cb75dc8fc1ce03b4ee2f0fdf1af616b488e9b2c393065805846fba4db851264",
+    "isolated_ctest_log_sha256": "0fb56d6d4ff4df0de80961f77893d6d5b2949cb24c58dd05aef60da8a699a7f3",
+    "sdk_report_sha256": "03410b063d5bbe03156ac5a3ed69bbf164fd52aa96cb75eb09849dc88e95ecba",
+    "sdk_evidence_file_count": 665,
+    "sdk_evidence_tree_sha256": "a724bea3c0c36d6e5c3932b2377a9f3b0b0e5e618f51a234cc07637873291aca",
+    "runner_sha256": "53dcf90e19d3c72d92ceed1ebae096a6aa2efe951b5f9aba2d3de892e34ae22a",
+    "driver_sha256": "90d61dbbb6f1940b3304464ffaafde36bc8b78c93821c29f1197b49b7eedc8a7",
+    "driver_manifest_sha256": "824ba64eefb9cf789ce2c952f5e049c1bacb9b3746dd9255f3fa6428c62afade",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "discarded_attempts": [
+    {
+      "reason": "The first capture invoked the exact-source producer from the detached c05d320 checkout. That checkout predates F8-67 and its active-candidate pointer still names candidate v7, so the independent v8 evaluator correctly rejected 15 candidate-identity fields. Producer execution itself reported 12 scenarios and zero runtime failures; none of this attempt contributes to the v8 pass.",
+      "capture_sha256": "58dcbf68af28d60305d2e0fb1511083c1e8545f00528327f939be1457202e313",
+      "rejection_report_sha256": "7327f32b09a8bcd9c6e9079b481f32d457e401b6623600cf18b6a421a1dd3bee",
+      "failure_count": 15,
+      "failure_class": "candidate-identity-only"
+    }
+  ],
+  "producer_provenance": {
+    "exact_source_producer_sha256": "78c93cf688af6667d07abb78e30dea9540bbb253261679ccb1797b5aa9e83595",
+    "qualification_metadata_producer_sha256": "78c93cf688af6667d07abb78e30dea9540bbb253261679ccb1797b5aa9e83595",
+    "byte_identical": true,
+    "rule": "The passing capture uses the exact c05d320 relocated runner and driver. The byte-identical producer is invoked from the F8-67 metadata checkout solely so its active-candidate input names frozen candidate v8."
+  },
+  "rejected_history": {
+    "candidate_v7_linux_cuda_pass_evidence_sha256": "49a2e57dd43af1a5735e3b9838d6280de80d4f688ff61ca56035ecc173881764",
+    "candidate_v7_linux_cuda_archive_sha256": "127b00849c4744faba0543d3eb15971ea6b273e2dd2c0064d99417c538bd1e3c",
+    "candidate_v7_linux_vulkan_failure_evidence_sha256": "2adbc20a1ef42d2d6f2c0f3f0e4d977aeeb14d65f72219fafac42cad9efbf6db",
+    "candidate_v7_linux_vulkan_failure_archive_sha256": "7facdbf9d31f9abe4a01a7ade4dc324f76524299c8366fe1b900b53e9c2907c2",
+    "evidence_union_allowed": false
+  },
+  "qualification_effect": "Candidate v8 passes the final Linux RTX 3050 Ti Vulkan row. This report uses only a fresh exact-source candidate-v8 build, physical pinned-validation suite, relocated SDK and installed-public capture. Candidate v7 and all earlier candidates remain immutable rejected history and contribute no passing observation."
+}
