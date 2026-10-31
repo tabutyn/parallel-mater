@@ -1,7 +1,7 @@
 {
   "id": "F8-25",
   "title": "Qualify the candidate on Linux Vulkan devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -27,7 +27,15 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "05135d8d-5bd4-4779-a255-99aff4443200",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-25/ThomasLaptop-v8",
+    "claimed_at": "2026-10-31T22:58:03Z",
+    "heartbeat_at": "2026-10-31T22:58:03Z",
+    "expires_at": "2026-11-01T22:58:03Z"
+  },
   "history": [
     {
       "lease": {
