@@ -1,7 +1,7 @@
 {
   "id": "F8-24",
   "title": "Qualify the candidate on Linux CUDA devices",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -25,16 +25,11 @@
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success.",
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bcc93f70-af25-4147-8bf2-9cddf84a37b6",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-24/ThomasLaptop-v7",
-    "claimed_at": "2026-10-31T15:54:02Z",
-    "heartbeat_at": "2026-10-31T15:54:02Z",
-    "expires_at": "2026-11-01T15:54:02Z"
-  },
+  "evidence": [
+    "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.json",
+    "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.tar.zst"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -65,6 +60,24 @@
       "at": "2026-10-30T12:28:13Z",
       "reason": "Candidate v6 fails mandatory installed-public Linux CUDA qualification: plain mode 0/30 due statistics-query invalid state; validation executes 30/30 but reference comparison fails 30/30 with 5629 differences; required scenario/performance capture producer is absent. Preserve evidence on work/F8-24/ThomasLaptop-v6 commit b1cb33f; add bounded repair/refreeze leaves before requalification.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "bcc93f70-af25-4147-8bf2-9cddf84a37b6",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-24/ThomasLaptop-v7",
+        "claimed_at": "2026-10-31T15:54:02Z",
+        "heartbeat_at": "2026-10-31T15:54:02Z",
+        "expires_at": "2026-11-01T15:54:02Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-31T16:13:28Z",
+      "reason": "Candidate v7 passes the final physical Linux RTX 3050 Ti CUDA gate: 131/131 registered tests, 12/12 relocated-SDK checks, and a fresh installed-public capture with 49 capabilities, 30 cases, 12 scenarios, five negative controls, and five workloads over 72,000 measured ticks.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.json",
+        "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.tar.zst"
+      ]
     }
   ]
 }
