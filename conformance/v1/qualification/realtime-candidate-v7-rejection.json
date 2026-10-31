@@ -1,0 +1,81 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-05f8b04",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v7.json",
+  "candidate_manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
+  "status": "rejected-required-linux-vulkan-suite",
+  "rejected_at": "2026-10-31",
+  "rejection_task": "F8-66",
+  "historical_qualification_task": "F8-24",
+  "historical_pass_evidence": "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.json",
+  "historical_pass_evidence_sha256": "49a2e57dd43af1a5735e3b9838d6280de80d4f688ff61ca56035ecc173881764",
+  "historical_pass_archive": "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.tar.zst",
+  "historical_pass_archive_sha256": "127b00849c4744faba0543d3eb15971ea6b273e2dd2c0064d99417c538bd1e3c",
+  "failure_evidence": "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.json",
+  "failure_evidence_sha256": "2adbc20a1ef42d2d6f2c0f3f0e4d977aeeb14d65f72219fafac42cad9efbf6db",
+  "failure_archive": "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.tar.zst",
+  "failure_archive_sha256": "7facdbf9d31f9abe4a01a7ade4dc324f76524299c8366fe1b900b53e9c2907c2",
+  "repair_evidence": "docs/roadmap/evidence/F8-66-LINUX-VULKAN-REPAIR.json",
+  "repair_evidence_sha256": "c5d7f944a3e593373dff5bd886e65bc79a9b15a58389b09cda403b323108dea1",
+  "reasons": [
+    "Candidate v7 passed its F8-24 Linux CUDA row but failed the mandatory F8-25 physical Linux Vulkan Gallery and installed-public suite.",
+    "F8-66 repairs those failures and proves 157 registered tests, pinned validation, 27 SPIR-V modules, SDK relocation, 49 capability rows, 30 public cases, 12 scenarios, 37 named measurements, five negative controls and five sustained workloads on exact clean replacement source c05d320.",
+    "Candidate-v7 CUDA passes and Vulkan partial observations remain immutable rejected provenance and cannot qualify or be unioned with the F8-66 repaired-source evidence."
+  ],
+  "superseded_at": "2026-10-31",
+  "supersession_task": "F8-67",
+  "replacement": {
+    "status": "frozen-awaiting-physical-qualification",
+    "candidate_id": "realtime-single-step-v1-c05d320",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v8.json",
+    "candidate_manifest_sha256": "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33",
+    "freeze_task": "F8-67",
+    "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "source_tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "ci_run_id": 41246222115
+  },
+  "evidence_union_allowed": false,
+  "invalidated_physical_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "qualification_owner": "F8-26",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "qualification_owner": "F8-27",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "qualification_owner": "F8-53",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "qualification_owner": "F8-68",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "qualification_owner": "F8-25",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "qualification_owner": "F8-28",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "qualification_owner": "F8-29",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "qualification_owner": "F8-30",
+      "status": "invalidated-requalify-replacement"
+    }
+  ],
+  "qualification_rule": "No final F8 qualification report may name or reuse candidate v7. F8-25 through F8-30, F8-53 and F8-68 must execute only realtime-single-step-v1-c05d320 from F8-67."
+}
