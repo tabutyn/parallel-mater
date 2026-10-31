@@ -1,7 +1,7 @@
 {
   "id": "F8-67",
   "title": "Refreeze candidate after Linux Vulkan repairs",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-66"
   ],
@@ -20,6 +20,14 @@
     "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances, required timeouts or schedule. Any later protected change creates another candidate rather than mutating this freeze."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "fb93fd79-4318-410d-8479-2a66c7af9cd6",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-67/ThomasLaptop",
+    "claimed_at": "2026-10-31T21:58:27Z",
+    "heartbeat_at": "2026-10-31T21:58:27Z",
+    "expires_at": "2026-11-01T21:58:27Z"
+  },
   "history": []
 }
