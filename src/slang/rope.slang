@@ -273,6 +273,8 @@ void rope_realtime_project_constraints(
     }
     pmGroupBarrier();
 
+    // Preserve the direct stretch result while the shared tridiagonal
+    // workspace is reused for the two independent even/odd bend chains.
     for (uint node = lane; node < count; node += pmGroupSize().x)
     {
         float selfMass = rope_realtime_inverse_mass(
@@ -287,52 +289,96 @@ void rope_realtime_project_constraints(
             if (node < edges)
                 correction = subtract(correction, multiply(
                     ropeRealtimeDirections[node], selfMass * ropeRhs[node]));
+        }
+        position_deltas[node] = correction;
+    }
+    pmGroupBarrier();
 
-            // A two-edge chord supplies bounded bending without changing the
-            // public v1 rope material. Half-relaxed Jacobi keeps the two
-            // parity chains stable while the direct stretch solve carries
-            // tension across the complete rope.
-            Vec3 bendCorrection = Vec3(0.0f);
-            Vec3 position = positions[node];
-            for (uint side = 0u; side < 2u; ++side)
+    uint bends = count - 2u;
+    for (uint bend = lane; bend < bends; bend += pmGroupSize().x)
+    {
+        float firstMass = rope_realtime_inverse_mass(
+            bend, count, inverse_masses, anchor_active);
+        float secondMass = rope_realtime_inverse_mass(
+            bend + 2u, count, inverse_masses, anchor_active);
+        float effectiveInverseMass = firstMass + secondMass;
+        float restLength = rest_bend_lengths[bend];
+        Vec3 difference = subtract(positions[bend + 2u], positions[bend]);
+        float currentLength = vector_length(difference);
+        bool valid = isfinite(restLength) && restLength >= 0.005f &&
+            restLength <= 2.5f * node_spacing &&
+            rope_realtime_compliance_valid(structural_compliance,
+                effectiveInverseMass, dt) && isfinite(currentLength) &&
+            currentLength >= 1.0e-7f;
+        if (!valid)
+        {
+            pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+            ropeRealtimeDirections[bend] = Vec3(1.0f, 0.0f, 0.0f);
+            ropeDiagonal[bend] = 1.0f;
+            ropeRhs[bend] = 0.0f;
+            continue;
+        }
+        ropeRealtimeDirections[bend] = multiply(
+            difference, 1.0f / currentLength);
+        ropeDiagonal[bend] = effectiveInverseMass + alpha;
+        ropeRhs[bend] = -(currentLength - restLength);
+    }
+    pmGroupBarrier();
+    for (uint bend = lane; bend + 2u < bends; bend += pmGroupSize().x)
+    {
+        float sharedMass = rope_realtime_inverse_mass(
+            bend + 2u, count, inverse_masses, anchor_active);
+        ropeUpper[bend] = -sharedMass * dot(
+            ropeRealtimeDirections[bend], ropeRealtimeDirections[bend + 2u]);
+    }
+    pmGroupBarrier();
+    if (lane == 0u)
+    {
+        for (uint parity = 0u; parity < 2u; ++parity)
+        {
+            if (parity >= bends) continue;
+            uint last = parity;
+            for (uint bend = parity + 2u; bend < bends; bend += 2u)
             {
-                int otherSigned = int(node) + (side == 0u ? -2 : 2);
-                if (otherSigned < 0 || otherSigned >= int(count)) continue;
-                uint other = uint(otherSigned);
-                uint constraint = min(node, other);
-                float restLength = rest_bend_lengths[constraint];
-                float otherMass = rope_realtime_inverse_mass(
-                    other, count, inverse_masses, anchor_active);
-                float effectiveInverseMass = selfMass + otherMass;
-                if (!isfinite(restLength) || restLength < 0.005f ||
-                    restLength > 2.5f * node_spacing ||
-                    !rope_realtime_compliance_valid(structural_compliance,
-                        effectiveInverseMass, dt))
-                {
-                    pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
-                    continue;
-                }
-                Vec3 difference = subtract(position, positions[other]);
-                float currentLength = vector_length(difference);
-                if (!isfinite(currentLength) || currentLength < 1.0e-7f)
-                {
-                    pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
-                    continue;
-                }
-                float denominator = effectiveInverseMass + alpha;
-                float amount = -selfMass *
-                    (currentLength - restLength) /
-                    (denominator * currentLength);
-                bendCorrection = add(bendCorrection,
-                    multiply(difference, amount));
+                float factor = ropeUpper[bend - 2u] /
+                    max(ropeDiagonal[bend - 2u], 1.0e-10f);
+                ropeDiagonal[bend] -= factor * ropeUpper[bend - 2u];
+                ropeRhs[bend] -= factor * ropeRhs[bend - 2u];
+                last = bend;
             }
-            correction = add(correction,
-                multiply(bendCorrection, 0.5f));
+            ropeRhs[last] /= max(ropeDiagonal[last], 1.0e-10f);
+            for (int bend = int(last) - 2; bend >= int(parity); bend -= 2)
+                ropeRhs[bend] = (ropeRhs[bend] -
+                    ropeUpper[bend] * ropeRhs[bend + 2]) /
+                    max(ropeDiagonal[bend], 1.0e-10f);
+        }
+    }
+    pmGroupBarrier();
+
+    for (uint node = lane; node < count; node += pmGroupSize().x)
+    {
+        float selfMass = rope_realtime_inverse_mass(
+            node, count, inverse_masses, anchor_active);
+        Vec3 bendCorrection = Vec3(0.0f);
+        if (selfMass != 0.0f)
+        {
+            if (node >= 2u)
+                bendCorrection = add(bendCorrection, multiply(
+                    ropeRealtimeDirections[node - 2u],
+                    selfMass * ropeRhs[node - 2u]));
+            if (node < bends)
+                bendCorrection = subtract(bendCorrection, multiply(
+                    ropeRealtimeDirections[node], selfMass * ropeRhs[node]));
         }
         float maximumCorrection = kRopeRealtimeStructuralCorrectionFraction *
             node_spacing;
         float remaining = max(0.0f,
             maximumCorrection - correction_used[node]);
+        bendCorrection = clamp_length(
+            multiply(bendCorrection, 0.5f), remaining);
+        Vec3 stretchCorrection = clamp_length(position_deltas[node],
+            max(0.0f, remaining - vector_length(bendCorrection)));
+        Vec3 correction = add(bendCorrection, stretchCorrection);
         correction = clamp_length(correction, remaining);
         if (!rope_realtime_finite_vec3(correction))
         {
@@ -424,6 +470,7 @@ void rope_realtime_project_contacts(
         if (inverseMass == 0.0f) continue;
         Vec3 position = ropeRealtimeContactPositions[node];
         Vec3 correction = Vec3(0.0f);
+        uint selfContactCount = 0u;
         if (self_collision != 0u)
         {
             float targetSeparation = 2.0f * radius;
@@ -448,7 +495,11 @@ void rope_realtime_project_contacts(
                 correction = add(correction, multiply(direction,
                     (targetSeparation - distance) * inverseMass /
                         totalInverseMass));
+                ++selfContactCount;
             }
+            if (selfContactCount > 1u)
+                correction = multiply(
+                    correction, 1.0f / float(selfContactCount));
         }
 
         Vec3 normal = contact_normals[node];

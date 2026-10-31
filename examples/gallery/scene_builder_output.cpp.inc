@@ -630,13 +630,16 @@ bool CommandScene::reset(std::string &error) {
         error = "reset simulation: invalid state";
         return false;
     }
-    CommandScene replacement;
-    CommandSceneInstance bindings;
-    if (!create(impl_->original_scene, impl_->debug_frame_capacity,
-                replacement, bindings, error, impl_->selected_backend, nullptr,
-                impl_->validation_enabled))
+    if (!impl_->submit_reset(error))
         return false;
-    impl_ = std::move(replacement.impl_);
+    impl_->rigid_bodies = impl_->initial_rigid_bodies;
+    impl_->constraints = impl_->initial_constraints;
+    impl_->cloth_active.assign(impl_->cloth_active.size(), 1U);
+    impl_->rope_active.assign(impl_->rope_active.size(), 1U);
+    impl_->soft_body_active.assign(impl_->soft_body_active.size(), 1U);
+    impl_->smoke_active = !impl_->smoke_capacities.empty();
+    impl_->output_ready = false;
+    impl_->contacts_available = false;
     return true;
 }
 

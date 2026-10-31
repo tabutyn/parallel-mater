@@ -27,6 +27,26 @@ def split_args(text):
     return result
 
 
+def mesh_body_count(lookup, reflected):
+    """Return the reflected rigid-body bound for a mesh-table translation.
+
+    A kernel can carry an unrelated generic ``count`` (for example smoke
+    particles) alongside one explicit rigid ``body``.  Prefer the rigid names;
+    treating that generic count as a body bound makes the adapter validate a
+    range that was never allocated.
+    """
+    if 'body_count' in lookup:
+        return lookup['body_count']
+    for name in ('body_index', 'body'):
+        if name in lookup:
+            return f'({lookup[name]} + 1U)'
+    count = lookup.get('count')
+    count_type = next(
+        (item['type']['kind'] for item in reflected
+         if item['name'] == 'count'), None)
+    return None if count_type == 'pointer' else count
+
+
 def generate(args):
     reflection = json.loads(pathlib.Path(args.reflection).read_text())
     abi = ReflectedABI(reflection)
@@ -80,10 +100,7 @@ def generate(args):
                 pointee = pointee if isinstance(pointee, str) else pointee.get('name')
                 if pointee == 'TriangleMeshResource':
                     body = lookup.get('parameters', lookup.get('body_parameters'))
-                    count = lookup.get('body_count', lookup.get('count'))
-                    count_type = next((x['type']['kind'] for x in reflected if x['name'] == 'count'), None)
-                    if 'body_count' not in lookup and count_type == 'pointer': count = None
-                    if 'body_index' in lookup: count = f'({lookup["body_index"]} + 1U)'
+                    count = mesh_body_count(lookup, reflected)
                     if name == 'fluid_resolve_moving_contacts':
                         # The immediately preceding detection pass prepared this
                         # exact immutable mesh table with its explicit body count.

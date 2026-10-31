@@ -7,6 +7,7 @@ import sys
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 from slang_abi import ReflectedABI
+from generate_vulkan_dispatch import mesh_body_count
 
 
 def scalar(name, size):
@@ -34,6 +35,24 @@ def fixture():
 
 
 class ReflectedABITest(unittest.TestCase):
+    def test_vulkan_mesh_translation_prefers_explicit_rigid_body_bound(self):
+        reflected = [
+            {'name': 'count', 'type': {'kind': 'scalar'}},
+            {'name': 'body', 'type': {'kind': 'scalar'}},
+        ]
+        self.assertEqual(
+            mesh_body_count(
+                {'count': 'arg_count', 'body': 'arg_body'}, reflected),
+            '(arg_body + 1U)')
+        self.assertEqual(
+            mesh_body_count(
+                {'count': 'arg_count', 'body_index': 'arg_body_index'},
+                reflected),
+            '(arg_body_index + 1U)')
+
+        reflected[0]['type']['kind'] = 'pointer'
+        self.assertIsNone(mesh_body_count({'count': 'arg_count'}, reflected))
+
     def test_names_and_layout_come_from_reflection(self):
         abi = ReflectedABI(fixture())
         text = '\n'.join(abi.declarations())

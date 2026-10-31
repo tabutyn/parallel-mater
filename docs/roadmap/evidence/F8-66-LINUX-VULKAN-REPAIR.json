@@ -1,0 +1,258 @@
+{
+  "schema": "parallel-mater-f8-66-linux-vulkan-repair/v1",
+  "task": "F8-66",
+  "status": "passed",
+  "captured_at": "2026-10-31T21:36:09Z",
+  "lease_token": "c8d9b501-e327-40db-acec-968903e0ea16",
+  "rejected_candidate": {
+    "id": "realtime-single-step-v1-05f8b04",
+    "source_revision": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "source_tree": "e99f19d6af7ddca416b68b0a9a59755a738345f0",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v7.json",
+    "manifest_sha256": "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f",
+    "failure_evidence": "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.json",
+    "failure_evidence_sha256": "2adbc20a1ef42d2d6f2c0f3f0e4d977aeeb14d65f72219fafac42cad9efbf6db",
+    "failure_archive": "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.tar.zst",
+    "failure_archive_sha256": "7facdbf9d31f9abe4a01a7ade4dc324f76524299c8366fe1b900b53e9c2907c2",
+    "qualification_status": "remains-rejected",
+    "evidence_union_allowed": false
+  },
+  "repair_source": {
+    "revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "branch": "work/F8-66/ThomasLaptop",
+    "working_tree_during_final_configure_build_and_capture": "clean",
+    "base_revision": "30eae5ba139c3c6ba7404560693e863a0c03e043"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": "0x10de",
+    "device_id": "0x25a0",
+    "driver": "590.44.01",
+    "gpu_temperature_celsius_after": 52,
+    "installed_public_provenance": {
+      "device_name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "vendor_id": 4318,
+      "device_id": 9632,
+      "source_commit": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+      "host_compiler": "12.2.0"
+    }
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18",
+    "pinned_validation_sdk": {
+      "version": "1.4.341.0",
+      "archive_sha256": "ed66477d587a5587dc3601b1c2cdcc1fab5529c505f53a00171876cecd9b4fbe",
+      "pin_manifest_sha256": "40c17bb2ae968c59f2bf5f655e5ace32f24299e438bd7cc5691d6141ce06d773",
+      "validation_layer_sha256": "d532be81a907ac464e281209b3334e1b4f15e49c8eea8a632c23750488820a2c",
+      "validation_manifest_sha256": "9c1ad32382836d329a4bdfcd54ef408c777cef7969c50f891816003f3e942449"
+    }
+  },
+  "reproduced_failures": {
+    "evidence": "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.json",
+    "exact_source": "05f8b04a14fc34cfb1ba322f363ea7165fcf3d48",
+    "pinned_validation_sdk": "1.4.341.0",
+    "session_contract": "timed out at 600.07 seconds against the unchanged 600-second limit",
+    "cloth_paint": "paint field remained empty after 120 frames",
+    "smoke": "frame 0 command wait returned PM_ERROR_INVALID_ARGUMENT",
+    "smoke_water": "frame 1 command wait returned PM_ERROR_INVALID_ARGUMENT",
+    "smoke_softbody": "frame 0 command wait returned PM_ERROR_INVALID_ARGUMENT",
+    "smoke_cloth": "frame 0 command wait returned PM_ERROR_INVALID_ARGUMENT",
+    "smoke_rope": "frame 1 command wait returned PM_ERROR_INVALID_ARGUMENT",
+    "before_artifacts_hash_bound": true
+  },
+  "repairs": [
+    {
+      "area": "Gallery resource construction and publication",
+      "change": "Materialize mesh/body bindings before public writes, preserve cloth paint bindings and copied paint output, and make reset/rebuild state consistent across the shared session path."
+    },
+    {
+      "area": "Vulkan reflected resource translation",
+      "change": "Relocate nested geometry and paint resource records through reflected bindings and retain translated device buffers across submissions instead of allocating, mapping and freeing them every fixed tick."
+    },
+    {
+      "area": "shared Slang physical operators",
+      "change": "Repair bounded geometry and deformable behavior and use direct bounded tridiagonal rope bend solves while preserving the fixed dispatch and iteration budgets."
+    },
+    {
+      "area": "equal-material fluid coupling qualification",
+      "change": "Run the Vulkan separate-system equal-fluid graph and quality rows now that the driver truthfully advertises and executes their contact, pressure and viscosity bundle."
+    }
+  ],
+  "commands": {
+    "final_reconfigure": "cmake -S . -B /tmp/parallel-mater-f8-66-clean-build",
+    "final_build": "cmake --build /tmp/parallel-mater-f8-66-clean-build --config Release --parallel 2",
+    "physical_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-66-clean-build/Release/manifests/slang-vulkan.json PM_LAYER_FILES=/tmp/parallel-mater-f8-66-clean-build/Release/manifests/validation.json VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir /tmp/parallel-mater-f8-66-clean-build -C Release --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_discovery_suite": "PM_DRIVER_FILES and PM_LAYER_FILES unset; ctest --test-dir /tmp/parallel-mater-f8-66-clean-build -C Release --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-66-clean-build --output /tmp/f8-66-sdk-evidence-c05d320-final --config Release",
+    "device_capture": "VK_LAYER_PATH=<pinned-1.4.341>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-1.4.341>/lib python3 conformance/v1/realtime_device_capture.py --runner /tmp/f8-66-sdk-evidence-c05d320-final/relocated-sdk/bin/parallel-mater-conformance --driver-manifest /tmp/f8-66-sdk-evidence-c05d320-final/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_vulkan.json --validation-layer-manifest /tmp/f8-66-sdk-evidence-c05d320-final/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json --runtime-variant vulkan-runtime --target-id linux-rtx3050ti-slang-vulkan --output /tmp/f8-66-final-capture-c05d320-api",
+    "independent_validation": "python3 conformance/v1/realtime_device_suite.py --capture /tmp/f8-66-final-capture-c05d320-api/capture.json --candidate-manifest conformance/v1/qualification/realtime-candidate-v7.json --output /tmp/f8-66-c05d320-independent-validation-report.json",
+    "capture_unit_tests": "python3 -m unittest conformance/v1/tests/test_realtime_device_capture.py conformance/v1/tests/test_realtime_device_suite.py conformance/v1/tests/test_realtime_oracle.py",
+    "roadmap_tests": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+    "reflected_abi_tests": "python3 tests/solver/test_slang_abi.py"
+  },
+  "results": {
+    "clean_release_build": "passed",
+    "registered_tests": {
+      "status": "passed",
+      "passed": 157,
+      "failed": 0,
+      "skipped": 0,
+      "total": 157,
+      "physical_manifest_run": 154,
+      "isolated_discovery_and_launcher_run": 3,
+      "split_reason": "The three isolation tests control and assert their own driver manifests; inheriting the forced physical manifest invalidates their discovery contract.",
+      "vulkan_labeled_tests_executed": 41,
+      "spirv_modules_passed": 27,
+      "spirv_modules_failed": 0,
+      "physical_elapsed_seconds": 831.76,
+      "isolated_elapsed_seconds": 0.17,
+      "native_validation_errors": 0
+    },
+    "required_gallery_regressions": {
+      "session_contract": {
+        "status": "passed",
+        "elapsed_seconds": 364.69,
+        "limit_seconds": 600
+      },
+      "cloth_paint_120_frames": "passed with non-empty paint output",
+      "smoke_120_frames": "passed",
+      "smoke_water_120_frames": "passed",
+      "smoke_softbody_120_frames": "passed",
+      "smoke_cloth_120_frames": "passed",
+      "smoke_rope_120_frames": "passed"
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+      "source_dirty": false,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    },
+    "installed_public_capture": {
+      "status": "passed",
+      "failure_count": 0,
+      "runtime_variant": "vulkan-runtime",
+      "target_id": "linux-rtx3050ti-slang-vulkan",
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "separate_system_equal_fluid_rows_passed": 3,
+      "public_cases_completed": 30,
+      "scenarios_passed": 12,
+      "scenario_execution_rows": 24,
+      "unique_named_measurements": 37,
+      "scenario_measurement_observations": 176,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each_mode": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0
+    },
+    "fixed_tick_contract": {
+      "status": "passed",
+      "dt_seconds": 0.016666666666666666,
+      "time_advances_per_normal_tick": 1,
+      "spatial_publications_per_normal_tick": 1,
+      "queue_submissions_per_normal_tick": 1,
+      "intra_tick_host_readbacks": 0,
+      "dispatches": 33,
+      "rigid_contact_and_joint_sweeps": 8,
+      "budgets_changed": false
+    },
+    "capture_unit_tests": "passed: 40/40",
+    "roadmap_tests": "passed: 89/89",
+    "reflected_abi_tests": "passed: 10/10",
+    "independent_capture_validation": "passed: 12 scenarios, 0 failures"
+  },
+  "workload_summary": [
+    {
+      "id": "rigid-wall",
+      "failed_ticks": 0,
+      "simulated_to_wall_time_ratio": 6.829229936451794,
+      "physics_p95_ms": 2.626483,
+      "frame_p95_ms": 2.626483,
+      "gpu_p95_ms": 2.443264
+    },
+    {
+      "id": "fluid-rigid",
+      "failed_ticks": 0,
+      "simulated_to_wall_time_ratio": 7.0866099544634205,
+      "physics_p95_ms": 2.555385,
+      "frame_p95_ms": 2.555385,
+      "gpu_p95_ms": 2.363392
+    },
+    {
+      "id": "deformable-mixed",
+      "failed_ticks": 0,
+      "simulated_to_wall_time_ratio": 3.6322386536076046,
+      "physics_p95_ms": 4.892246,
+      "frame_p95_ms": 4.892246,
+      "gpu_p95_ms": 4.728832
+    },
+    {
+      "id": "smoke-coupled",
+      "failed_ticks": 0,
+      "simulated_to_wall_time_ratio": 11.447642550179781,
+      "physics_p95_ms": 1.565971,
+      "frame_p95_ms": 1.565971,
+      "gpu_p95_ms": 1.431552
+    },
+    {
+      "id": "six-family-mixed",
+      "failed_ticks": 0,
+      "simulated_to_wall_time_ratio": 1.79259586793369,
+      "physics_p95_ms": 9.74006,
+      "frame_p95_ms": 9.74006,
+      "gpu_p95_ms": 9.560064
+    }
+  ],
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-66-LINUX-VULKAN-REPAIR.tar.zst",
+    "tracked_archive_sha256": "7aa8478cce40d7685882c64f3dea74ea49bdaa2d223bb8fb2697e36b505ff5d3",
+    "tracked_archive_bytes": 6795837,
+    "tracked_archive_uncompressed_bytes": 130990080,
+    "tracked_archive_contents": "complete installed-public capture tree, pinned native-validation CTest logs, exact-source relocation report, independent evaluator report and the rejected native-instrumented performance report",
+    "tracked_archive_file_count": 133,
+    "tracked_archive_tree_sha256": "22b8206d3e1b2a3bf77368274942009109a1154532629977b898d63572826990",
+    "capture_file_count": 128,
+    "capture_tree_sha256": "670a95cdf6e781cd0dbad5f329ff0ff121fbb4e4f2d59167ffa441c3c837ff22",
+    "capture_sha256": "4e4604711987f23d963b10d074d2f9841f643fb9e8917bbd03be1f1f662d5c9c",
+    "report_sha256": "ae083244a9869f75f1255011395539886fcd621537350a0bd58f64c5d0dd3d4e",
+    "independent_validation_report_sha256": "ae083244a9869f75f1255011395539886fcd621537350a0bd58f64c5d0dd3d4e",
+    "native_validation_performance_report_sha256": "ab0d959410da891f64e1d84fbdcca8a2813f6da8aa57647ed5e4fc11e2a45356",
+    "registered_ctest_log_sha256": "264e74d935cc86a89bf78dca5ac5eb61654c7b457761add3c81b6113295ac55d",
+    "isolated_ctest_log_sha256": "52c0589347d5c44fb8464a695decc0d9fb3903e22bc9849efcd074e9effb01ba",
+    "sdk_report_sha256": "f6832d235afdf3dfbff2a7ab7064ad07447ff7e66869ce57650b23f491c9ee7b",
+    "sdk_evidence_file_count": 667,
+    "sdk_evidence_tree_sha256": "e76cb8b813ba28181fa11765fe5c0da61493d4235a990a784923c449ad4c92f3",
+    "runner_sha256": "15db1ed638ab978e55042e7e95a9dc2fdbc07f2c2b199d58bc3c7aca3f4db71a",
+    "driver_sha256": "90d61dbbb6f1940b3304464ffaafde36bc8b78c93821c29f1197b49b7eedc8a7",
+    "driver_manifest_sha256": "824ba64eefb9cf789ce2c952f5e049c1bacb9b3746dd9255f3fa6428c62afade",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0",
+    "gallery_sha256": "02aac170788617c1804bda698e60549fc25c7c38a820aab5ed94376c47f17a83"
+  },
+  "discarded_attempts": [
+    "A relocation produced before the explicit final reconfigure embedded source 316fb3b in the runner and was discarded; the tracked relocation and capture both identify c05d320.",
+    "A diagnostic capture forced VK_LAYER_KHRONOS_validation into performance timing. Six-family physics p95 rose to 13.076335 ms and failed the 10 ms tier; the five negative controls then correctly refused to certify the failing baseline. The tracked report preserves this rejection. Native validation correctness is established separately by the 154/154 physical CTest run; frozen workload timing uses plain and Parallel Mater validation-layer modes, matching the public capture contract."
+  ],
+  "qualification_effect": "F8-66 repairs the mandatory physical Linux Vulkan failures and supplies one complete exact repaired-source evidence set for F8-67. Candidate v7 remains immutable rejected history; its partial observations are not unioned with this repaired-source capture, and the capture's active candidate label does not claim repaired execution identity. F8-67 must freeze and bind a new candidate to c05d320 or a reviewed descendant before any final qualification."
+}

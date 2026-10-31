@@ -59,7 +59,8 @@ add_library(parallel-mater-driver-slang-vulkan SHARED
     ${vulkan_sources})
 target_compile_features(parallel-mater-driver-slang-vulkan PRIVATE cxx_std_20)
 target_compile_definitions(parallel-mater-driver-slang-vulkan PRIVATE
-    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 PARALLEL_MATER_VULKAN_DRIVER=1)
+    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 PARALLEL_MATER_VULKAN_DRIVER=1
+    PARALLEL_MATER_QUALIFIED_EQUAL_FLUID=1)
 target_include_directories(parallel-mater-driver-slang-vulkan PRIVATE
     include src src/simulation src/device/vulkan_compat "${PARALLEL_MATER_API_GENERATED_DIR}")
 target_link_libraries(parallel-mater-driver-slang-vulkan PRIVATE

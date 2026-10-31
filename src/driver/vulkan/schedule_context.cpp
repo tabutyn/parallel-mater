@@ -264,7 +264,9 @@ struct ScheduleContext::Impl {
     std::filesystem::path cache_file;
     std::map<std::string, Pipeline> pipelines;
     std::vector<Buffer> allocations;
-    std::vector<Buffer> temporary;
+    // Shader-visible copies of mesh/paint metadata persist until an allocation
+    // mutation can change one of their translated device addresses.
+    std::vector<Buffer> translations;
     std::map<const void *, std::pair<std::uint32_t, VkDeviceAddress>> meshes;
     std::map<const void *, std::uint32_t> mesh_capacities;
     std::map<const void *, std::pair<std::uint32_t, VkDeviceAddress>> paint_fields;
@@ -364,7 +366,7 @@ struct ScheduleContext::Impl {
             vkDestroyPipelineCache(device, pipeline_cache, nullptr);
         if (profile_queries)
             vkDestroyQueryPool(device, profile_queries, nullptr);
-        for (auto &b : temporary)
+        for (auto &b : translations)
             destroy(b);
         for (auto &b : allocations)
             destroy(b);
@@ -454,6 +456,13 @@ struct ScheduleContext::Impl {
                 return &b;
         }
         return nullptr;
+    }
+    void clear_translations() {
+        for (auto &b : translations)
+            destroy(b);
+        translations.clear();
+        meshes.clear();
+        paint_fields.clear();
     }
     void emit_pending_profile() noexcept {
         if (!pending_profile)
@@ -715,11 +724,6 @@ struct ScheduleContext::Impl {
             return;
         wait_pending();
         check(vkResetCommandPool(device, pool, 0), "reset command pool");
-        for (auto &b : temporary)
-            destroy(b);
-        temporary.clear();
-        meshes.clear();
-        paint_fields.clear();
         global_offset = 0;
         argument_offset = 0;
         VkCommandBufferBeginInfo info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -923,6 +927,10 @@ PmResult ScheduleContext::allocate(std::size_t size, void **output) noexcept {
         std::lock_guard lock(impl_->mutex);
         auto b = impl_->make_buffer(size);
         try {
+            if (!impl_->translations.empty()) {
+                impl_->sync();
+                impl_->clear_translations();
+            }
             impl_->allocations.push_back(b);
         } catch (...) {
             impl_->destroy(b);
@@ -945,6 +953,7 @@ void ScheduleContext::free(void *allocation) noexcept {
         impl_->destroy(*found);
         a.erase(found);
     }
+    impl_->clear_translations();
     impl_->mesh_capacities.clear();
 }
 std::uint64_t ScheduleContext::address(const void *pointer) noexcept {
@@ -1035,7 +1044,7 @@ std::uint64_t ScheduleContext::translated_meshes(const void *pointer,
             throw std::runtime_error("mesh range");
         auto b = i.make_buffer(std::size_t(capacity) * sizeof(Mesh));
         try {
-            i.temporary.push_back(b);
+            i.translations.push_back(b);
         } catch (...) {
             i.destroy(b);
             throw;
@@ -1077,7 +1086,7 @@ std::uint64_t ScheduleContext::translated_paint_fields(
             throw std::runtime_error("paint field range");
         auto b = i.make_buffer(std::size_t(capacity) * sizeof(Field));
         try {
-            i.temporary.push_back(b);
+            i.translations.push_back(b);
         } catch (...) {
             i.destroy(b);
             throw;
@@ -1207,9 +1216,8 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
         if (std::getenv("PM_VULKAN_SYNCHRONOUS_DISPATCH"))
             i.sync();
         i.global_offset += i.global_stride;
-        // Flush after recording: constants may contain a translated mesh address
-        // prepared immediately before dispatch. Resetting the pool beforehand
-        // would free that temporary while the pending dispatch still needs it.
+        // Flush after recording so the dynamic global-constant ring is not
+        // reused while the pending dispatch still reads it.
         if (i.global_offset + i.global_stride > i.globals.size)
             i.submit();
     } catch (const std::exception &e) {
