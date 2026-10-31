@@ -1,7 +1,7 @@
 {
   "id": "F8-66",
   "title": "Repair Linux Vulkan Gallery candidate failures",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-65"
   ],
@@ -20,6 +20,14 @@
     "Run the installed-public candidate capture through plain and validation-enabled execution: record all 49 capability obligations, 30 public cases, 12 scenarios, 37 measurements, five negative controls and five desktop workloads with unchanged quality and fixed performance budgets. Attach exact source/tree, binary, manifest, device, driver, validation SDK and raw artifact hashes for F8-67."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c8d9b501-e327-40db-acec-968903e0ea16",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-66/ThomasLaptop",
+    "claimed_at": "2026-10-31T17:07:58Z",
+    "heartbeat_at": "2026-10-31T17:07:58Z",
+    "expires_at": "2026-11-01T17:07:58Z"
+  },
   "history": []
 }
