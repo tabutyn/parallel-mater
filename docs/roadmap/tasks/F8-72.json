@@ -1,7 +1,7 @@
 {
   "id": "F8-72",
   "title": "Repair the Linux CUDA rigid spatial query contract",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-70"
   ],
@@ -19,15 +19,31 @@
     "Attach exact source/tree, device, toolchain, binary, manifest, protected-closure and raw before/after artifact hashes. Preserve the F8-68 candidate-v9 failure as immutable history and do not union its partial passes with repaired-source evidence.",
     "Mechanically compare every F8-70 protected closure. If any protected closure changes, freeze a new immutable candidate and reroute all affected physical rows before requalification; if the repair is test-only outside every protected closure, prove those hashes remain exact before F8-68 may reclaim candidate v9."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "a9c6f23d-956d-4f72-acd4-7b2e0c9c8752",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-72/ThomasLaptop",
-    "claimed_at": "2026-11-01T01:59:04Z",
-    "heartbeat_at": "2026-11-01T01:59:04Z",
-    "expires_at": "2026-11-02T01:59:04Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: exact candidate-v9 failure reproduced; focused repaired CUDA regression 5/5, clean Release build 695/695, registered physical suite 128/128 and isolated discovery/launcher 3/3; docs/roadmap/evidence/F8-72-LINUX-CUDA-SPATIAL-REPAIR.json sha256 a0cbd2caaed41f9b83e70fb2b7e342c8f566f4f65b04de8d26caaae2f6b5ce6c",
+    "PASS: clean relocated SDK 12/12; installed-public plain+validation capture completed 49 capabilities, 30 cases, 12 scenarios, five negative controls and five workloads over 72,000 measured ticks with zero failures; archive sha256 9b1f566addac228bc901d59ba6de3f39c3a8b23f02d6f5968d5d3fbca7c671a6",
+    "PASS: repair changes only tests/solver/rigid_spatial_cuda_tests.cu outside all nine protected closures; candidate checker confirms realtime-single-step-v1-ba67db3 exact; no refreeze required. LIMITATION: F8-72 does not qualify F8-68, which must reclaim and rerun exact candidate v9."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "a9c6f23d-956d-4f72-acd4-7b2e0c9c8752",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-72/ThomasLaptop",
+        "claimed_at": "2026-11-01T01:59:04Z",
+        "heartbeat_at": "2026-11-01T01:59:04Z",
+        "expires_at": "2026-11-02T01:59:04Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-01T02:23:49Z",
+      "reason": "Repaired the stale physical CUDA rigid-spatial assertion: dynamic bodies issue queries while static and kinematic bodies remain admitted leaves; production and all candidate-v9 protected closures remain unchanged.",
+      "evidence": [
+        "PASS: exact candidate-v9 failure reproduced; focused repaired CUDA regression 5/5, clean Release build 695/695, registered physical suite 128/128 and isolated discovery/launcher 3/3; docs/roadmap/evidence/F8-72-LINUX-CUDA-SPATIAL-REPAIR.json sha256 a0cbd2caaed41f9b83e70fb2b7e342c8f566f4f65b04de8d26caaae2f6b5ce6c",
+        "PASS: clean relocated SDK 12/12; installed-public plain+validation capture completed 49 capabilities, 30 cases, 12 scenarios, five negative controls and five workloads over 72,000 measured ticks with zero failures; archive sha256 9b1f566addac228bc901d59ba6de3f39c3a8b23f02d6f5968d5d3fbca7c671a6",
+        "PASS: repair changes only tests/solver/rigid_spatial_cuda_tests.cu outside all nine protected closures; candidate checker confirms realtime-single-step-v1-ba67db3 exact; no refreeze required. LIMITATION: F8-72 does not qualify F8-68, which must reclaim and rerun exact candidate v9."
+      ]
+    }
+  ]
 }

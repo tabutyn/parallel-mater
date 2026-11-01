@@ -1,0 +1,185 @@
+{
+  "schema": "parallel-mater-realtime-device-repair/v1",
+  "task": "F8-72",
+  "status": "passed",
+  "lease_token": "a9c6f23d-956d-4f72-acd4-7b2e0c9c8752",
+  "captured_at": "2026-11-01T02:23:18Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-ba67db3",
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+    "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+    "exact_source_ci_run": 41257022787,
+    "target": "linux-rtx3050ti-slang-cuda",
+    "runtime_variant": "cuda-runtime"
+  },
+  "repair": {
+    "base_revision": "55a085d507396bbd5c434b682860de7eabae04f9",
+    "revision": "6569f5de15c0ee285c104e53457ff3bcbaf2e9f6",
+    "tree": "7918d597ca94d857d643d3c2e0727423a54cdce2",
+    "changed_files": [
+      "tests/solver/rigid_spatial_cuda_tests.cu"
+    ],
+    "test_source_sha256": "d18f411bb14d254fcc0337321f54a12507a7de177ad3f9785f4cf9ff8fef84bb",
+    "production_source_changed": false,
+    "root_cause": "The production kernel correctly retained static and kinematic bodies as admitted shared-BVH leaves while suppressing their unused body-indexed queries. The CUDA physical fixture was stale: it asserted the dynamic query mask for all retained leaves.",
+    "fix": "The physical fixture now covers a kinematic body, expects query masks only for dynamic bodies, separately verifies rigid query/admission metadata for every retained leaf, and proves dynamic queries still produce eligible static and kinematic pairs.",
+    "physics_or_capability_change": false
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": "0x25a0",
+    "uuid": "GPU-2d010adb-af2c-99d1-bf34-a89a8551e301",
+    "driver": "590.44.01",
+    "cuda_driver_version": 13010,
+    "compute_capability": "8.6",
+    "gpu_temperature_celsius_after": 57
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "cuda": "13.1.80",
+    "cuda_architectures": "86",
+    "slang": "2026.18"
+  },
+  "results": {
+    "before_reproduction": {
+      "status": "failed-identically",
+      "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+      "failed_test": "parallel-mater-rigid-spatial-cuda-tests",
+      "failed_assertion": "fixture.query_masks[index] == rigid_spatial_query_mask",
+      "failure_count": 5,
+      "meaning": "Exactly the five static rows failed; preserved by F8-68 failure evidence and archive."
+    },
+    "clean_release_build": {
+      "status": "passed",
+      "targets": "695/695",
+      "source_revision": "6569f5de15c0ee285c104e53457ff3bcbaf2e9f6",
+      "source_tree": "7918d597ca94d857d643d3c2e0727423a54cdce2",
+      "source_dirty": false
+    },
+    "focused_physical_regression": {
+      "status": "passed",
+      "test": "parallel-mater-rigid-spatial-cuda-tests",
+      "repeat_policy": "until-fail:5",
+      "runs_passed": 5,
+      "runs_failed": 0,
+      "elapsed_seconds": 2.38,
+      "contract": "Dynamic bodies emit rigid_spatial_query_mask; static and kinematic bodies emit zero body-indexed query masks; every body remains a rigid admitted leaf; dynamic-to-static and dynamic-to-kinematic pairs remain observable."
+    },
+    "registered_physical_suite": {
+      "status": "passed",
+      "passed": 128,
+      "failed": 0,
+      "skipped": 0,
+      "cuda_labeled_tests_executed": 42,
+      "elapsed_seconds": 59.19
+    },
+    "isolated_discovery_and_launcher": {
+      "status": "passed",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "elapsed_seconds": 0.16
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "6569f5de15c0ee285c104e53457ff3bcbaf2e9f6",
+      "source_dirty": false,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    },
+    "installed_public_capture": {
+      "status": "passed",
+      "failure_count": 0,
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "public_cases_completed": 30,
+      "scenarios_passed": 12,
+      "scenario_execution_rows": 24,
+      "unique_named_measurements": 37,
+      "scenario_measurement_observations": 176,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each_mode": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0,
+      "minimum_simulated_to_wall_time_ratio": 2.3518910119405567,
+      "maximum_physics_milliseconds": 20.427781
+    },
+    "independent_validation": {
+      "status": "passed",
+      "scenario_count": 12,
+      "negative_control_count": 5,
+      "failure_count": 0
+    }
+  },
+  "protected_closure_decision": {
+    "status": "unchanged",
+    "checker": "PASS: realtime-single-step-v1-ba67db3 protected closure and routing are exact",
+    "repair_delta": "Only tests/solver/rigid_spatial_cuda_tests.cu changed; it matches none of the nine F8-70 protected closure patterns.",
+    "closures": {
+      "api_abi": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+      "kernel": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993",
+      "adapter_binding": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67",
+      "runtime": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7",
+      "schedule_telemetry": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037",
+      "contract": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+      "public_oracle": "234ff210221d3fc30e5800d41cb9cc3b0509b9ce99273f02f06bae8122cd48cb",
+      "work_budget": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405",
+      "gallery": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80"
+    },
+    "refreeze_required": false,
+    "requalification": "F8-68 may reclaim and rerun exact candidate v9 after this repair merges."
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-72-LINUX-CUDA-SPATIAL-REPAIR.tar.zst",
+    "tracked_archive_sha256": "9b1f566addac228bc901d59ba6de3f39c3a8b23f02d6f5968d5d3fbca7c671a6",
+    "tracked_archive_bytes": 10288950,
+    "tracked_archive_uncompressed_bytes": 131131339,
+    "tracked_archive_file_count": 141,
+    "tracked_archive_tree_sha256": "0ebd687fb8ac9881b546ca65912ac97fcb8a799f5b3f293e79297e1f5f87dbeb",
+    "tree_hash_method": "SHA-256 of sorted archive-relative sha256sum records",
+    "before_focused_log_sha256": "e5e4afaa73a7abad24352d6d4cbdf4fabf703840fcc6383c6889f50c84831332",
+    "after_focused_log_sha256": "ba056c40e3a91edb2cfd4ea313c94ad5a1d2136ac58137049c9b29c5878beb63",
+    "physical_ctest_log_sha256": "2ebffa71a543c73430e8414f8dd528fa34c59c815ef19e9baf604be4e22504e0",
+    "isolated_ctest_log_sha256": "66399eaffc37171813969bed16f2c45c11587e0f1b7acab1105943a34b268795",
+    "sdk_report_sha256": "4c2985fde4879b35293245b91d715c7d1520f718b208c3099bd7992864fd435f",
+    "capture_sha256": "1e284fbc23eb942dba6f1d73e12b5cd8e274b2a3230071e043e9ad33a055a744",
+    "capture_file_count": 128,
+    "capture_tree_sha256": "36fa72e491da65f92f4271db45fd317ef523aba4bd400a021643bde57912b705",
+    "independent_validation_report_sha256": "1f3e4c0dac26383fb6048571e22a35e2db4cc7cd6c4b33ff0b5ace1ff59a4e74",
+    "installed_runner_sha256": "cc4770ed8361dc453870192da7606a120fb42fe5154befa10801fb4feef310a4",
+    "installed_driver_sha256": "8108808de00344b70c27c64f85a421c4ff0d5d71114b158b3b517642463b4f90",
+    "installed_driver_manifest_sha256": "ce3e696e32bdf45a76e1d03428080f1ea6786d36d20355b121e5201fe60dd1e7",
+    "installed_validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "installed_validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "commands": {
+    "configure": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake -S /tmp/parallel-mater-f8-72-work -B /tmp/parallel-mater-f8-72-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_CUDA_ARCHITECTURES=86 -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON",
+    "build": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --build /tmp/parallel-mater-f8-72-build --parallel 4",
+    "focused_regression": "PM_DRIVER_FILES=<build>/Release/manifests/slang-cuda.json PM_LAYER_FILES=<build>/Release/manifests/validation.json ctest --test-dir <build> -C Release --output-on-failure -R '^parallel-mater-rigid-spatial-cuda-tests$' --repeat until-fail:5 -j1",
+    "physical_suite": "same manifests; ctest --test-dir <build> -C Release --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-72-build --output /tmp/f8-72-sdk-evidence-clean",
+    "device_capture": "python3 conformance/v1/realtime_device_capture.py --runner <relocated-sdk>/bin/parallel-mater-conformance --driver-manifest <relocated-sdk>/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json --validation-layer-manifest <relocated-sdk>/share/parallel-mater/layers.d/parallel_mater_validation.json --runtime-variant cuda-runtime --target-id linux-rtx3050ti-slang-cuda --output /tmp/f8-72-device-capture-clean",
+    "independent_validation": "python3 conformance/v1/realtime_device_suite.py --capture /tmp/f8-72-device-capture-clean/capture.json --candidate-manifest conformance/v1/qualification/realtime-candidate-v9.json --output /tmp/f8-72-validation-report-clean.json"
+  },
+  "qualification_effect": "F8-72 repairs and proves the physical CUDA regression without changing candidate-v9 production, protected closures, physics, capabilities, cases, budgets, tolerances or schedule. Candidate-v9 F8-68 failure remains immutable history; this repair evidence does not itself qualify the Linux CUDA row. F8-68 must reclaim and rerun exact candidate v9, and no prior partial observation may be unioned."
+}
