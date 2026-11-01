@@ -1,0 +1,25 @@
+{
+  "id": "F8-70",
+  "title": "Refreeze candidate after CPU Gallery lifecycle repair",
+  "status": "open",
+  "dependencies": [
+    "F8-69"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Green protected CI and complete exact-source CPU Gallery lifecycle repair evidence"
+  ],
+  "scope": "Freeze a new immutable sole-path candidate only after F8-69 repairs and proves repeated CPU shared Gallery lifecycle, installed-public SDK and independent reference paths. Record one exact source commit, tree, candidate binary/deployment identity, manifest hash, complete protected closure, runtime variants, toolchains and green exact-source CI run. Preserve candidate v8, its passing F8-25 Linux Vulkan evidence and failing F8-53 CPU Gallery evidence as historical provenance; never union their observations with the replacement. Route F8-26 through F8-30, F8-53 and F8-68 to the replacement through a separate coordination change, and create a new replacement-candidate Linux Vulkan requalification leaf preserving F8-25 as completed history, before any qualification row becomes ready.",
+  "acceptance": [
+    "A new immutable candidate manifest records the exact repaired source commit/tree, public headers, shared Slang sources, runtime variants, all 49 capability rows and 30 public cases, cases/goldens, executable capture producer, fixture/validator contract, fixed budgets and unchanged quality tolerances.",
+    "The protected closure is mechanically regenerated and independently hash-verified. Exact-source protected CI, complete CPU registered and installed-public suites, repeated Gallery lifecycle regression, independent reference/oracle paths and the preserved Linux Vulkan repair prerequisites pass from the frozen source and named binaries.",
+    "Candidate v8, manifest SHA-256 7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33, F8-25 pass evidence and F8-53 failure evidence remain byte-immutable historical provenance; no old pass is relabeled or combined with replacement evidence.",
+    "A coordination-only change writes the replacement candidate id, manifest hash, source/tree, exact CI run and failure provenance into F8-26 through F8-30, F8-53 and F8-68, and adds a new Linux Vulkan requalification follow-up preserving F8-25 as completed history, before any device task becomes ready.",
+    "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances, required timeouts or schedule. Any later protected change creates another candidate rather than mutating this freeze."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

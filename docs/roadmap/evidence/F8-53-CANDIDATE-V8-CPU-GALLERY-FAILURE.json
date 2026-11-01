@@ -1,0 +1,123 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification-failure/v3",
+  "status": "failed-required-cpu-gallery-lifecycle",
+  "captured_at": "2026-10-31T23:59:26Z",
+  "task": "F8-53",
+  "lease_token": "f80b977e-dc92-4d59-b237-9172aba1aab8",
+  "candidate": {
+    "id": "realtime-single-step-v1-c05d320",
+    "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "source_tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v8.json",
+    "manifest_sha256": "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33",
+    "freeze_evidence": "docs/roadmap/evidence/F8-67-CANDIDATE-V8-FREEZE.json",
+    "freeze_evidence_sha256": "ac1ef282b6b4e8e60d125e98ec04b9ef46b8401e9dc836f87c26a2ef8580d4b6",
+    "exact_source_ci_run": 41246222115,
+    "target": "linux-thomas-laptop-slang-cpu",
+    "runtime_variant": "cpu-runtime"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "not applicable"
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18"
+  },
+  "commands": {
+    "configure": "cmake -S /tmp/parallel-mater-f8-25-v8-source -B /tmp/parallel-mater-f8-53-v8-cpu-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPARALLEL_MATER_BUILD_CUDA=OFF -DPARALLEL_MATER_BUILD_VULKAN=OFF -DPARALLEL_MATER_BUILD_D3D12=OFF -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON -DPARALLEL_MATER_BUILD_GALLERY=ON",
+    "build": "cmake --build /tmp/parallel-mater-f8-53-v8-cpu-build --parallel 4",
+    "full_cpu_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-53-v8-cpu-build/Release/manifests/slang-cpu.json PM_LAYER_FILES=/tmp/parallel-mater-f8-53-v8-cpu-build/Release/manifests/validation.json ctest --test-dir /tmp/parallel-mater-f8-53-v8-cpu-build --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_discovery_suite": "PM_DRIVER_FILES=/tmp/parallel-mater-f8-53-v8-cpu-build/Release/manifests/slang-cpu.json PM_LAYER_FILES=/tmp/parallel-mater-f8-53-v8-cpu-build/Release/manifests/validation.json ctest --test-dir /tmp/parallel-mater-f8-53-v8-cpu-build --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-53-v8-cpu-build --output /tmp/f8-53-v8-evidence/sdk --require-realtime-driver"
+  },
+  "passing_prerequisites": {
+    "clean_exact_source_build": {
+      "status": "passed",
+      "targets": 610,
+      "source_dirty": false
+    },
+    "registered_cpu_suite": {
+      "total": 112,
+      "passed": 96,
+      "failed": 1,
+      "skipped": 15,
+      "elapsed_seconds": 8.78,
+      "skip_classification": "explicitly unadvertised CPU domain, coupling and quality modes"
+    },
+    "shared_gallery_clock": {
+      "status": "passed",
+      "test": "parallel-mater-gallery-session-clock-tests"
+    },
+    "isolated_discovery_and_launcher": {
+      "status": "passed",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "elapsed_seconds": 0.19
+    },
+    "relocated_sdk": {
+      "status": "passed",
+      "checks_passed": 14,
+      "checks_failed": 0,
+      "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+      "source_dirty": false,
+      "realtime_driver_required": true,
+      "external_consumer": "passed",
+      "installed_conformance_runner": "passed",
+      "unsupported_and_missing_driver_controls": "passed"
+    }
+  },
+  "required_failures": [
+    {
+      "test": "parallel-mater-gallery-session-contract-tests",
+      "result": "failed",
+      "elapsed_seconds": 0.06,
+      "first_shared_session": "passed on slang-cpu",
+      "recreated_mobile_session": "selected device does not expose every scene capability",
+      "reproduction": "failed identically with and without the Parallel Mater validation layer",
+      "effect": "A destroyed shared Gallery session cannot be followed by a fresh mobile/shared session selecting the same CPU device for the same required rigid scene."
+    }
+  ],
+  "failure_boundary": {
+    "observed": "The first shared Gallery session constructs and passes. After its destruction, MobileGallerySession recreation cannot select the CPU device because the newly observed capability set no longer satisfies the initial rigid scene.",
+    "inference": "The defect is within loader, driver, or shared Gallery session lifetime/capability preservation. The exact root cause remains for F8-69 to establish with a regression before editing production code.",
+    "prohibited_workarounds": [
+      "Do not advertise unsupported CPU domains or couplings.",
+      "Do not remove the recreation sequence, weaken the rigid scene requirements, or skip the shared Gallery contract.",
+      "Do not retain the first session forever, hide teardown failures, or union partial candidate-v8 passes with a replacement candidate."
+    ]
+  },
+  "not_promoted_after_required_failure": {
+    "candidate_cpu_qualification": "not promoted",
+    "passing_registered_tests": "prerequisites only",
+    "installed_public_sdk_gate": "prerequisite only",
+    "performance_qualification": "not promoted",
+    "reason": "Required shared Gallery lifecycle recreation fails before final CPU candidate qualification."
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-53-CANDIDATE-V8-CPU-GALLERY-FAILURE.tar.zst",
+    "tracked_archive_sha256": "8362f1b3441244dec28d33db6d0684f639ad80f704fcedfe9a4e6efa1fb6a2ea",
+    "tracked_archive_bytes": 34606,
+    "tracked_archive_payload_bytes": 138790,
+    "tracked_archive_file_count": 7,
+    "full_ctest_log_sha256": "8fc7af39580649d63d7b641d4897a24a2930dfd2d4bde2ff56e39d85d84d42e9",
+    "isolated_ctest_log_sha256": "c60f016d4e02d6596ddee93eb0b7578483e4be350bd8217ee1260537f365672c",
+    "sdk_report_sha256": "70a818d6b017b4b4fc74673c89ec17270941b06af3a9c4ef87095e4369cb4d7e",
+    "plain_observation_sha256": "9c620d1227b765f2b518f503b67b073efa88724f920f870d7a8b8fda4f2541e8",
+    "validation_observation_sha256": "bdaff2383d743b9ade2e8b8282ffa3762c59e1a6cda21602a53e1e93f76b77fb",
+    "capacity_observation_sha256": "ff8e22fe19a72b66dc879ece4a466b70d53629911eef120d8ef321b892c699b2",
+    "gallery_session_contract_binary_sha256": "5bfb11c8e74f5e29cf61d82b48c2849e48b7c053b4e932e5d05dbb7f154753fb",
+    "installed_runner_sha256": "2fe07e5929e7440e5ff26e608453d456904cd77834cc1f01faa12f4e7e4fccf8",
+    "installed_driver_sha256": "2b43b399be21c1bb317f2cc4e0551c2a56820b49836061bfbe10381fdd93ba19",
+    "installed_driver_manifest_sha256": "627449185d2ed0a61ddc71d596ab2240fe9b16f33c27ece6ca1f27cc92035d1c",
+    "installed_validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb"
+  },
+  "qualification_effect": "F8-53 remains incomplete. Candidate v8 cannot pass its mandatory shared Gallery CPU lifecycle row and must be repaired and refrozen before CPU or remaining physical-device requalification. Preserve this failure and create bounded repair, refreeze and replacement-candidate qualification leaves; passing partial observations cannot be unioned with a replacement candidate."
+}
