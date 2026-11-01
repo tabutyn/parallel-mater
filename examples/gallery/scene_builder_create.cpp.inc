@@ -35,6 +35,7 @@ bool CommandScene::create(const SceneDefinition &scene,
                  "enumerate physical devices", error))
         return false;
     PmPhysicalDeviceFeatures features{};
+    PmPhysicalDeviceFeatures observed_features{};
     const bool requires_fluid = scene.fluid_options.capacity != 0U;
     for (PmPhysicalDevice candidate : physical_devices) {
         if (backend) {
@@ -45,6 +46,7 @@ bool CommandScene::create(const SceneDefinition &scene,
         }
         PmPhysicalDeviceFeatures candidate_features{};
         pmGetPhysicalDeviceFeatures(candidate, &candidate_features);
+        observed_features = candidate_features;
         const bool compatible = candidate_features.rigidBodies == PM_TRUE &&
             (scene.rigid_constraints.empty() ||
              candidate_features.rigidConstraints == PM_TRUE) &&
@@ -62,7 +64,23 @@ bool CommandScene::create(const SceneDefinition &scene,
     }
     if (next->physical == nullptr) {
         if (creation_category) *creation_category = PM_ERROR_FEATURE_NOT_PRESENT;
-        error = "selected device does not expose every scene capability";
+        error = "selected device does not expose every scene capability:";
+        if (observed_features.rigidBodies != PM_TRUE)
+            error += " rigidBodies";
+        if (!scene.rigid_constraints.empty() &&
+            observed_features.rigidConstraints != PM_TRUE)
+            error += " rigidConstraints";
+        if (requires_fluid && observed_features.particleLiquids != PM_TRUE)
+            error += " particleLiquids";
+        if (!scene.cloths.empty() && observed_features.cloth != PM_TRUE)
+            error += " cloth";
+        if (!scene.ropes.empty() && observed_features.rope != PM_TRUE)
+            error += " rope";
+        if (!scene.soft_bodies.empty() &&
+            observed_features.softBodies != PM_TRUE)
+            error += " softBodies";
+        if (scene.has_smoke && observed_features.smoke != PM_TRUE)
+            error += " smoke";
         return false;
     }
     float priority = 1.0F;

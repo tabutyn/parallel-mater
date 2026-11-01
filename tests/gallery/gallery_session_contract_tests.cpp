@@ -32,6 +32,9 @@ int main() {
         const std::filesystem::path root = PM_GALLERY_SESSION_TEST_ROOT;
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Runtime count was not initially zero");
+        const unsigned fluid_scene = static_cast<unsigned>(
+            gallery::gallery_context_index(gallery::GalleryContext::fluid));
+        bool fluid_available = false;
         {
             gallery::GallerySessionConfig config{
                 .assets = root / "examples/assets",
@@ -48,6 +51,10 @@ int main() {
 
             require(session.catalog().size() == gallery::gallery_entries.size(),
                     "Shared catalog changed");
+            fluid_available = session.catalog()[fluid_scene].available;
+            if (session.backend_name() == "slang-cpu")
+                require(!fluid_available,
+                        "CPU Gallery advertised unsupported fluid simulation");
             require(session.ready() && session.selection() == 0U,
                     "Session did not select its initial scene");
             const auto startup = session.presentation();
@@ -120,6 +127,19 @@ int main() {
                         session.selection() == selected &&
                         gallery::GalleryRuntime::live_runtime_count() == 1U,
                     "Rejected selection replaced the live scene");
+
+            if (!fluid_available) {
+                rejected = false;
+                try {
+                    session.select(fluid_scene);
+                } catch (const std::runtime_error &) {
+                    rejected = true;
+                }
+                require(rejected && session.ready() &&
+                            session.selection() == selected &&
+                            gallery::GalleryRuntime::live_runtime_count() == 1U,
+                        "Unsupported scene selection replaced the live scene");
+            }
 
             session.frame();
             session.reset();
@@ -394,8 +414,7 @@ int main() {
             .bricks = gallery::BrickSceneConfig{4U, 1.5F, 2U},
             .dump_spheres = 13U,
             .fluid_particles = 64U,
-            .initial_scene = static_cast<unsigned>(gallery::gallery_context_index(
-                gallery::GalleryContext::fluid)),
+            .initial_scene = fluid_available ? fluid_scene : 0U,
             .replacement = gallery::GalleryReplacementPolicy::preserve_until_ready,
             .create_host_renderer = false,
             .prime_scene = false,
@@ -409,18 +428,36 @@ int main() {
         {
             gallery::GallerySession desktop(std::move(desktop_config));
             require(validated_scene && desktop.ready() &&
-                        desktop.context() == gallery::GalleryContext::fluid &&
-                        desktop.scene().fluid_options.capacity == 64U &&
                         desktop.revision() == 1U,
                     "Explicit desktop session configuration was not applied");
             auto parameters = desktop.scene_parameters();
-            parameters.fluid_particles = 96U;
-            desktop.set_scene_parameters(parameters);
-            desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
-                gallery::GalleryContext::fluid)));
-            require(desktop.scene().fluid_options.capacity == 96U &&
-                        desktop.revision() == 2U,
-                    "Desktop fluid parameter did not survive common selection");
+            if (fluid_available) {
+                require(desktop.context() == gallery::GalleryContext::fluid &&
+                            desktop.scene().fluid_options.capacity == 64U,
+                        "Explicit desktop fluid configuration was not applied");
+                parameters.fluid_particles = 96U;
+                desktop.set_scene_parameters(parameters);
+                desktop.select(fluid_scene);
+                require(desktop.scene().fluid_options.capacity == 96U &&
+                            desktop.revision() == 2U,
+                        "Desktop fluid parameter did not survive common selection");
+            } else {
+                require(desktop.context() == gallery::GalleryContext::rigid_body &&
+                            desktop.scene().fluid_options.capacity == 0U &&
+                            parameters.bricks.brick_count == 4U,
+                        "CPU desktop configuration did not retain rigid-only capabilities");
+                parameters.bricks.brick_count = 6U;
+                desktop.set_scene_parameters(parameters);
+                desktop.select(0U);
+                const auto generated_bricks = std::count_if(
+                    desktop.scene().rigid_bodies.begin(),
+                    desktop.scene().rigid_bodies.end(), [](const auto &body) {
+                        return body.source_name == "Layer1" ||
+                            body.source_name == "Layer2";
+                    });
+                require(generated_bricks == 6U && desktop.revision() == 2U,
+                        "Desktop rigid parameter did not survive common selection");
+            }
             desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
                 gallery::GalleryContext::dump)));
             require(gallery::dump_payload_count(desktop.scene()) == 13U &&
@@ -453,6 +490,16 @@ int main() {
                     runtime.simulation.device() == preserved_device &&
                     gallery::GalleryRuntime::live_runtime_count() == 1U,
                 "Runtime reset recreated its physical device");
+
+        if (!fluid_available) {
+            auto unsupported = valid;
+            unsupported.asset = root / "examples/assets/Fluid.glb";
+            require(!runtime.replace(unsupported, failure) && runtime.ready() &&
+                        runtime.simulation.device() == preserved_device &&
+                        failure.find("particleLiquids") != std::string::npos &&
+                        gallery::GalleryRuntime::live_runtime_count() == 1U,
+                    "Unsupported fluid scene lost the live CPU runtime or its diagnostic");
+        }
 
         auto missing = valid;
         missing.asset = root / "examples/assets/Missing.glb";
@@ -498,6 +545,19 @@ int main() {
         runtime.clear();
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Repeated teardown released the runtime more than once");
+
+        if (std::getenv("PM_LAYER_FILES") != nullptr) {
+            auto validated = valid;
+            validated.enable_validation = true;
+            gallery::GalleryRuntime validated_runtime;
+            require(validated_runtime.replace(validated, failure) &&
+                        validated_runtime.reset(failure) &&
+                        gallery::GalleryRuntime::live_runtime_count() == 1U,
+                    "Validation-enabled Gallery runtime did not create and reset");
+            validated_runtime.clear();
+            require(gallery::GalleryRuntime::live_runtime_count() == 0U,
+                    "Validation-enabled Gallery runtime leaked during teardown");
+        }
 
         gallery::GalleryRuntimeCreateInfo kinematic = valid;
         kinematic.asset = root / "examples/assets/PassiveActive.glb";
