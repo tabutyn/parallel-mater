@@ -12,7 +12,8 @@
     "F8-63",
     "F8-65",
     "F8-67",
-    "F8-70"
+    "F8-70",
+    "F8-74"
   ],
   "locks": [
     "d3d12-common-domain-parity"

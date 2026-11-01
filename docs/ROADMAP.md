@@ -153,10 +153,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | — |
 | [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67 | — |
 | [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | leased | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70 | codex-windows-qualification / windows-gtx1080 / 2026-11-02T17:36:39Z |
-| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | ready | F8-22, F8-36, F8-38, P1-59, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70 | — |
-| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70 | — |
-| [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70 | — |
-| [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | ready | F8-02, F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70 | — |
+| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | waiting on dependencies | F8-22, F8-36, F8-38, P1-59, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
+| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
+| [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
+| [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | waiting on dependencies | F8-02, F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-31](roadmap/tasks/F8-31.json) | Ship and document the qualified single-path SDK and Gallery | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-51, F8-52, F8-53, F8-56, F8-58, F8-59, F8-60, F8-61 | — |
 | [F8-32](roadmap/tasks/F8-32.json) | Expose the real-time profile through the registry and SDK | done | F8-00 | — |
 | [F8-33](roadmap/tasks/F8-33.json) | Integrate the shared spatial epoch into production runtime | done | F8-22 | — |
@@ -199,7 +199,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-70](roadmap/tasks/F8-70.json) | Refreeze candidate after CPU Gallery lifecycle repair | done | F8-69 | — |
 | [F8-71](roadmap/tasks/F8-71.json) | Requalify candidate v9 on Linux Vulkan devices | done | F8-25, F8-70 | — |
 | [F8-72](roadmap/tasks/F8-72.json) | Repair the Linux CUDA rigid spatial query contract | done | F8-70 | — |
-| [F8-99](roadmap/tasks/F8-99.json) | Review F8 single-step quality, performance and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32, F8-33, F8-34, F8-35, F8-36, F8-37, F8-38, F8-39, F8-40, F8-41, F8-42, F8-43, F8-44, F8-45, F8-46, F8-47, F8-48, F8-49, F8-50, F8-51, F8-52, F8-53, F8-54, F8-55, F8-56, F8-57, F8-58, F8-59, F8-60, F8-61, F8-62, F8-63, F8-64, F8-65, F8-66, F8-67, F8-68, F8-69, F8-70, F8-71, F8-72 | — |
+| [F8-73](roadmap/tasks/F8-73.json) | Repair candidate-v9 macOS Metal failures | ready | F8-70 | — |
+| [F8-74](roadmap/tasks/F8-74.json) | Refreeze candidate after macOS Metal repair | waiting on dependencies | F8-73 | — |
+| [F8-99](roadmap/tasks/F8-99.json) | Review F8 single-step quality, performance and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32, F8-33, F8-34, F8-35, F8-36, F8-37, F8-38, F8-39, F8-40, F8-41, F8-42, F8-43, F8-44, F8-45, F8-46, F8-47, F8-48, F8-49, F8-50, F8-51, F8-52, F8-53, F8-54, F8-55, F8-56, F8-57, F8-58, F8-59, F8-60, F8-61, F8-62, F8-63, F8-64, F8-65, F8-66, F8-67, F8-68, F8-69, F8-70, F8-71, F8-72, F8-73, F8-74 | — |
 
 ### P1. Deferred domain and interaction coverage
 
