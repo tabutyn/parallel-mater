@@ -1,7 +1,7 @@
 {
   "id": "F8-68",
   "title": "Requalify the replacement candidate on Linux CUDA devices",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-24",
     "F8-67",
@@ -23,14 +23,22 @@
     "Attach durable exact-candidate, binary, device, driver, toolchain and raw artifact hashes. Candidate-v7 F8-24 evidence remains separate historical provenance and cannot satisfy this follow-up."
   ],
   "evidence": [],
-  "lease": {
-    "token": "f7e64c03-c66b-4dd5-93a4-4c21971ad222",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-68/ThomasLaptop-v9",
-    "claimed_at": "2026-11-01T01:45:40Z",
-    "heartbeat_at": "2026-11-01T01:45:40Z",
-    "expires_at": "2026-11-02T01:45:40Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "f7e64c03-c66b-4dd5-93a4-4c21971ad222",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-68/ThomasLaptop-v9",
+        "claimed_at": "2026-11-01T01:45:40Z",
+        "heartbeat_at": "2026-11-01T01:45:40Z",
+        "expires_at": "2026-11-02T01:45:40Z"
+      },
+      "outcome": "released",
+      "at": "2026-11-01T01:54:25Z",
+      "reason": "Candidate v9 fails the mandatory physical Linux CUDA matrix: 127/128 pass; rigid-spatial CUDA deterministically fails five query-mask assertions because non-dynamic production queries are zero while the fixture expects the dynamic mask. Preserve failure and repair under a separate lease; no partial pass or prior candidate evidence may be unioned.",
+      "evidence": []
+    }
+  ]
 }
