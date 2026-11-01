@@ -1,0 +1,25 @@
+{
+  "id": "F8-75",
+  "title": "Repair the Windows CUDA fluid fixture memory ordering",
+  "status": "open",
+  "dependencies": [
+    "F8-70"
+  ],
+  "locks": [
+    "f8-windows-cuda-fluid-fixture"
+  ],
+  "requires": [
+    "Physical Windows GTX 1080 CUDA device reporting concurrentManagedAccess=0 and exact F8-26 candidate-v9 failure evidence"
+  ],
+  "scope": "Repair the test-harness managed-memory ordering failure in tests/solver/fluid_realtime_cuda_tests.cu exposed by docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json. Fixture::run_tick launches fluid_realtime_predict and then reads managed *count on the CPU while kernels may execute. Normal execution crashes with 0xc0000006/0xc0000022; CUDA_LAUNCH_BLOCKING=1 is a diagnostic control, not a permitted solution. Keep this leaf test-only: obtain immutable host launch arguments at an already safe fixture boundary without adding per-kernel device synchronization or changing production kernels, counts, fixed-step semantics, assertions, tolerances or workloads. The separate F8-76 leaf owns production PEG PAINT and installed soft-body-fluid failures.",
+  "acceptance": [
+    "Reproduce the unmodified physical fluid fixture failure on Windows with CUDA_LAUNCH_BLOCKING absent, retain exception parameters and record concurrentManagedAccess=0.",
+    "The unchanged profile rejection, compression, density/correction, viscosity, source/outflow, conservation and 720-tick assertions pass under normal asynchronous CUDA execution; no managed host read occurs after the first launch until an existing completion boundary.",
+    "The focused surrounding fluid/spatial/coupling CUDA tests remain passing. Preserve any unrelated production F8-26 failures as open F8-76 work rather than skipping or changing them.",
+    "Provide exact source/tree, test binary, device/toolchain and before/after logs. Mechanically prove every candidate-v9 protected closure is unchanged; any required production change must remain in separately leased F8-76.",
+    "This repair does not qualify F8-26. F8-74 still gates the new candidate after Metal and Windows production repair; all final Windows tests and captures require a fresh F8-26 lease."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
