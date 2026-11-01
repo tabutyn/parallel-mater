@@ -190,6 +190,9 @@ struct Fixture {
                   unsigned profile = fluid_realtime_profile_version) {
         const auto options = generated_options(host_options);
         const unsigned blocks = (capacity + threads - 1U) / threads;
+        // Snapshot at the completed tick boundary: Windows cannot read managed
+        // memory on the host while the following kernels are executing.
+        const unsigned live_count = *count;
         *time_advances = 0U;
         fluid_realtime_predict<<<blocks, threads>>>(
             reinterpret_cast<Vec3_0 *>(positions),
@@ -201,7 +204,7 @@ struct Fixture {
              sweep < fluid_realtime_density_sweeps; ++sweep) {
             fluid_realtime_density_lambda<<<blocks, threads>>>(
                 reinterpret_cast<FluidSpatialLeafMetadata_0 *>(metadata),
-                admission, capacity, query_sources, *count,
+                admission, capacity, query_sources, live_count,
                 reinterpret_cast<Vec3_0 *>(positions), count, capacity,
                 filtered_counts, filtered_sources, candidates_per_query,
                 options, fluid_realtime_timestep, profile, densities, lambdas,
@@ -210,7 +213,7 @@ struct Fixture {
                 status);
             fluid_realtime_position_delta<<<blocks, threads>>>(
                 reinterpret_cast<FluidSpatialLeafMetadata_0 *>(metadata),
-                admission, capacity, query_sources, *count,
+                admission, capacity, query_sources, live_count,
                 reinterpret_cast<Vec3_0 *>(positions), count, capacity,
                 filtered_counts, filtered_sources, candidates_per_query,
                 options, fluid_realtime_timestep, profile, lambdas,
@@ -224,7 +227,7 @@ struct Fixture {
         }
         fluid_realtime_viscosity_delta<<<blocks, threads>>>(
             reinterpret_cast<FluidSpatialLeafMetadata_0 *>(metadata),
-            admission, capacity, query_sources, *count,
+            admission, capacity, query_sources, live_count,
             reinterpret_cast<Vec3_0 *>(positions),
             reinterpret_cast<Vec3_0 *>(velocities), count, capacity,
             filtered_counts, filtered_sources, candidates_per_query, options,
