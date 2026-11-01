@@ -1,0 +1,25 @@
+{
+  "id": "F8-72",
+  "title": "Repair the Linux CUDA rigid spatial query contract",
+  "status": "open",
+  "dependencies": [
+    "F8-70"
+  ],
+  "locks": [
+    "f8-linux-cuda-spatial-repair"
+  ],
+  "requires": [
+    "Physical Linux NVIDIA CUDA hardware, current shared Slang toolchain and the exact candidate-v9 F8-68 failure archive"
+  ],
+  "scope": "Repair the mandatory rigid spatial CUDA contract failure exposed by F8-68 on exact candidate realtime-single-step-v1-ba67db3. Reproduce the five static-body query-mask failures from docs/roadmap/evidence/F8-68-CANDIDATE-V9-LINUX-CUDA-FAILURE.json and adjudicate the normative dynamic, static and kinematic query behavior before changing either production behavior or its physical assertion. If candidate-v9 production behavior is correct, repair the stale CUDA assertion and explicitly prove that only dynamic bodies emit body-indexed queries while static and kinematic bodies remain admitted shared-BVH leaves visible to dynamic queries. If production behavior is wrong, repair the source semantics instead. Do not change physics, capabilities, cases, budgets, tolerances, schedules or qualification requirements. Candidate v9 remains failed history and repair-source observations do not qualify F8-68.",
+  "acceptance": [
+    "Reproduce the exact candidate-v9 F8-68 failure before repair from source ba67db3 and retain hash-bound before/after output. Establish the normative dynamic, static and kinematic query contract from the shared spatial consumer semantics rather than weakening the failing assertion.",
+    "The focused physical CUDA regression explicitly proves dynamic bodies emit rigid_spatial_query_mask, static and kinematic bodies emit zero body-indexed query masks, all three remain admitted leaves with rigid query/admission metadata, and a dynamic query still finds eligible static and kinematic colliders.",
+    "A clean Release build and the complete registered physical CUDA suite pass on the NVIDIA RTX 3050 Ti with no skipped supported test, followed by installed SDK relocation, installed-public capture, validation-layer and independent conformance checks required by F8-68.",
+    "Attach exact source/tree, device, toolchain, binary, manifest, protected-closure and raw before/after artifact hashes. Preserve the F8-68 candidate-v9 failure as immutable history and do not union its partial passes with repaired-source evidence.",
+    "Mechanically compare every F8-70 protected closure. If any protected closure changes, freeze a new immutable candidate and reroute all affected physical rows before requalification; if the repair is test-only outside every protected closure, prove those hashes remain exact before F8-68 may reclaim candidate v9."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
