@@ -1,7 +1,7 @@
 {
   "id": "F8-71",
   "title": "Requalify candidate v9 on Linux Vulkan devices",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-25",
     "F8-70"
@@ -21,15 +21,31 @@
     "Run the installed-public capture for all 49 capability obligations, 30 public cases, 12 scenarios, five negative controls and five sustained workloads with unchanged quality/performance budgets.",
     "Attach exact candidate, binary, device, driver, toolchain, validation and raw artifact hashes. F8-25 candidate-v8 evidence remains separate completed history and cannot satisfy this follow-up."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "8c77a30d-a76f-4289-856e-cb0cb49c1920",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-71/ThomasLaptop",
-    "claimed_at": "2026-11-01T00:51:36Z",
-    "heartbeat_at": "2026-11-01T00:51:36Z",
-    "expires_at": "2026-11-02T00:51:36Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: exact source ba67db35447b1f9022be4c3d8aae59dbe6d514d5 tree 2dfc4b680fac97519aee1c67526bddffdd01c474; 154/154 physical tests under Vulkan SDK 1.4.341.0 validation plus 3/3 isolated discovery/launcher tests; docs/roadmap/evidence/F8-71-CANDIDATE-V9-LINUX-VULKAN.json SHA-256 a5398863cf27a25d9c6438c6723f0f3e99539563dc1c9f0e91124d063eec2104",
+    "PASS: relocated SDK 12/12; installed-public capture executes 49 capability rows, 30 cases, 12 scenarios, five negative controls and five workloads over 72,000 measured ticks with zero failures; archive SHA-256 6fc5196629f80b8d5dad7440f91ed7f93ca3c6d35aa810f2400f82f2b5f6ec59",
+    "PASS: independent candidate-v9 evaluator 12/12; capture/oracle 40/40, reflected ABI 10/10, roadmap 89/89 and candidate closure pass; no earlier-candidate evidence unioned"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "8c77a30d-a76f-4289-856e-cb0cb49c1920",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-71/ThomasLaptop",
+        "claimed_at": "2026-11-01T00:51:36Z",
+        "heartbeat_at": "2026-11-01T00:51:36Z",
+        "expires_at": "2026-11-02T00:51:36Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-01T01:31:07Z",
+      "reason": "Candidate v9 passes the replacement physical Linux Vulkan qualification gate",
+      "evidence": [
+        "PASS: exact source ba67db35447b1f9022be4c3d8aae59dbe6d514d5 tree 2dfc4b680fac97519aee1c67526bddffdd01c474; 154/154 physical tests under Vulkan SDK 1.4.341.0 validation plus 3/3 isolated discovery/launcher tests; docs/roadmap/evidence/F8-71-CANDIDATE-V9-LINUX-VULKAN.json SHA-256 a5398863cf27a25d9c6438c6723f0f3e99539563dc1c9f0e91124d063eec2104",
+        "PASS: relocated SDK 12/12; installed-public capture executes 49 capability rows, 30 cases, 12 scenarios, five negative controls and five workloads over 72,000 measured ticks with zero failures; archive SHA-256 6fc5196629f80b8d5dad7440f91ed7f93ca3c6d35aa810f2400f82f2b5f6ec59",
+        "PASS: independent candidate-v9 evaluator 12/12; capture/oracle 40/40, reflected ABI 10/10, roadmap 89/89 and candidate closure pass; no earlier-candidate evidence unioned"
+      ]
+    }
+  ]
 }
