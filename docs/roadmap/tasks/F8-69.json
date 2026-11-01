@@ -1,7 +1,7 @@
 {
   "id": "F8-69",
   "title": "Repair shared Gallery CPU session recreation",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-67"
   ],
@@ -19,15 +19,31 @@
     "A clean Release build passes every required registered CPU test, the focused lifecycle regression, shared Gallery contract/clock/timing/reset/background/failure recovery, isolated discovery/launcher checks and installed SDK relocation with --require-realtime-driver, with and without the validation layer.",
     "Attach exact source/tree, binary, manifest, installed SDK, capability observation and raw before/after artifact hashes for F8-70. Preserve candidate-v8 failure evidence as immutable history and do not claim final qualification from the repair source."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "01fd45d7-c011-4de3-b6ee-710d3027f98d",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-69/ThomasLaptop",
-    "claimed_at": "2026-11-01T00:02:03Z",
-    "heartbeat_at": "2026-11-01T00:02:03Z",
-    "expires_at": "2026-11-02T00:02:03Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: clean Release build 610/610; registered CPU suite 112/112 in CTest semantics (97 pass, 15 explicit unsupported skips, 0 fail); isolated discovery/launcher 3/3; installed SDK relocation 14/14 with --require-realtime-driver; docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.json",
+    "PASS: hash-bound before/after logs, installed SDK report, validation/plain/capacity observations, exact source/tree and binary/manifest hashes; archive docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.tar.zst sha256 1f7b331df54d9fea577f8e9e902285442ba972e200e030c40b66366fe9d7c8d9",
+    "LIMITATION: candidate v8 remains rejected immutable history; repaired-source passes are not final qualification and cannot be unioned with candidate-v8 observations; F8-70 must freeze a new exact-source candidate."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "01fd45d7-c011-4de3-b6ee-710d3027f98d",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-69/ThomasLaptop",
+        "claimed_at": "2026-11-01T00:02:03Z",
+        "heartbeat_at": "2026-11-01T00:02:03Z",
+        "expires_at": "2026-11-02T00:02:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-01T00:22:51Z",
+      "reason": "Repaired the CPU Gallery contract to honor the truthful scene catalog, preserve the live runtime on unsupported Fluid replacement, and report missing particleLiquids without adding unsupported capability.",
+      "evidence": [
+        "PASS: clean Release build 610/610; registered CPU suite 112/112 in CTest semantics (97 pass, 15 explicit unsupported skips, 0 fail); isolated discovery/launcher 3/3; installed SDK relocation 14/14 with --require-realtime-driver; docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.json",
+        "PASS: hash-bound before/after logs, installed SDK report, validation/plain/capacity observations, exact source/tree and binary/manifest hashes; archive docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.tar.zst sha256 1f7b331df54d9fea577f8e9e902285442ba972e200e030c40b66366fe9d7c8d9",
+        "LIMITATION: candidate v8 remains rejected immutable history; repaired-source passes are not final qualification and cannot be unioned with candidate-v8 observations; F8-70 must freeze a new exact-source candidate."
+      ]
+    }
+  ]
 }
