@@ -1,7 +1,7 @@
 {
   "id": "F8-68",
   "title": "Requalify the replacement candidate on Linux CUDA devices",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-24",
     "F8-67",
@@ -22,16 +22,12 @@
     "Run the installed-public capture for all 49 capability obligations, 30 public cases, 12 scenarios, five negative controls and five desktop workloads with unchanged quality and performance budgets.",
     "Attach durable exact-candidate, binary, device, driver, toolchain and raw artifact hashes. Candidate-v7 F8-24 evidence remains separate historical provenance and cannot satisfy this follow-up."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bd0d581c-7880-4ed3-b9a9-f1d479e7eeea",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-68/ThomasLaptop-v9-r2",
-    "claimed_at": "2026-11-01T02:42:19Z",
-    "heartbeat_at": "2026-11-01T02:42:19Z",
-    "expires_at": "2026-11-02T02:42:19Z"
-  },
+  "evidence": [
+    "PASS: exact candidate realtime-single-step-v1-ba67db3; manifest sha256 4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b; source ba67db35447b1f9022be4c3d8aae59dbe6d514d5; tree 2dfc4b680fac97519aee1c67526bddffdd01c474; protected closures unchanged.",
+    "PASS: fresh Release CUDA build 695/695; registered physical suite 128/128 plus isolated 3/3; installed SDK 12/12; 49 capabilities, 30 public cases, 12 scenarios, five controls and five workloads over 72,000 measured ticks with zero failures.",
+    "PASS: durable report sha256 7fd249e6665f9674e053de00c48dbf4a76cb0996f32a4cce7c9e9502d1184d36 and archive sha256 fa44166e7e0fea82dc387d0b5980339945741a6e74b11389032838bcaaab2957; first F8-68 failure remains immutable and no evidence union occurred."
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -47,6 +43,25 @@
       "at": "2026-11-01T01:54:25Z",
       "reason": "Candidate v9 fails the mandatory physical Linux CUDA matrix: 127/128 pass; rigid-spatial CUDA deterministically fails five query-mask assertions because non-dynamic production queries are zero while the fixture expects the dynamic mask. Preserve failure and repair under a separate lease; no partial pass or prior candidate evidence may be unioned.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "bd0d581c-7880-4ed3-b9a9-f1d479e7eeea",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-68/ThomasLaptop-v9-r2",
+        "claimed_at": "2026-11-01T02:42:19Z",
+        "heartbeat_at": "2026-11-01T02:42:19Z",
+        "expires_at": "2026-11-02T02:42:19Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-01T02:58:07Z",
+      "reason": "Exact candidate v9 passes the complete Linux RTX 3050 Ti CUDA qualification after the merged F8-72 test-only physical-fixture repair: fresh 695-target build, registered 131/131, relocated SDK 12/12, installed-public capture and independent 12-scenario validation all pass with zero failures and unchanged protected closures.",
+      "evidence": [
+        "PASS: exact candidate realtime-single-step-v1-ba67db3; manifest sha256 4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b; source ba67db35447b1f9022be4c3d8aae59dbe6d514d5; tree 2dfc4b680fac97519aee1c67526bddffdd01c474; protected closures unchanged.",
+        "PASS: fresh Release CUDA build 695/695; registered physical suite 128/128 plus isolated 3/3; installed SDK 12/12; 49 capabilities, 30 public cases, 12 scenarios, five controls and five workloads over 72,000 measured ticks with zero failures.",
+        "PASS: durable report sha256 7fd249e6665f9674e053de00c48dbf4a76cb0996f32a4cce7c9e9502d1184d36 and archive sha256 fa44166e7e0fea82dc387d0b5980339945741a6e74b11389032838bcaaab2957; first F8-68 failure remains immutable and no evidence union occurred."
+      ]
     }
   ]
 }
