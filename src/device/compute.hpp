@@ -428,6 +428,11 @@ public:
     [[nodiscard]] virtual bool ready() const = 0;
     virtual void wait() const = 0;
     [[nodiscard]] virtual double elapsed_seconds() const = 0;
+    // Monotonic device completion time, used to compare timestamp events
+    // recorded in different command buffers on the same native queue.
+    [[nodiscard]] virtual double completion_seconds() const {
+        return elapsed_seconds();
+    }
     [[nodiscard]] virtual void *native_handle() const noexcept = 0;
     [[nodiscard]] virtual QueueIdentity queue_identity() const noexcept = 0;
 };
@@ -634,6 +639,12 @@ public:
         if (!lock.owns_lock() || !ready_locked())
             throw std::logic_error("GPU timestamps requested before completion");
         return native_->elapsed_seconds();
+    }
+    double completion_seconds() const override {
+        std::unique_lock lock(mutex_, std::try_to_lock);
+        if (!lock.owns_lock() || !ready_locked())
+            throw std::logic_error("GPU timestamps requested before completion");
+        return native_->completion_seconds();
     }
     void *native_handle() const noexcept override { return native_->native_handle(); }
     QueueIdentity queue_identity() const noexcept override { return identity_; }

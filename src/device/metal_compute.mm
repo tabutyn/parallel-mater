@@ -189,6 +189,10 @@ public:
         if (!ready()) throw std::logic_error("GPU timestamps requested before completion");
         return command_.GPUEndTime - command_.GPUStartTime;
     }
+    double completion_seconds() const override {
+        if (!ready()) throw std::logic_error("GPU timestamps requested before completion");
+        return command_.GPUEndTime;
+    }
     void *native_handle() const noexcept override { return (__bridge void *)command_; }
     QueueIdentity queue_identity() const noexcept override { return identity_; }
 private:

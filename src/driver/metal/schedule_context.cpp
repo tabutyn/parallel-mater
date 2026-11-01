@@ -650,6 +650,28 @@ cudaError_t pmMetalQueryEvent(cudaEvent_t event) noexcept {
         return cudaErrorLaunchFailure;
     }
 }
+cudaError_t pmMetalElapsedTime(float *milliseconds, cudaEvent_t begin,
+                              cudaEvent_t end) noexcept {
+    // The device epoch is deliberately a non-timing synchronization event;
+    // timestamp slots are timing events measured from that same GPU epoch.
+    if (!milliseconds || !begin || !end || !end->timing ||
+        !begin->submission || !end->submission ||
+        begin->stream != end->stream)
+        return cudaErrorInvalidValue;
+    try {
+        const double seconds = end->submission->completion_seconds() -
+            begin->submission->completion_seconds();
+        if (seconds < 0.0) return cudaErrorInvalidValue;
+        *milliseconds = static_cast<float>(seconds * 1000.0);
+        return cudaSuccess;
+    } catch (const std::exception &error) {
+        std::fprintf(stderr, "Metal preview: %s\n", error.what());
+        return cudaErrorLaunchFailure;
+    } catch (...) {
+        std::fprintf(stderr, "Metal preview: unknown event timing failure\n");
+        return cudaErrorLaunchFailure;
+    }
+}
 cudaError_t pmMetalPeekError(cudaStream_t stream, bool take) noexcept {
     auto *execution = context(stream);
     return execution ? execution->error(take) : cudaErrorInvalidResourceHandle;

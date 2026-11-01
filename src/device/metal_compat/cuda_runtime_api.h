@@ -84,6 +84,8 @@ cudaError_t pmMetalRecordEvent(cudaEvent_t event,
                               cudaStream_t stream) noexcept;
 cudaError_t pmMetalWaitEvent(cudaEvent_t event) noexcept;
 cudaError_t pmMetalQueryEvent(cudaEvent_t event) noexcept;
+cudaError_t pmMetalElapsedTime(float *milliseconds, cudaEvent_t begin,
+                              cudaEvent_t end) noexcept;
 cudaError_t pmMetalPeekError(cudaStream_t stream, bool take) noexcept;
 
 cudaError_t pmMetalAllocate(void **output, std::size_t size) noexcept;
@@ -196,11 +198,7 @@ inline cudaError_t cudaEventQuery(cudaEvent_t event) noexcept {
 
 inline cudaError_t cudaEventElapsedTime(float *milliseconds, cudaEvent_t begin,
                                         cudaEvent_t end) noexcept {
-    if (milliseconds == nullptr || begin == nullptr || end == nullptr)
-        return cudaErrorInvalidValue;
-    *milliseconds = std::chrono::duration<float, std::milli>(
-        end->recorded - begin->recorded).count();
-    return cudaSuccess;
+    return pmMetalElapsedTime(milliseconds, begin, end);
 }
 
 inline cudaError_t cudaPeekAtLastError() noexcept {
