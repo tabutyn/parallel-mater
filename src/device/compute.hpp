@@ -262,6 +262,8 @@ public:
         const auto address = address_for(found->second, buffer, offset);
         std::memcpy(bytes_.data() + found->second.offset, &address, sizeof(address));
         resources_[std::string(path)] = std::move(resource);
+        bindings_cache_.reset();
+        ranges_cache_.reset();
     }
     [[nodiscard]] std::span<const std::byte> bytes() const {
         if (resources_.size() != pointers_.size())
@@ -269,19 +271,28 @@ public:
         return bytes_;
     }
     [[nodiscard]] bool matches(const Field &field) const { return same_storage(layout_, field); }
-    [[nodiscard]] std::vector<ResourceBinding> bindings() const {
+    [[nodiscard]] const std::vector<ResourceBinding> &bindings() const {
+        if (bindings_cache_) return *bindings_cache_;
         (void)bytes();
         std::vector<ResourceBinding> result;
         for (const auto &[name, resource] : resources_) {
             if (resource) result.push_back({name, ResourceBindingKind::record_pointer, *resource});
         }
         validate_resource_bindings(result);
-        return result;
+        bindings_cache_ = std::move(result);
+        return *bindings_cache_;
     }
     [[nodiscard]] std::vector<BufferPtr> resources() const {
         std::vector<BufferPtr> result;
         for (const auto &binding : bindings()) result.push_back(binding.range.buffer);
         return result;
+    }
+    [[nodiscard]] const std::vector<ResourceRange> &resource_ranges() const {
+        if (ranges_cache_) return *ranges_cache_;
+        std::vector<ResourceRange> result;
+        for (const auto &binding : bindings()) result.push_back(binding.range);
+        ranges_cache_ = std::move(result);
+        return *ranges_cache_;
     }
 private:
     void collect(const Field &field, const std::string &path, std::size_t offset) {
@@ -304,6 +315,8 @@ private:
     std::vector<std::byte> bytes_;
     std::map<std::string, Field, std::less<>> pointers_;
     std::map<std::string, std::optional<ResourceRange>, std::less<>> resources_;
+    mutable std::optional<std::vector<ResourceBinding>> bindings_cache_;
+    mutable std::optional<std::vector<ResourceRange>> ranges_cache_;
 };
 
 class Kernel {
@@ -329,6 +342,7 @@ public:
     explicit Arguments(KernelPtr kernel) : kernel_(std::move(kernel)) {
         if (!kernel_) throw std::invalid_argument("null compute kernel");
         bytes_.resize(kernel_->argument_size);
+        positional_bindings_.reserve(kernel_->parameters.size());
     }
     template<class T> void set(std::string_view name, const T &value) {
         static_assert(std::is_trivially_copyable_v<T> && !std::is_pointer_v<T>);
@@ -337,6 +351,19 @@ public:
             throw std::invalid_argument("pointer-bearing parameters require bind()/record()");
         write(field, &value, sizeof(value));
         initialized_[std::string(name)] = true;
+    }
+    template<class T> void set_positional(const Field &field, const T &value) {
+        static_assert(std::is_trivially_copyable_v<T> && !std::is_pointer_v<T>);
+        if (contains_pointers(field))
+            throw std::invalid_argument("pointer-bearing parameters require bind()/record()");
+        write(field, &value, sizeof(value));
+        ++positional_initialized_;
+    }
+    template<class T> void update_positional(const Field &field, const T &value) {
+        static_assert(std::is_trivially_copyable_v<T> && !std::is_pointer_v<T>);
+        if (contains_pointers(field))
+            throw std::invalid_argument("pointer-bearing parameters require record update");
+        write(field, &value, sizeof(value));
     }
     void bind(std::string_view name, const BufferPtr &buffer, std::size_t offset = 0,
               std::size_t size = remaining_resource,
@@ -354,6 +381,30 @@ public:
         write(field, &address, sizeof(address));
         pointers_[std::string(name)] = std::move(resource);
         initialized_[std::string(name)] = true;
+        bindings_cache_.reset();
+        ranges_cache_.reset();
+    }
+    void bind_positional(std::string_view name, const Field &field,
+                         const BufferPtr &buffer, std::size_t offset = 0,
+                         std::size_t size = remaining_resource,
+                         ResourceAccess access = ResourceAccess::read_write) {
+        std::optional<ResourceRange> resource;
+        if (buffer) {
+            resource = resource_range(buffer, offset, size, access);
+            if (resource->size < field.pointee_size)
+                throw std::invalid_argument("parameter resource range smaller than pointee");
+        } else if (offset != 0 || size != remaining_resource) {
+            throw std::invalid_argument("null device pointer with explicit range");
+        }
+        const auto address = address_for(field, buffer, offset);
+        write(field, &address, sizeof(address));
+        if (resource)
+            positional_bindings_.push_back({std::string(name),
+                ResourceBindingKind::parameter, *resource});
+        ++positional_initialized_;
+        positional_bindings_validated_ = false;
+        bindings_cache_.reset();
+        ranges_cache_.reset();
     }
     void record(std::string_view name, const Record &value) {
         const auto &field = kernel_->parameter(name);
@@ -363,6 +414,64 @@ public:
         write(field, bytes.data(), bytes.size());
         records_[std::string(name)] = value.bindings();
         initialized_[std::string(name)] = true;
+        bindings_cache_.reset();
+        ranges_cache_.reset();
+    }
+    void record_positional(std::string_view name, const Field &field,
+                           const Record &value) {
+        if (field.pointer || field.fields.empty() || !value.matches(field))
+            throw std::invalid_argument("record() requires a by-value record parameter");
+        const auto bytes = value.bytes();
+        write(field, bytes.data(), bytes.size());
+        for (auto binding : value.bindings()) {
+            binding.name = std::string(name) + "." + binding.name;
+            binding.kind = ResourceBindingKind::record_pointer;
+            positional_bindings_.push_back(std::move(binding));
+        }
+        ++positional_initialized_;
+        positional_bindings_validated_ = false;
+        bindings_cache_.reset();
+        ranges_cache_.reset();
+    }
+    void update_record_positional(const Field &field,
+                                  std::span<const std::byte> host) {
+        if (field.pointer || field.fields.empty() || host.size() != field.size)
+            throw std::invalid_argument(
+                "record update requires a matching by-value record");
+        const auto update = [&](const auto &self, const Field &value,
+                                std::size_t destination_base,
+                                std::size_t host_base) -> void {
+            if (value.pointer) return;
+            if (value.element) {
+                for (std::size_t index = 0; index < value.element_count; ++index)
+                    self(self, *value.element,
+                         destination_base + value.offset +
+                             index * value.element_stride,
+                         host_base + value.offset +
+                             index * value.element_stride);
+                return;
+            }
+            if (!value.fields.empty()) {
+                for (const auto &[name, child] : value.fields) {
+                    (void)name;
+                    self(self, child, destination_base + value.offset,
+                         host_base + value.offset);
+                }
+                return;
+            }
+            const auto destination = destination_base + value.offset;
+            const auto source = host_base + value.offset;
+            if (destination > bytes_.size() ||
+                value.size > bytes_.size() - destination ||
+                source > host.size() || value.size > host.size() - source)
+                throw std::invalid_argument("record update outside storage");
+            std::memcpy(bytes_.data() + destination,
+                        host.data() + source, value.size);
+        };
+        for (const auto &[name, child] : field.fields) {
+            (void)name;
+            update(update, child, field.offset, 0U);
+        }
     }
     // Register allocations reached through device-memory records. The caller
     // supplies the complete range because reflection cannot inspect records
@@ -373,8 +482,16 @@ public:
         if (name.empty()) throw std::invalid_argument("unnamed indirect resource");
         indirect_.push_back({std::string(name), ResourceBindingKind::indirect,
                              resource_range(std::move(buffer), offset, size, access)});
+        bindings_cache_.reset();
+        ranges_cache_.reset();
     }
     void validate() const {
+        if (positional_initialized_ != 0U) {
+            if (positional_initialized_ + initialized_.size() !=
+                kernel_->parameters.size())
+                throw std::invalid_argument("unset kernel parameter");
+            return;
+        }
         for (const auto &[name, field] : kernel_->parameters) {
             (void)field;
             if (!initialized_.contains(name))
@@ -383,8 +500,18 @@ public:
     }
     [[nodiscard]] const KernelPtr &kernel() const noexcept { return kernel_; }
     [[nodiscard]] std::span<const std::byte> bytes() const noexcept { return bytes_; }
-    [[nodiscard]] std::vector<ResourceBinding> bindings() const {
+    [[nodiscard]] const std::vector<ResourceBinding> &bindings() const {
+        if (bindings_cache_) return *bindings_cache_;
+        if (indirect_.empty() && records_.empty() && pointers_.empty()) {
+            if (!positional_bindings_validated_) {
+                validate_resource_bindings(positional_bindings_);
+                positional_bindings_validated_ = true;
+            }
+            return positional_bindings_;
+        }
         auto result = indirect_;
+        result.insert(result.end(), positional_bindings_.begin(),
+                      positional_bindings_.end());
         for (const auto &[name, bindings] : records_) {
             for (auto binding : bindings) {
                 binding.name = name + "." + binding.name;
@@ -396,12 +523,20 @@ public:
             if (resource) result.push_back({name, ResourceBindingKind::parameter, *resource});
         }
         validate_resource_bindings(result);
-        return result;
+        bindings_cache_ = std::move(result);
+        return *bindings_cache_;
     }
     [[nodiscard]] std::vector<BufferPtr> resources() const {
         std::vector<BufferPtr> result;
         for (const auto &binding : bindings()) result.push_back(binding.range.buffer);
         return result;
+    }
+    [[nodiscard]] const std::vector<ResourceRange> &resource_ranges() const {
+        if (ranges_cache_) return *ranges_cache_;
+        std::vector<ResourceRange> result;
+        for (const auto &binding : bindings()) result.push_back(binding.range);
+        ranges_cache_ = std::move(result);
+        return *ranges_cache_;
     }
 private:
     void write(const Field &field, const void *data, std::size_t size) {
@@ -416,6 +551,11 @@ private:
     std::map<std::string, std::optional<ResourceRange>, std::less<>> pointers_;
     std::map<std::string, std::vector<ResourceBinding>, std::less<>> records_;
     std::vector<ResourceBinding> indirect_;
+    std::vector<ResourceBinding> positional_bindings_;
+    std::size_t positional_initialized_{};
+    mutable std::optional<std::vector<ResourceBinding>> bindings_cache_;
+    mutable std::optional<std::vector<ResourceRange>> ranges_cache_;
+    mutable bool positional_bindings_validated_{};
 };
 
 class Submission {
@@ -468,6 +608,8 @@ public:
 };
 
 namespace detail {
+using ResourceKey = std::pair<std::uint64_t, std::uint64_t>;
+
 struct ResourceOwners {
     std::unordered_set<BufferPtr> buffers;
     std::unordered_set<KernelPtr> kernels;
@@ -478,7 +620,9 @@ struct ResourceOwners {
 
 struct DependencyPlan {
     std::vector<ResourceDependency> dependencies;
-    std::vector<ResourceRange> next;
+    // Only allocations touched by the next command are copied and replaced.
+    // Untouched history remains resident in the tracker.
+    std::map<ResourceKey, std::vector<ResourceRange>> next;
 };
 
 // Tracks the most recent access for each byte interval. A new command replaces
@@ -488,35 +632,46 @@ struct DependencyPlan {
 class DependencyTracker {
 public:
     [[nodiscard]] DependencyPlan plan(std::span<const ResourceRange> accesses) const {
-        const auto current = normalize(accesses);
+        auto current = normalize(accesses);
         DependencyPlan result;
-        for (const auto &next : current) {
-            for (const auto &prior : history_) {
-                if (!aliases(prior, next)) continue;
-                require_consistent(prior, next);
-                if (!overlaps(prior, next) || (!writes(prior.access) && !writes(next.access)))
-                    continue;
-                const auto begin = std::max(prior.offset, next.offset);
-                const auto end = std::min(prior.offset + prior.size, next.offset + next.size);
-                result.dependencies.push_back({
-                    {prior.buffer, begin, end - begin, prior.access},
-                    {next.buffer, begin, end - begin, next.access},
-                });
+        for (auto &[identity, next_ranges] : current) {
+            const auto previous = history_.find(identity);
+            if (previous != history_.end()) {
+                for (const auto &next : next_ranges) {
+                    for (const auto &prior : previous->second) {
+                        require_consistent(prior, next);
+                        if (!overlaps(prior, next) ||
+                            (!writes(prior.access) && !writes(next.access)))
+                            continue;
+                        const auto begin = std::max(prior.offset, next.offset);
+                        const auto end = std::min(prior.offset + prior.size,
+                                                  next.offset + next.size);
+                        result.dependencies.push_back({
+                            {prior.buffer, begin, end - begin, prior.access},
+                            {next.buffer, begin, end - begin, next.access},
+                        });
+                    }
+                }
             }
+            auto updated = previous == history_.end()
+                ? std::vector<ResourceRange>{} : previous->second;
+            for (const auto &next : next_ranges) overlay(updated, next);
+            coalesce(updated);
+            result.next.emplace(identity, std::move(updated));
         }
-
-        result.next = history_;
-        for (const auto &next : current) overlay(result.next, next);
-        coalesce(result.next);
         return result;
     }
 
-    void commit(DependencyPlan &&plan) noexcept { history_.swap(plan.next); }
+    void commit(DependencyPlan &&plan) noexcept {
+        // Moving a map node for a newly observed allocation does not allocate.
+        // Existing allocations swap their already-planned vectors in place.
+        history_.merge(plan.next);
+        for (auto &[identity, ranges] : plan.next)
+            history_.find(identity)->second.swap(ranges);
+    }
     void clear() noexcept { history_.clear(); }
 
 private:
-    using IdentityKey = std::pair<std::uint64_t, std::uint64_t>;
-
     static void require_range(const ResourceRange &range) {
         if (!range.buffer || !range.identity().valid() || !valid(range.access) || !range.size ||
             range.offset > range.buffer->size() ||
@@ -530,9 +685,9 @@ private:
             throw std::invalid_argument("inconsistent aliased compute resource");
     }
 
-    [[nodiscard]] static std::vector<ResourceRange> normalize(
+    [[nodiscard]] static std::map<ResourceKey, std::vector<ResourceRange>> normalize(
         std::span<const ResourceRange> accesses) {
-        std::map<IdentityKey, std::vector<ResourceRange>> groups;
+        std::map<ResourceKey, std::vector<ResourceRange>> groups;
         for (const auto &access : accesses) {
             require_range(access);
             const auto identity = access.identity();
@@ -541,9 +696,8 @@ private:
             group.push_back(access);
         }
 
-        std::vector<ResourceRange> result;
+        std::map<ResourceKey, std::vector<ResourceRange>> result;
         for (const auto &[identity, group] : groups) {
-            (void)identity;
             std::vector<std::size_t> boundaries;
             boundaries.reserve(group.size() * 2);
             for (const auto &access : group) {
@@ -552,6 +706,7 @@ private:
             }
             std::sort(boundaries.begin(), boundaries.end());
             boundaries.erase(std::unique(boundaries.begin(), boundaries.end()), boundaries.end());
+            auto &normalized = result[identity];
             for (std::size_t i = 1; i < boundaries.size(); ++i) {
                 const auto begin = boundaries[i - 1], end = boundaries[i];
                 unsigned bits{};
@@ -559,11 +714,11 @@ private:
                     if (access.offset < end && begin < access.offset + access.size)
                         bits |= static_cast<unsigned>(access.access);
                 if (bits != 0)
-                    result.push_back({group.front().buffer, begin, end - begin,
-                                      static_cast<ResourceAccess>(bits)});
+                    normalized.push_back({group.front().buffer, begin,
+                        end - begin, static_cast<ResourceAccess>(bits)});
             }
+            coalesce(normalized);
         }
-        coalesce(result);
         return result;
     }
 
@@ -613,7 +768,7 @@ private:
         ranges.swap(result);
     }
 
-    std::vector<ResourceRange> history_;
+    std::map<ResourceKey, std::vector<ResourceRange>> history_;
 };
 
 class RetainedSubmission final : public Submission {
@@ -744,10 +899,7 @@ public:
         arguments.validate();
         if (!groups.x || !groups.y || !groups.z)
             throw std::invalid_argument("empty compute dispatch");
-        const auto bindings = arguments.bindings();
-        std::vector<ResourceRange> accesses;
-        accesses.reserve(bindings.size());
-        for (const auto &binding : bindings) accesses.push_back(binding.range);
+        const auto &accesses = arguments.resource_ranges();
         encode(accesses, [&] {
             owners_->kernels.insert(arguments.kernel());
             encoder_->dispatch(arguments, groups);

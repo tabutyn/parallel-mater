@@ -595,7 +595,9 @@ void filter_fluid_spatial_candidates(
     const std::uint32_t *target_live_count, std::uint32_t target_capacity,
     const std::uint32_t *candidate_counts,
     const std::uint32_t *candidate_sources,
-    std::uint32_t candidates_per_query, std::uint32_t *filtered_counts,
+    std::uint32_t candidates_per_query, bool output_payload_refs,
+    std::uint32_t output_candidates_per_query,
+    std::uint32_t *filtered_counts,
     std::uint32_t *filtered_sources, std::uint32_t *status) noexcept {
     fluid_filter_spatial_candidates<<<
         dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
@@ -612,7 +614,9 @@ void filter_fluid_spatial_candidates(
         const_cast<std::uint32_t *>(target_live_count), target_capacity,
         const_cast<std::uint32_t *>(candidate_counts),
         const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
-        filtered_counts, filtered_sources, status);
+        std::uint32_t{output_payload_refs}, output_candidates_per_query,
+        filtered_counts, filtered_sources,
+        status);
 }
 
 PmResult gather_fluid_spatial_payloads(

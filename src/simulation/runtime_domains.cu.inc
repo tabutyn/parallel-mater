@@ -334,15 +334,6 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
     std::unique_ptr<SmokeStorage> smoke;
     try { smoke = std::make_unique<SmokeStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "smoke owner allocation failed"); }
-    if (options.grid_resolution == 0U) {
-        try {
-            smoke->realtime_candidate_gather_slots.resize(
-                std::size_t(options.capacity) * 64U);
-        } catch (...) {
-            return failure(StatusCode::out_of_memory,
-                "smoke realtime candidate adapter allocation failed");
-        }
-    }
     smoke->generation = impl_->smokes[slot].generation();
     smoke->options = options;
     if (options.grid_resolution != 0U) {

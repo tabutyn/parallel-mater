@@ -1723,43 +1723,16 @@ public:
         }
         if (leaf_offset != staged_leaves_ || query_offset != staged_queries_)
             return PM_ERROR_INVALID_STATE;
-        const auto candidates_per_query =
-            state_.options.realtime_spatial_candidates_per_query;
         for (auto &owner : state_.smokes) {
             if (!owner || !owner->alive ||
                 owner->options.grid_resolution != 0U)
                 continue;
             auto &smoke = *owner;
-            const auto capacity = smoke.options.capacity;
-            const std::size_t map_count =
-                std::size_t(capacity) * candidates_per_query;
-            const std::size_t compact_count = std::size_t(capacity) *
-                smoke_realtime_candidates_per_particle;
-            if (map_count > std::numeric_limits<std::uint32_t>::max() ||
-                compact_count > std::numeric_limits<std::uint32_t>::max() ||
-                smoke.realtime_candidate_gather_slots.size() !=
-                    compact_count)
-                return PM_ERROR_CAPACITY_EXCEEDED;
-            smoke.realtime_candidate_map_count =
-                static_cast<std::uint32_t>(map_count);
-            smoke.realtime_candidate_compact_count =
-                static_cast<std::uint32_t>(compact_count);
-            for (std::uint32_t particle = 0U; particle < capacity;
+            for (std::uint32_t particle = 0U;
+                 particle < smoke.options.capacity;
                  ++particle) {
                 state_.realtime_smoke_payload_refs_host[
                     smoke.realtime_leaf_offset + particle] = particle;
-                const auto source_base =
-                    std::size_t(particle) * candidates_per_query;
-                const auto compact_base = std::size_t(particle) *
-                    smoke_realtime_candidates_per_particle;
-                for (std::uint32_t candidate = 0U;
-                     candidate < smoke_realtime_candidates_per_particle;
-                     ++candidate) {
-                    smoke.realtime_candidate_gather_slots[
-                        compact_base + candidate] =
-                            static_cast<std::uint32_t>(
-                                source_base + candidate);
-                }
             }
         }
         std::array<simulation::RealtimeResourceRegistration,
@@ -2320,25 +2293,10 @@ public:
             if (result == PM_SUCCESS)
                 result = native_.clear(smoke.realtime_time_advances, 0,
                     sizeof(*smoke.realtime_time_advances), native_.queue());
-            if (result == PM_SUCCESS &&
-                smoke.options.grid_resolution == 0U)
-                result = native_.copy(smoke.realtime_candidate_indices,
-                    smoke.realtime_candidate_gather_slots.data(),
-                    std::size_t(smoke.realtime_candidate_compact_count) *
-                        sizeof(std::uint32_t),
-                    device::CopyDirection::host_to_device,
-                    native_.queue());
             if (result != PM_SUCCESS) return result;
             boundary_work.bytes_moved += 4U * vector_bytes +
                 4U * scalar_bytes + 2U * sizeof(std::uint32_t);
             boundary_work.barriers += 10U;
-
-            if (smoke.options.grid_resolution == 0U) {
-                boundary_work.bytes_moved +=
-                    std::uint64_t{smoke.realtime_candidate_compact_count} *
-                    sizeof(std::uint32_t);
-                ++boundary_work.barriers;
-            }
 
             if (smoke.options.grid_resolution == 0U) continue;
             auto &grid = smoke.grid;
@@ -3342,7 +3300,8 @@ public:
                 snapshot_.query_counts + query_offset,
                 snapshot_.query_candidates +
                     std::size_t(query_offset) * candidates_per_query,
-                candidates_per_query, filtered_counts + query_offset,
+                candidates_per_query, false, candidates_per_query,
+                filtered_counts + query_offset,
                 filtered_sources +
                     std::size_t(query_offset) * candidates_per_query,
                 snapshot_.query_status);
@@ -3359,22 +3318,6 @@ public:
             const auto groups =
                 (smoke.options.capacity + block - 1U) / block;
             const auto query_offset = smoke.realtime_query_offset;
-            auto *raw_sources = filtered_sources +
-                std::size_t(query_offset) * candidates_per_query;
-            auto *dense_sources = deformable_spatial<std::uint32_t>(
-                state_.realtime_deformable_spatial_plan.filtered_sources) +
-                std::size_t(query_offset) * candidates_per_query;
-            const auto raw_bytes =
-                std::size_t(smoke.realtime_candidate_map_count) *
-                sizeof(std::uint32_t);
-            result = native_.clear(raw_sources, 0, raw_bytes,
-                native_.queue());
-            if (result == PM_SUCCESS)
-                result = native_.clear(smoke.realtime_candidate_counts, 0,
-                    std::size_t(smoke.options.capacity) *
-                        sizeof(std::uint32_t),
-                    native_.queue());
-            if (result != PM_SUCCESS) return result;
             native_.filter_fluid_spatial_candidates(
                 groups, block, native_.queue(), snapshot_.metadata,
                 snapshot_.admission,
@@ -3388,51 +3331,14 @@ public:
                 snapshot_.query_counts + query_offset,
                 snapshot_.query_candidates +
                     std::size_t(query_offset) * candidates_per_query,
-                candidates_per_query, smoke.realtime_candidate_counts,
-                raw_sources,
-                snapshot_.query_status);
-            result = native_.check_error();
-            if (result != PM_SUCCESS) return result;
-            result = native_.copy(smoke.realtime_candidate_slot_count,
-                &smoke.realtime_candidate_map_count,
-                sizeof(*smoke.realtime_candidate_slot_count),
-                device::CopyDirection::host_to_device, native_.queue());
-            if (result != PM_SUCCESS) return result;
-            const auto map_groups =
-                (smoke.realtime_candidate_map_count + block - 1U) / block;
-            result = native_.gather_fluid_spatial_payloads(
-                map_groups, block, native_.queue(), raw_sources,
-                smoke.realtime_candidate_slot_count, snapshot_.metadata,
-                state_.options.realtime_spatial_leaf_capacity,
-                smoke.realtime_candidate_map_count, dense_sources,
-                snapshot_.query_status);
-            if (result != PM_SUCCESS) return result;
-            result = native_.copy(smoke.realtime_candidate_slot_count,
-                &smoke.realtime_candidate_compact_count,
-                sizeof(*smoke.realtime_candidate_slot_count),
-                device::CopyDirection::host_to_device, native_.queue());
-            if (result != PM_SUCCESS) return result;
-            const auto compact_groups =
-                (smoke.realtime_candidate_compact_count + block - 1U) /
-                block;
-            result = native_.gather_rigid_spatial_pairs(
-                compact_groups, block, native_.queue(),
+                candidates_per_query, true,
+                smoke_realtime_candidates_per_particle,
+                smoke.realtime_candidate_counts,
                 smoke.realtime_candidate_indices,
-                smoke.realtime_candidate_slot_count, dense_sources,
-                smoke.realtime_candidate_map_count,
-                smoke.realtime_candidate_indices, snapshot_.query_status);
-            if (result != PM_SUCCESS) return result;
+                snapshot_.query_status);
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
-            dispatches(simulation::RealtimeTelemetryPhase::candidates, 3U,
-                std::uint64_t{groups} + map_groups + compact_groups);
-            auto &candidate_work = work(
-                simulation::RealtimeTelemetryPhase::candidates);
-            candidate_work.bytes_moved += raw_bytes +
-                std::size_t(smoke.options.capacity) *
-                    sizeof(std::uint32_t) +
-                2U * sizeof(std::uint32_t);
-            candidate_work.barriers += 4U;
+            dispatch(simulation::RealtimeTelemetryPhase::candidates, groups);
         }
         if (state_.rigid_constraint_count != 0U) {
             result = native_.build_fixed_collision_groups(

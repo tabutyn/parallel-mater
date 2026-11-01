@@ -12,6 +12,7 @@
 #include <cstring>
 #include <limits>
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 
 namespace parallel_mater::device::compute {
@@ -211,20 +212,23 @@ public:
         // A caller may run thousands of physics submissions inside one outer
         // autorelease pool. Do not retain every completed command until then.
         @autoreleasepool {
+            MTLCommandBufferDescriptor *descriptor =
+                [MTLCommandBufferDescriptor new];
+            // Common submission ownership already retains every referenced
+            // buffer and kernel through completion. Avoid duplicating hundreds
+            // of per-dispatch Objective-C retains in the native command buffer.
+            descriptor.retainedReferences = NO;
             const char *diagnostics = std::getenv(
                 "PM_METAL_ENCODER_DIAGNOSTICS");
             if (diagnostics && std::strcmp(diagnostics, "1") == 0) {
-                MTLCommandBufferDescriptor *descriptor =
-                    [MTLCommandBufferDescriptor new];
                 descriptor.errorOptions =
                     MTLCommandBufferErrorOptionEncoderExecutionStatus;
-                command_ = [queue commandBufferWithDescriptor:descriptor];
-            } else {
-                command_ = [queue commandBuffer];
             }
+            command_ = [queue commandBufferWithDescriptor:descriptor];
             require(command_ != nil, "Metal command buffer allocation failed");
         }
     }
+    ~MetalCommandList() override { finish_encoders(); }
     QueueIdentity queue_identity() const noexcept override {
         return {NativeApi::metal,
                 reinterpret_cast<std::uintptr_t>((__bridge void *)device_),
@@ -263,41 +267,36 @@ public:
                 range(dependency.next.buffer, dependency.next.offset,
                       dependency.next.size);
             }
-            // Every operation below closes its native encoder. Metal orders
-            // those encoders within one command buffer and tracked resources
-            // make their writes visible, so this adapter needs no extra native
-            // command. The callback still proves common scheduling selected the
-            // dependency; it never turns that dependency into a CPU wait.
+            // Serial compute encoders complete dispatches in encoding order;
+            // tracked resources make those writes visible to the next dispatch.
+            // Compute/blit transitions close the active encoder and retain the
+            // same ordering. The common tracker still validates the exact
+            // conflicting ranges without adding a duplicate native barrier.
         }
     }
     void dispatch(const Arguments &arguments, Extent groups) override {
         @autoreleasepool {
             ensure_open();
-            arguments.validate();
             auto kernel = std::dynamic_pointer_cast<const MetalKernel>(arguments.kernel());
             require(kernel && kernel->pipeline.device == device_, "foreign compute kernel");
             if (groups.x == 0 || groups.y == 0 || groups.z == 0)
                 throw std::invalid_argument("empty compute dispatch");
             // Validate before opening an encoder, so failed validation leaves the
             // command list usable and cannot strand an active native encoder.
-            auto bindings = arguments.bindings();
+            const auto &bindings = arguments.bindings();
             for (const auto &binding : bindings) (void)buffer(binding.range.buffer);
             const std::uint32_t dimensions[4]{groups.x, groups.y, groups.z, kernel->threads.x};
-            id<MTLComputeCommandEncoder> encoder = [command_ computeCommandEncoder];
-            require(encoder != nil, "Metal compute encoder allocation failed");
-            encoder.label = kernel->pipeline.label;
+            id<MTLComputeCommandEncoder> encoder = compute_encoder();
             [encoder setComputePipelineState:kernel->pipeline];
             if (kernel->has_dispatch_uniform)
                 [encoder setBytes:dimensions length:sizeof(dimensions) atIndex:kernel->dispatch_index];
             [encoder setBytes:arguments.bytes().data() length:arguments.bytes().size()
                 atIndex:kernel->argument_index];
             for (const auto &binding : bindings)
-                [encoder useResource:buffer(binding.range.buffer) usage:usage(binding.range.access)];
+                use_resource(encoder, buffer(binding.range.buffer),
+                    usage(binding.range.access));
             [encoder dispatchThreadgroups:MTLSizeMake(groups.x, groups.y, groups.z)
                 threadsPerThreadgroup:MTLSizeMake(kernel->threads.x, kernel->threads.y, kernel->threads.z)];
-            [encoder endEncoding];
-            // Separate encoders + tracked resources implement dependencies
-            // selected by the common scheduler. Never a group or host barrier.
         }
     }
     void copy(const BufferPtr &destination, std::size_t destination_offset,
@@ -311,11 +310,9 @@ public:
             if (dst == src && destination_offset < source_offset + size &&
                 source_offset < destination_offset + size)
                 throw std::invalid_argument("overlapping GPU copy ranges");
-            id<MTLBlitCommandEncoder> encoder = [command_ blitCommandEncoder];
-            require(encoder != nil, "Metal blit encoder allocation failed");
+            id<MTLBlitCommandEncoder> encoder = blit_encoder();
             [encoder copyFromBuffer:src sourceOffset:source_offset toBuffer:dst
                 destinationOffset:destination_offset size:size];
-            [encoder endEncoding];
         }
     }
     void fill(const BufferPtr &destination, std::size_t offset,
@@ -325,10 +322,8 @@ public:
             auto dst = buffer(destination);
             range(destination, offset, size);
             if (size == 0) return;
-            id<MTLBlitCommandEncoder> encoder = [command_ blitCommandEncoder];
-            require(encoder != nil, "Metal blit encoder allocation failed");
+            id<MTLBlitCommandEncoder> encoder = blit_encoder();
             [encoder fillBuffer:dst range:NSMakeRange(offset, size) value:value];
-            [encoder endEncoding];
         }
     }
     BufferPtr upload(const BufferPtr &destination, std::size_t offset,
@@ -349,6 +344,7 @@ public:
     SubmissionPtr submit() override {
         @autoreleasepool {
             ensure_open();
+            finish_encoders();
             auto result = std::make_shared<MetalSubmission>(command_, queue_identity());
             [command_ commit];
             submitted_ = true;
@@ -356,6 +352,49 @@ public:
         }
     }
 private:
+    id<MTLComputeCommandEncoder> compute_encoder() {
+        finish_blit_encoder();
+        if (compute_encoder_ == nil) {
+            compute_encoder_ = [command_
+                computeCommandEncoderWithDispatchType:MTLDispatchTypeSerial];
+            require(compute_encoder_ != nil, "Metal compute encoder allocation failed");
+            compute_encoder_.label = @"ParallelMater compute batch";
+            compute_resources_.clear();
+        }
+        return compute_encoder_;
+    }
+    id<MTLBlitCommandEncoder> blit_encoder() {
+        finish_compute_encoder();
+        if (blit_encoder_ == nil) {
+            blit_encoder_ = [command_ blitCommandEncoder];
+            require(blit_encoder_ != nil, "Metal blit encoder allocation failed");
+            blit_encoder_.label = @"ParallelMater transfer batch";
+        }
+        return blit_encoder_;
+    }
+    void finish_compute_encoder() noexcept {
+        if (compute_encoder_ == nil) return;
+        [compute_encoder_ endEncoding];
+        compute_encoder_ = nil;
+        compute_resources_.clear();
+    }
+    void finish_blit_encoder() noexcept {
+        if (blit_encoder_ == nil) return;
+        [blit_encoder_ endEncoding];
+        blit_encoder_ = nil;
+    }
+    void finish_encoders() noexcept {
+        finish_compute_encoder();
+        finish_blit_encoder();
+    }
+    void use_resource(id<MTLComputeCommandEncoder> encoder,
+                      id<MTLBuffer> resource, MTLResourceUsage next) {
+        void *key = (__bridge void *)resource;
+        auto [found, inserted] = compute_resources_.try_emplace(key, next);
+        if (!inserted && (found->second & next) == next) return;
+        if (!inserted) found->second |= next;
+        [encoder useResource:resource usage:found->second];
+    }
     static MTLResourceUsage usage(ResourceAccess access) {
         switch (access) {
         case ResourceAccess::read: return MTLResourceUsageRead;
@@ -380,6 +419,9 @@ private:
     id<MTLDevice> device_;
     id<MTLCommandQueue> queue_;
     id<MTLCommandBuffer> command_;
+    id<MTLComputeCommandEncoder> compute_encoder_{};
+    id<MTLBlitCommandEncoder> blit_encoder_{};
+    std::unordered_map<void *, MTLResourceUsage> compute_resources_;
     bool submitted_{};
 };
 
@@ -483,7 +525,8 @@ public:
     }
     std::unique_ptr<CommandList> commands(std::span<const SubmissionPtr> prior = {}) override {
         @autoreleasepool {
-            return submissions_.commands(std::make_unique<MetalCommandList>(device_, queue_), prior);
+            return submissions_.commands(
+                std::make_unique<MetalCommandList>(device_, queue_), prior);
         }
     }
     NativeObject native_device() const override {
