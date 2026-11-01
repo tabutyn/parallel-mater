@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-c05d320",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v8.json",
+  "candidate_manifest_sha256": "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33",
+  "status": "rejected-required-cpu-gallery-suite",
+  "rejected_at": "2026-11-01",
+  "rejection_task": "F8-69",
+  "historical_qualification_task": "F8-25",
+  "historical_pass_evidence": "docs/roadmap/evidence/F8-25-CANDIDATE-V8-LINUX-VULKAN.json",
+  "historical_pass_evidence_sha256": "429b929744ca7245aa31021e2a0850017cbe69dc0e232fa724f1e395c2a7a33b",
+  "historical_pass_archive": "docs/roadmap/evidence/F8-25-CANDIDATE-V8-LINUX-VULKAN.tar.zst",
+  "historical_pass_archive_sha256": "66dc30be8f4e5e1945eed339df6416c1d4318ab639ccf938bcaae454388606b5",
+  "failure_evidence": "docs/roadmap/evidence/F8-53-CANDIDATE-V8-CPU-GALLERY-FAILURE.json",
+  "failure_evidence_sha256": "e5e9a172c3bb2874e05b256f31827e7d1e174d9c52e4a4089fd78ba1d21d4741",
+  "failure_archive": "docs/roadmap/evidence/F8-53-CANDIDATE-V8-CPU-GALLERY-FAILURE.tar.zst",
+  "failure_archive_sha256": "8362f1b3441244dec28d33db6d0684f639ad80f704fcedfe9a4e6efa1fb6a2ea",
+  "repair_evidence": "docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.json",
+  "repair_evidence_sha256": "0fa01bf9388b22ae2e496413075bc38313a9db1ff4d8d188fc44f2c687807be3",
+  "repair_archive": "docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.tar.zst",
+  "repair_archive_sha256": "1f7b331df54d9fea577f8e9e902285442ba972e200e030c40b66366fe9d7c8d9",
+  "reasons": [
+    "Candidate v8 passed its F8-25 physical Linux Vulkan row but failed the mandatory F8-53 CPU Gallery session contract.",
+    "F8-69 repairs the shared contract and proves the clean Release CPU suite, repeated Gallery lifecycle, validation, isolated discovery and installed SDK relocation on exact clean source ba67db3 while retaining all 15 explicit unsupported skips.",
+    "Candidate-v8 Vulkan passes and CPU partial observations remain immutable rejected provenance and cannot qualify or be unioned with the F8-69 repaired-source evidence."
+  ],
+  "superseded_at": "2026-11-01",
+  "supersession_task": "F8-70",
+  "replacement": {
+    "status": "frozen-awaiting-physical-qualification",
+    "candidate_id": "realtime-single-step-v1-ba67db3",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+    "candidate_manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+    "freeze_task": "F8-70",
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "ci_run_id": 41257022787
+  },
+  "evidence_union_allowed": false,
+  "invalidated_physical_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "qualification_owner": "F8-26",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "qualification_owner": "F8-27",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "qualification_owner": "F8-53",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "qualification_owner": "F8-68",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "qualification_owner": "F8-71",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "qualification_owner": "F8-28",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "qualification_owner": "F8-29",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "qualification_owner": "F8-30",
+      "status": "invalidated-requalify-replacement"
+    }
+  ],
+  "qualification_rule": "No final F8 qualification report may name or reuse candidate v8. F8-26 through F8-30, F8-53, F8-68 and F8-71 must execute only realtime-single-step-v1-ba67db3 from F8-70."
+}

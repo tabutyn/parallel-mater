@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the F8-67 realtime candidate from immutable source evidence."""
+"""Generate the F8-70 realtime candidate from immutable source evidence."""
 
 from __future__ import annotations
 
@@ -18,50 +18,59 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PREVIOUS_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v7.json"
-)
-OUTPUT_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v8.json"
 )
-SOURCE_REVISION = "c05d3207138c6e969e1347558c08601aeaf1cc07"
-SOURCE_TREE = "340ab85997363f328e25f1c549114c5b44571bc3"
-CANDIDATE_ID = "realtime-single-step-v1-c05d320"
-PREVIOUS_ID = "realtime-single-step-v1-05f8b04"
+OUTPUT_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v9.json"
+)
+SOURCE_REVISION = "ba67db35447b1f9022be4c3d8aae59dbe6d514d5"
+SOURCE_TREE = "2dfc4b680fac97519aee1c67526bddffdd01c474"
+CANDIDATE_ID = "realtime-single-step-v1-ba67db3"
+PREVIOUS_ID = "realtime-single-step-v1-c05d320"
 PREVIOUS_SHA256 = (
-    "15f168583cdd16afbf0fa3d7a26a86349dab206e6aab87e9b3f1b18bdcbb8b8f"
+    "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33"
 )
-LEASE_TOKEN = "fb93fd79-4318-410d-8479-2a66c7af9cd6"
-F8_66_EVIDENCE = (
-    "docs/roadmap/evidence/F8-66-LINUX-VULKAN-REPAIR.json"
+LEASE_TOKEN = "90a88c66-2e6a-4dc9-9839-1e6ace5970f9"
+F8_69_EVIDENCE = (
+    "docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.json"
 )
-F8_65_FREEZE_EVIDENCE = (
-    "docs/roadmap/evidence/F8-65-CANDIDATE-V7-FREEZE.json"
+F8_67_FREEZE_EVIDENCE = (
+    "docs/roadmap/evidence/F8-67-CANDIDATE-V8-FREEZE.json"
 )
-V7_CUDA_EVIDENCE = (
-    "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.json"
+V8_VULKAN_EVIDENCE = (
+    "docs/roadmap/evidence/F8-25-CANDIDATE-V8-LINUX-VULKAN.json"
 )
-V7_CUDA_EVIDENCE_SHA256 = (
-    "49a2e57dd43af1a5735e3b9838d6280de80d4f688ff61ca56035ecc173881764"
+V8_VULKAN_EVIDENCE_SHA256 = (
+    "429b929744ca7245aa31021e2a0850017cbe69dc0e232fa724f1e395c2a7a33b"
 )
-V7_CUDA_ARCHIVE = (
-    "docs/roadmap/evidence/F8-24-CANDIDATE-V7-LINUX-CUDA.tar.zst"
+V8_VULKAN_ARCHIVE = (
+    "docs/roadmap/evidence/F8-25-CANDIDATE-V8-LINUX-VULKAN.tar.zst"
 )
-V7_CUDA_ARCHIVE_SHA256 = (
-    "127b00849c4744faba0543d3eb15971ea6b273e2dd2c0064d99417c538bd1e3c"
+V8_VULKAN_ARCHIVE_SHA256 = (
+    "66dc30be8f4e5e1945eed339df6416c1d4318ab639ccf938bcaae454388606b5"
 )
-V7_FAILURE_EVIDENCE = (
-    "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.json"
+V8_FAILURE_EVIDENCE = (
+    "docs/roadmap/evidence/F8-53-CANDIDATE-V8-CPU-GALLERY-FAILURE.json"
 )
-V7_FAILURE_SHA256 = (
-    "2adbc20a1ef42d2d6f2c0f3f0e4d977aeeb14d65f72219fafac42cad9efbf6db"
+V8_FAILURE_SHA256 = (
+    "e5e9a172c3bb2874e05b256f31827e7d1e174d9c52e4a4089fd78ba1d21d4741"
 )
-V7_FAILURE_ARCHIVE = (
-    "docs/roadmap/evidence/F8-25-CANDIDATE-V7-LINUX-VULKAN-FAILURE.tar.zst"
+V8_FAILURE_ARCHIVE = (
+    "docs/roadmap/evidence/F8-53-CANDIDATE-V8-CPU-GALLERY-FAILURE.tar.zst"
 )
-V7_FAILURE_ARCHIVE_SHA256 = (
-    "7facdbf9d31f9abe4a01a7ade4dc324f76524299c8366fe1b900b53e9c2907c2"
+V8_FAILURE_ARCHIVE_SHA256 = (
+    "8362f1b3441244dec28d33db6d0684f639ad80f704fcedfe9a4e6efa1fb6a2ea"
 )
-PROTECTED_CI_RUN_ID = 41246222115
+F8_69_EVIDENCE_SHA256 = (
+    "0fa01bf9388b22ae2e496413075bc38313a9db1ff4d8d188fc44f2c687807be3"
+)
+F8_69_ARCHIVE = (
+    "docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.tar.zst"
+)
+F8_69_ARCHIVE_SHA256 = (
+    "1f7b331df54d9fea577f8e9e902285442ba972e200e030c40b66366fe9d7c8d9"
+)
+PROTECTED_CI_RUN_ID = 41257022787
 REQUIRED_CI_ARTIFACTS = {
     "sdk-install-contracts",
     "sdk-install-contracts-macos-arm64",
@@ -169,16 +178,22 @@ def generate_closure_identities(
 
 def generate(ci: dict[str, Any]) -> dict[str, Any]:
     require(file_sha256(PREVIOUS_PATH) == PREVIOUS_SHA256,
-            "candidate v7 changed; refusing to derive v8")
-    require(file_sha256(ROOT / V7_CUDA_EVIDENCE) == V7_CUDA_EVIDENCE_SHA256,
-            "candidate-v7 CUDA evidence changed; refusing to derive v8")
-    require(file_sha256(ROOT / V7_CUDA_ARCHIVE) == V7_CUDA_ARCHIVE_SHA256,
-            "candidate-v7 CUDA archive changed; refusing to derive v8")
-    require(file_sha256(ROOT / V7_FAILURE_EVIDENCE) == V7_FAILURE_SHA256,
-            "candidate-v7 Vulkan failure evidence changed; refusing to derive v8")
-    require(file_sha256(ROOT / V7_FAILURE_ARCHIVE) ==
-            V7_FAILURE_ARCHIVE_SHA256,
-            "candidate-v7 Vulkan failure archive changed; refusing to derive v8")
+            "candidate v8 changed; refusing to derive v9")
+    require(file_sha256(ROOT / V8_VULKAN_EVIDENCE) ==
+            V8_VULKAN_EVIDENCE_SHA256,
+            "candidate-v8 Vulkan evidence changed; refusing to derive v9")
+    require(file_sha256(ROOT / V8_VULKAN_ARCHIVE) ==
+            V8_VULKAN_ARCHIVE_SHA256,
+            "candidate-v8 Vulkan archive changed; refusing to derive v9")
+    require(file_sha256(ROOT / V8_FAILURE_EVIDENCE) == V8_FAILURE_SHA256,
+            "candidate-v8 CPU failure evidence changed; refusing to derive v9")
+    require(file_sha256(ROOT / V8_FAILURE_ARCHIVE) ==
+            V8_FAILURE_ARCHIVE_SHA256,
+            "candidate-v8 CPU failure archive changed; refusing to derive v9")
+    require(file_sha256(ROOT / F8_69_EVIDENCE) == F8_69_EVIDENCE_SHA256,
+            "F8-69 repair evidence changed; refusing to derive v9")
+    require(file_sha256(ROOT / F8_69_ARCHIVE) == F8_69_ARCHIVE_SHA256,
+            "F8-69 repair archive changed; refusing to derive v9")
     actual_tree = subprocess.run(
         ["git", "show", "-s", "--format=%T", SOURCE_REVISION],
         cwd=ROOT,
@@ -210,8 +225,8 @@ def generate(ci: dict[str, Any]) -> dict[str, Any]:
     candidate = copy.deepcopy(load_json(PREVIOUS_PATH))
     candidate.update({
         "id": CANDIDATE_ID,
-        "task": "F8-67",
-        "frozen_at": "2026-10-31",
+        "task": "F8-70",
+        "frozen_at": "2026-11-01",
         "lease_token": LEASE_TOKEN,
         "supersedes": {
             "candidate_id": PREVIOUS_ID,
@@ -219,7 +234,7 @@ def generate(ci: dict[str, Any]) -> dict[str, Any]:
             "manifest_sha256": PREVIOUS_SHA256,
             "supersession_record": (
                 "conformance/v1/qualification/"
-                "realtime-candidate-v7-rejection.json"
+                "realtime-candidate-v8-rejection.json"
             ),
         },
     })
@@ -267,18 +282,18 @@ def generate(ci: dict[str, Any]) -> dict[str, Any]:
         "revision": SOURCE_REVISION,
         "tree": SOURCE_TREE,
         "definition": (
-            "The executable implementation is the exact clean final F8-66 "
-            "repair head. Commits c9effb0 through c05d320 repair Vulkan "
-            "Gallery resource binding, smoke and paint publication, sustained "
-            "translation performance and bounded rope quality. The exact "
-            "c05d320 source passes the complete physical Linux Vulkan suite, "
-            "pinned validation, relocated installed SDK and installed-public "
-            "capture without changing the sole schedule, work budgets or "
-            "quality tolerances. F8-67 adds only immutable freeze metadata and "
+            "The executable implementation is the exact clean final F8-69 "
+            "repair head. Commit ba67db3 makes the shared Gallery contract "
+            "select a scene supported by the observed device catalog, preserves "
+            "the live runtime on unsupported replacement and reports the exact "
+            "missing capability. The source passes the complete CPU registered "
+            "suite, repeated Gallery lifecycle, validation, isolated discovery "
+            "and installed-public SDK relocation while retaining all 15 truthful "
+            "unsupported skips. F8-70 adds only immutable freeze metadata and "
             "coordination outside this source identity."
         ),
-        "repair_evidence": F8_66_EVIDENCE,
-        "repair_evidence_sha256": file_sha256(ROOT / F8_66_EVIDENCE),
+        "repair_evidence": F8_69_EVIDENCE,
+        "repair_evidence_sha256": file_sha256(ROOT / F8_69_EVIDENCE),
         "hash_method": (
             "SHA-256 over sorted repository-relative path + NUL + file bytes "
             "+ NUL"
@@ -286,7 +301,7 @@ def generate(ci: dict[str, Any]) -> dict[str, Any]:
         "protected_closures": closures,
     }
     candidate["sole_path_audit"]["audit_evidence"] = (
-        "docs/roadmap/evidence/F8-67-SOLE-PATH-AUDIT.json"
+        "docs/roadmap/evidence/F8-70-SOLE-PATH-AUDIT.json"
     )
 
     fixture_path = "conformance/v1/realtime/scenario-fixtures-v1.json"
@@ -365,7 +380,8 @@ def generate(ci: dict[str, Any]) -> dict[str, Any]:
         "rule": (
             "Compilation, reflection, packaging and hosted execution are build "
             "evidence only. Compile-only mirrors and hosted runners qualify no "
-            "physical row. F8-66 exact-source Linux Vulkan evidence is separate."
+            "physical row. Candidate-v8 Linux Vulkan and CPU observations remain "
+            "separate historical evidence and cannot qualify candidate v9."
         ),
         "github_actions": {
             "workflow": run["workflow"],
@@ -394,37 +410,39 @@ def generate(ci: dict[str, Any]) -> dict[str, Any]:
     prerequisites = {
         item["task"]: item for item in candidate["prerequisite_evidence"]
     }
-    prerequisites["F8-65"] = {
-        "task": "F8-65",
-        "path": F8_65_FREEZE_EVIDENCE,
-        "sha256": file_sha256(ROOT / F8_65_FREEZE_EVIDENCE),
+    prerequisites["F8-67"] = {
+        "task": "F8-67",
+        "path": F8_67_FREEZE_EVIDENCE,
+        "sha256": file_sha256(ROOT / F8_67_FREEZE_EVIDENCE),
     }
-    prerequisites["F8-66"] = {
-        "task": "F8-66",
-        "path": F8_66_EVIDENCE,
-        "sha256": file_sha256(ROOT / F8_66_EVIDENCE),
+    prerequisites["F8-69"] = {
+        "task": "F8-69",
+        "path": F8_69_EVIDENCE,
+        "sha256": file_sha256(ROOT / F8_69_EVIDENCE),
     }
     candidate["prerequisite_evidence"] = [
         prerequisites[key] for key in sorted(prerequisites)
     ]
-    candidate["execution_evidence"] = F8_66_EVIDENCE
+    candidate["execution_evidence"] = F8_69_EVIDENCE
     for target in candidate["physical_targets"]:
         if target["id"] == "linux-rtx3050ti-slang-cuda":
             target["qualification_owner"] = "F8-68"
+        elif target["id"] == "linux-rtx3050ti-slang-vulkan":
+            target["qualification_owner"] = "F8-71"
     candidate["qualification_routing"].update({
         "accepted_candidate": CANDIDATE_ID,
         "tasks": [
-            "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30",
-            "F8-53", "F8-68",
+            "F8-26", "F8-27", "F8-28", "F8-29", "F8-30", "F8-53",
+            "F8-68", "F8-71",
         ],
         "interim_cpu_evidence": (
-            "F8-23 and candidates v4-v6 remain immutable rejected or interim "
-            "provenance. Candidate v7 is rejected after its F8-24 Linux CUDA "
-            "pass and F8-25 Linux Vulkan failure; neither observation supplies "
-            "a candidate-v8 pass. F8-66 proves the complete physical Linux "
-            "Vulkan regression and installed-public capture on the exact "
-            "frozen source. F8-25 through F8-30 and F8-53 own their replacement "
-            "rows, while F8-68 owns replacement Linux CUDA requalification."
+            "F8-23 and candidates v4-v7 remain immutable rejected or interim "
+            "provenance. Candidate v8 is rejected after its F8-25 Linux Vulkan "
+            "pass and F8-53 CPU Gallery failure; neither observation supplies a "
+            "candidate-v9 pass. F8-69 proves the bounded CPU Gallery lifecycle "
+            "repair on the exact frozen source without adding CPU capability. "
+            "F8-26 through F8-30 and F8-53 own their replacement rows, F8-68 "
+            "owns Linux CUDA, and F8-71 owns Linux Vulkan requalification."
         ),
         "rule": (
             "Every final physical row must name this exact candidate id, source "
@@ -460,48 +478,48 @@ def route_candidate(candidate: dict[str, Any], candidate_path: Path) -> None:
         for item in candidate["physical_targets"]
     ]
     rejection_path = (
-        ROOT / "conformance/v1/qualification/realtime-candidate-v7-rejection.json"
+        ROOT / "conformance/v1/qualification/realtime-candidate-v8-rejection.json"
     )
     rejection = {
         "schema": "parallel-mater-realtime-candidate-rejection/v1",
         "candidate_id": PREVIOUS_ID,
         "candidate_manifest": PREVIOUS_PATH.relative_to(ROOT).as_posix(),
         "candidate_manifest_sha256": PREVIOUS_SHA256,
-        "status": "rejected-required-linux-vulkan-suite",
-        "rejected_at": "2026-10-31",
-        "rejection_task": "F8-66",
-        "historical_qualification_task": "F8-24",
-        "historical_pass_evidence": V7_CUDA_EVIDENCE,
-        "historical_pass_evidence_sha256": V7_CUDA_EVIDENCE_SHA256,
-        "historical_pass_archive": V7_CUDA_ARCHIVE,
-        "historical_pass_archive_sha256": V7_CUDA_ARCHIVE_SHA256,
-        "failure_evidence": V7_FAILURE_EVIDENCE,
-        "failure_evidence_sha256": V7_FAILURE_SHA256,
-        "failure_archive": V7_FAILURE_ARCHIVE,
-        "failure_archive_sha256": V7_FAILURE_ARCHIVE_SHA256,
-        "repair_evidence": F8_66_EVIDENCE,
-        "repair_evidence_sha256": file_sha256(ROOT / F8_66_EVIDENCE),
+        "status": "rejected-required-cpu-gallery-suite",
+        "rejected_at": "2026-11-01",
+        "rejection_task": "F8-69",
+        "historical_qualification_task": "F8-25",
+        "historical_pass_evidence": V8_VULKAN_EVIDENCE,
+        "historical_pass_evidence_sha256": V8_VULKAN_EVIDENCE_SHA256,
+        "historical_pass_archive": V8_VULKAN_ARCHIVE,
+        "historical_pass_archive_sha256": V8_VULKAN_ARCHIVE_SHA256,
+        "failure_evidence": V8_FAILURE_EVIDENCE,
+        "failure_evidence_sha256": V8_FAILURE_SHA256,
+        "failure_archive": V8_FAILURE_ARCHIVE,
+        "failure_archive_sha256": V8_FAILURE_ARCHIVE_SHA256,
+        "repair_evidence": F8_69_EVIDENCE,
+        "repair_evidence_sha256": file_sha256(ROOT / F8_69_EVIDENCE),
+        "repair_archive": F8_69_ARCHIVE,
+        "repair_archive_sha256": F8_69_ARCHIVE_SHA256,
         "reasons": [
-            "Candidate v7 passed its F8-24 Linux CUDA row but failed the "
-            "mandatory F8-25 physical Linux Vulkan Gallery and installed-public "
-            "suite.",
-            "F8-66 repairs those failures and proves 157 registered tests, "
-            "pinned validation, 27 SPIR-V modules, SDK relocation, 49 "
-            "capability rows, 30 public cases, 12 scenarios, 37 named "
-            "measurements, five negative controls and five sustained workloads "
-            "on exact clean replacement source c05d320.",
-            "Candidate-v7 CUDA passes and Vulkan partial observations remain "
+            "Candidate v8 passed its F8-25 physical Linux Vulkan row but failed "
+            "the mandatory F8-53 CPU Gallery session contract.",
+            "F8-69 repairs the shared contract and proves the clean Release CPU "
+            "suite, repeated Gallery lifecycle, validation, isolated discovery "
+            "and installed SDK relocation on exact clean source ba67db3 while "
+            "retaining all 15 explicit unsupported skips.",
+            "Candidate-v8 Vulkan passes and CPU partial observations remain "
             "immutable rejected provenance and cannot qualify or be unioned "
-            "with the F8-66 repaired-source evidence.",
+            "with the F8-69 repaired-source evidence.",
         ],
-        "superseded_at": "2026-10-31",
-        "supersession_task": "F8-67",
+        "superseded_at": "2026-11-01",
+        "supersession_task": "F8-70",
         "replacement": {
             "status": "frozen-awaiting-physical-qualification",
             "candidate_id": CANDIDATE_ID,
             "candidate_manifest": candidate_path.relative_to(ROOT).as_posix(),
             "candidate_manifest_sha256": candidate_sha256,
-            "freeze_task": "F8-67",
+            "freeze_task": "F8-70",
             "source_revision": SOURCE_REVISION,
             "source_tree": SOURCE_TREE,
             "ci_run_id": PROTECTED_CI_RUN_ID,
@@ -509,9 +527,9 @@ def route_candidate(candidate: dict[str, Any], candidate_path: Path) -> None:
         "evidence_union_allowed": False,
         "invalidated_physical_rows": rejected_rows,
         "qualification_rule": (
-            "No final F8 qualification report may name or reuse candidate v7. "
-            "F8-25 through F8-30, F8-53 and F8-68 must execute only "
-            f"{CANDIDATE_ID} from F8-67."
+            "No final F8 qualification report may name or reuse candidate v8. "
+            "F8-26 through F8-30, F8-53, F8-68 and F8-71 must execute only "
+            f"{CANDIDATE_ID} from F8-70."
         ),
     }
     write_json(rejection_path, rejection)
@@ -523,13 +541,13 @@ def main() -> int:
         "--ci-evidence",
         type=Path,
         required=True,
-        help="independently hashed F8-67 protected CI evidence JSON",
+        help="independently hashed F8-70 protected CI evidence JSON",
     )
     parser.add_argument("--output", type=Path, default=OUTPUT_PATH)
     parser.add_argument(
         "--route",
         action="store_true",
-        help="also route the active pointer and v7 rejection record",
+        help="also route the active pointer and v8 rejection record",
     )
     args = parser.parse_args()
     candidate = generate(load_json(args.ci_evidence.resolve()))
