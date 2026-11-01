@@ -103,6 +103,7 @@ struct Fixture {
         parameters[2].motion = MotionType::dynamic;
         meshes[2].bounding_center = {2.0F, 0.0F, 0.0F};
         meshes[2].bounding_radius = 0.1F;
+        parameters[3].motion = MotionType::kinematic;
         previous[3].position = predicted[3].position = {0.0F, 2.0F, 0.0F};
         meshes[3].bounding_radius = 0.1F;
 
@@ -231,7 +232,13 @@ void run_fixture() {
               fixture.ids[index].generation);
         CHECK(fixture.metadata[index].identity.primitive_generation == 1U);
         CHECK(fixture.metadata[index].payload_ref == index);
-        CHECK(fixture.query_masks[index] == rigid_spatial_query_mask);
+        CHECK(fixture.metadata[index].query_mask == rigid_spatial_query_mask);
+        CHECK(fixture.metadata[index].admission_mask ==
+              rigid_spatial_query_mask);
+        const auto expected_query_mask =
+            fixture.parameters[index].motion == MotionType::dynamic
+                ? rigid_spatial_query_mask : 0U;
+        CHECK(fixture.query_masks[index] == expected_query_mask);
         CHECK(fixture.excluded[index] == index + 1U);
     }
 
@@ -253,7 +260,13 @@ void run_fixture() {
                               fixture.active_pairs + compacted);
     const auto expected = expected_pairs(fixture);
     CHECK(actual == expected);
+    // Static and kinematic bodies do not issue body-indexed queries, but both
+    // remain admitted leaves found by eligible dynamic queries.
+    CHECK(fixture.parameters[1].motion == MotionType::static_body);
+    CHECK(fixture.query_masks[1] == 0U);
     CHECK(actual.contains(0U * Fixture::count + 1U));
+    CHECK(fixture.parameters[3].motion == MotionType::kinematic);
+    CHECK(fixture.query_masks[3] == 0U);
     CHECK(actual.contains(2U * Fixture::count + 3U));
     CHECK(actual.contains(4U * Fixture::count + 5U));
     CHECK(!actual.contains(6U * Fixture::count + 7U));
