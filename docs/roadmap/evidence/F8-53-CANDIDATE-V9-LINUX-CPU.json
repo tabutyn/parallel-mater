@@ -1,0 +1,226 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v1",
+  "task": "F8-53",
+  "status": "passed",
+  "lease_token": "63497730-36cd-429f-9fdc-c83ac50bef45",
+  "captured_at": "2026-11-01T01:43:01Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-ba67db3",
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+    "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+    "freeze_evidence": "docs/roadmap/evidence/F8-70-CANDIDATE-V9-FREEZE.json",
+    "freeze_evidence_sha256": "f436ecfb17283443c63dae8a684bff4d45314f88e470c16cfb3882048e5a9808",
+    "exact_source_ci_run": 41257022787,
+    "target": "linux-thomas-laptop-slang-cpu",
+    "runtime_variant": "cpu-runtime"
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz",
+    "topology": "1 socket, 4 cores, 8 threads",
+    "physical_device": "Parallel Mater Slang CPU (Slang CPU reference)",
+    "driver_version": 202618,
+    "gpu_timing": "unavailable on the CPU target and not replaced by host timing",
+    "power_state": {
+      "scaling_driver": "intel_pstate",
+      "scaling_governor": "powersave",
+      "platform_profile": "performance"
+    }
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18",
+    "architecture": "x86_64"
+  },
+  "results": {
+    "clean_release_build": "passed from exact clean source ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "registered_tests": {
+      "status": "passed",
+      "passed": 97,
+      "failed": 0,
+      "skipped": 15,
+      "total": 112,
+      "elapsed_seconds": 9.38,
+      "isolated_discovery_and_launcher_passed": 3,
+      "isolated_failed": 0,
+      "isolation_reason": "The three discovery and launcher tests control their own manifests and therefore execute with PM_DRIVER_FILES and PM_LAYER_FILES unset."
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 14,
+      "checks_failed": 0,
+      "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+      "source_dirty": false,
+      "external_consumers": "passed",
+      "installed_conformance_runner": "passed",
+      "explicit_incompatible_versions": "API/profile versions 0.2 and 0.4 rejected with expected exit 1",
+      "unsupported_case": "expected exit 77",
+      "missing_driver": "expected exit 2",
+      "metadata_note": "The generic relocation report retains the source tree's historical candidate-v8 non-qualification labels. Fresh plain, validation and long qualification observations below explicitly bind candidate v9 and are the only observations used for this pass."
+    },
+    "installed_public_execution": {
+      "status": "passed",
+      "case": "f8-kernel-entrypoint-execution/cpu",
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "creation": "ordinary API 0.3 creation with no profile opt-in",
+      "schedule": "fixed-tick version 1",
+      "timestep_seconds": 0.0166666675,
+      "substeps": 1,
+      "time_advances": 1,
+      "spatial_index_publications": 1,
+      "queue_submissions": 1,
+      "intra_tick_host_readbacks": 0,
+      "plain_validation_public_state_identical": true,
+      "plain_validation_fixed_work_identical": true,
+      "execution_identity_claim": "The one-step observations are qualification inputs and make no standalone identity claim; the long CPU capture below has qualification_claim=true and binds the exact v9 manifest, source and driver binary."
+    },
+    "cpu_qualification": {
+      "status": "passed",
+      "qualification_claim": true,
+      "workload": {
+        "tier": "cpu-reference-v1",
+        "id": "rigid-brick-oracle",
+        "rigid_bodies_live": 8,
+        "rigid_bodies_capacity": 8,
+        "constraints_live": 8,
+        "constraints_capacity": 8,
+        "contact_capacity": 2048
+      },
+      "successful_ticks": 7800,
+      "failed_ticks": 0,
+      "invalid_substeps_rejected_synchronously": true,
+      "all_public_states_finite": true,
+      "fixed_work_per_tick": {
+        "dispatches": 20,
+        "workgroups": 1421,
+        "rigid_contact_and_joint_sweeps": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "time_advances": 1,
+        "queue_submissions": 1,
+        "intra_tick_host_readbacks": 0
+      },
+      "cold_start": {
+        "ticks": 120,
+        "p50_ms": 0.513734,
+        "p95_ms": 0.54732,
+        "p99_ms": 0.617021,
+        "maximum_ms": 0.62851
+      },
+      "sustained": {
+        "warmup_ticks": 600,
+        "measured_ticks": 7200,
+        "p50_ms": 0.623559,
+        "p95_ms": 0.821852,
+        "p99_ms": 0.930751,
+        "maximum_ms": 1.30932,
+        "wall_seconds": 4.78111297,
+        "simulated_to_wall_time_ratio": 25.0987585
+      },
+      "budgets": {
+        "physics_p95_ms_maximum": 10.0,
+        "minimum_simulated_to_wall_time_ratio": 0.99,
+        "physics_p95_passed": true,
+        "realtime_ratio_passed": true,
+        "contract_manifest": "conformance/v1/qualification/realtime-profile-v1.json",
+        "contract_manifest_sha256": "0cca981dd77d5e18b6d7a4846c8a00c586bb0a7a6c6df707b4020d39c2e7fd17"
+      }
+    },
+    "gallery_behavior": {
+      "status": "passed",
+      "presentation_interpolation": "parallel-mater-gallery-presentation-interpolation-tests passed in 0.01 s",
+      "fixed_tick_scene": "parallel-mater-gallery-fixed-tick-scene-tests passed in 0.14 s",
+      "shared_session_lifecycle": "parallel-mater-gallery-session-contract-tests passed in 0.48 s, including create/destroy/recreate, reset, failure recovery and validation-enabled reset",
+      "slow_motion_and_clock": "parallel-mater-gallery-session-clock-tests passed in 0.02 s",
+      "background_and_no_catch_up": "parallel-mater-gallery-frame-policy-tests passed, including zero background physics and no foreground catch-up"
+    },
+    "applicable_coverage": {
+      "runtime": "production Slang CPU driver",
+      "domain": "RIGID_BODY",
+      "features": [
+        "rigid bodies",
+        "rigid constraints",
+        "statistics queries",
+        "realtime-single-step v1.0"
+      ],
+      "independent_assertions": {
+        "conformance": "446/446 passed",
+        "roadmap": "89/89 passed",
+        "reflected_abi": "10/10 passed",
+        "candidate_closure": "passed"
+      },
+      "unsupported_production_cpu_fixtures": [
+        "resource lifecycle requiring unadvertised domains",
+        "validated lifecycle requiring unadvertised domains",
+        "domain lifecycle requiring unadvertised domains",
+        "cross-domain coupling lifecycle",
+        "interaction graph lifecycle",
+        "cross-domain graph validation",
+        "paint lifecycle",
+        "fluid emitter endpoint lifecycle",
+        "fluid pair graph lifecycle",
+        "soft-body contact",
+        "cloth contact",
+        "fluid-pair quality",
+        "fluid self-contact quality",
+        "fluid self-pressure quality",
+        "fluid self-viscosity quality"
+      ],
+      "unsupported_rule": "The 15 registered fixtures returned the configured skip code and are not passes or CPU capability claims.",
+      "six_family_probe": "A complete GPU-style capture was attempted only to verify the capability boundary and stopped at the first particleLiquids scenario. The failure log is preserved; the partial probe contributes no passing observation and no capability reduction."
+    }
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-53-CANDIDATE-V9-LINUX-CPU.tar.zst",
+    "tracked_archive_sha256": "dc3e040bb71488a58f3e0437f88d20d6fa0bc01e8cd38800a7a44eecef7e92d8",
+    "tracked_archive_bytes": 60272,
+    "tracked_archive_uncompressed_bytes": 214252,
+    "tracked_archive_file_count": 26,
+    "tracked_archive_tree_sha256": "590eb678774045792a0e5ec5d193edbb2a734af2db1f55c69160d847df3cc040",
+    "tree_hash_method": "SHA-256 of sorted archive-relative sha256sum records",
+    "cpu_qualification_sha256": "85c4cebe24fdf84c8541c1b6cc3e795b7b572541280dd69bac2f1fb1f9870cd0",
+    "qualification_harness_sha256": "dca36120d895608af93013f948cbb86b76bec057b37b1dfe8ed729388e7b672a",
+    "qualification_executable_sha256": "e7756b0adcd7690280af03ac38fb337c9aad71ee4d9091e74c26c670b8241ca6",
+    "registered_ctest_log_sha256": "b3c460baae9113f6419e7fdbaec5df0625aa624a8ebd4110ebc9481510fa22b4",
+    "isolated_ctest_log_sha256": "2251654616c0a551a7c9b1294a30cc98a085236631bfd91ec3b414b2b5db9d84",
+    "sdk_report_sha256": "db0aaaaf01969a9be6ce94d2d3e09d39685a0303128c6c4daff813dc217a82b6",
+    "v9_plain_observation_sha256": "a50e44820ef40da09ed6d56facf37375993b7ee467f8e369a07a54952e728246",
+    "v9_validation_observation_sha256": "cc509631d227a8fee7213f6825417a52e3834a76bd5c6141b369547d87110911",
+    "unadvertised_boundary_log_sha256": "4a6534fe3d9c5ed51df6d410cc599fe05923828ec9081038d3c7996c1ea0adb5",
+    "loader_sha256": "b6ad5d274269a6a5d466ab4e1c65ee42d1db6c991769e030dc81a496e3d79afe",
+    "driver_sha256": "2b43b399be21c1bb317f2cc4e0551c2a56820b49836061bfbe10381fdd93ba19",
+    "driver_manifest_sha256": "627449185d2ed0a61ddc71d596ab2240fe9b16f33c27ece6ca1f27cc92035d1c",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "rejected_history": {
+    "candidate_v8_cpu_failure_evidence_sha256": "e5e9a172c3bb2874e05b256f31827e7d1e174d9c52e4a4089fd78ba1d21d4741",
+    "candidate_v8_cpu_failure_archive_sha256": "8362f1b3441244dec28d33db6d0684f639ad80f704fcedfe9a4e6efa1fb6a2ea",
+    "candidate_v8_linux_vulkan_pass_evidence_sha256": "429b929744ca7245aa31021e2a0850017cbe69dc0e232fa724f1e395c2a7a33b",
+    "evidence_union_allowed": false
+  },
+  "qualification_effect": "Candidate v9 passes the final Linux ThomasLaptop Slang CPU row. This report uses a fresh exact-source candidate-v9 build, installed SDK relocation, explicit-v9 plain and validation observations, a fresh 7,800-tick physical CPU/reference capture, fresh Gallery lifecycle tests and independent assertions. Candidate v8 and all earlier candidates remain immutable history and contribute no passing observation.",
+  "commands": {
+    "configure": "cmake -S /tmp/parallel-mater-f8-71-source -B /tmp/parallel-mater-f8-53-v9-cpu-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPARALLEL_MATER_BUILD_CUDA=OFF -DPARALLEL_MATER_BUILD_VULKAN=OFF -DPARALLEL_MATER_BUILD_D3D12=OFF -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON -DPARALLEL_MATER_BUILD_GALLERY=ON",
+    "build": "cmake --build /tmp/parallel-mater-f8-53-v9-cpu-build --config Release --parallel 4",
+    "registered_suite": "PM_DRIVER_FILES=<build>/Release/manifests/slang-cpu.json PM_LAYER_FILES=<build>/Release/manifests/validation.json ctest --test-dir <build> -C Release --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_suite": "PM_DRIVER_FILES and PM_LAYER_FILES unset; ctest --test-dir <build> -C Release --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir <build> --output /tmp/f8-53-v9-evidence/sdk --config Release --require-realtime-driver",
+    "public_observations": "realtime-profile-consumer plain|validation <output> realtime-single-step-v1-ba67db3 4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "cpu_qualification": "PM_DRIVER_FILES=<relocated-cpu-manifest> realtime-capacity-consumer <output> realtime-single-step-v1-ba67db3 4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b ba67db35447b1f9022be4c3d8aae59dbe6d514d5 2b43b399be21c1bb317f2cc4e0551c2a56820b49836061bfbe10381fdd93ba19",
+    "conformance_tests": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+    "roadmap_tests": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+    "reflected_abi_tests": "python3 tests/solver/test_slang_abi.py",
+    "candidate_check": "python3 tools/check_realtime_candidate.py"
+  }
+}
