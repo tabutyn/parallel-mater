@@ -1,7 +1,7 @@
 {
   "id": "F8-70",
   "title": "Refreeze candidate after CPU Gallery lifecycle repair",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-69"
   ],
@@ -19,15 +19,35 @@
     "A coordination-only change writes the replacement candidate id, manifest hash, source/tree, exact CI run and failure provenance into F8-26 through F8-30, F8-53 and F8-68, and adds a new Linux Vulkan requalification follow-up preserving F8-25 as completed history, before any device task becomes ready.",
     "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances, required timeouts or schedule. Any later protected change creates another candidate rather than mutating this freeze."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "90a88c66-2e6a-4dc9-9839-1e6ace5970f9",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-70/ThomasLaptop",
-    "claimed_at": "2026-11-01T00:29:07Z",
-    "heartbeat_at": "2026-11-01T00:29:07Z",
-    "expires_at": "2026-11-02T00:29:07Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: realtime-single-step-v1-ba67db3; manifest sha256 4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b; source ba67db35447b1f9022be4c3d8aae59dbe6d514d5; tree 2dfc4b680fac97519aee1c67526bddffdd01c474; exact-source GitHub Actions run 41257022787 passed 17/17; docs/roadmap/evidence/F8-70-PROTECTED-CI.json",
+    "PASS: F8-69 exact-source CPU repair passed clean 610-target Release build, registered suite 112/112 in CTest semantics (97 pass, 15 explicit unsupported skips), isolated 3/3 and installed SDK 14/14; docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.json",
+    "PASS: independent generator/checker agree on nine protected closures; conformance tests 42/42, roadmap tests 89/89 and 290-card roadmap check pass; docs/roadmap/evidence/F8-70-CANDIDATE-V9-FREEZE.json",
+    "PASS: F8-26 through F8-30, F8-53 and F8-68 bind exact candidate v9; F8-71 adds replacement Linux Vulkan requalification while F8-25 remains completed candidate-v8 history.",
+    "LIMITATION: candidate v8 remains rejected after its F8-25 Linux Vulkan pass and F8-53 CPU failure; no v8 observation is unioned with v9 and no physical v9 row is qualified by this freeze."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "90a88c66-2e6a-4dc9-9839-1e6ace5970f9",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-70/ThomasLaptop",
+        "claimed_at": "2026-11-01T00:29:07Z",
+        "heartbeat_at": "2026-11-01T00:29:07Z",
+        "expires_at": "2026-11-02T00:29:07Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-01T00:49:26Z",
+      "reason": "Froze exact repaired source ba67db3 as immutable candidate v9, independently hash-verified the complete protected closure and 17-job CI run, preserved candidate-v8 pass/failure history, and routed every replacement row including new Linux Vulkan task F8-71.",
+      "evidence": [
+        "PASS: realtime-single-step-v1-ba67db3; manifest sha256 4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b; source ba67db35447b1f9022be4c3d8aae59dbe6d514d5; tree 2dfc4b680fac97519aee1c67526bddffdd01c474; exact-source GitHub Actions run 41257022787 passed 17/17; docs/roadmap/evidence/F8-70-PROTECTED-CI.json",
+        "PASS: F8-69 exact-source CPU repair passed clean 610-target Release build, registered suite 112/112 in CTest semantics (97 pass, 15 explicit unsupported skips), isolated 3/3 and installed SDK 14/14; docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.json",
+        "PASS: independent generator/checker agree on nine protected closures; conformance tests 42/42, roadmap tests 89/89 and 290-card roadmap check pass; docs/roadmap/evidence/F8-70-CANDIDATE-V9-FREEZE.json",
+        "PASS: F8-26 through F8-30, F8-53 and F8-68 bind exact candidate v9; F8-71 adds replacement Linux Vulkan requalification while F8-25 remains completed candidate-v8 history.",
+        "LIMITATION: candidate v8 remains rejected after its F8-25 Linux Vulkan pass and F8-53 CPU failure; no v8 observation is unioned with v9 and no physical v9 row is qualified by this freeze."
+      ]
+    }
+  ]
 }

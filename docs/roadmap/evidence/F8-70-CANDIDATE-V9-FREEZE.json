@@ -1,0 +1,174 @@
+{
+  "schema": "parallel-mater-f8-70-candidate-v9-freeze/v1",
+  "task": "F8-70",
+  "status": "passed",
+  "captured_at": "2026-11-01T00:48:33Z",
+  "lease_token": "90a88c66-2e6a-4dc9-9839-1e6ace5970f9",
+  "candidate": {
+    "id": "realtime-single-step-v1-ba67db3",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+    "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "active_pointer_sha256": "73930b6f8f68363a6bb90a5918958d2794f44ba3ec2ec5b69abfd86408130754"
+  },
+  "protected_closure": {
+    "generation_command": "python3 tools/generate_realtime_candidate.py --ci-evidence docs/roadmap/evidence/F8-70-PROTECTED-CI.json --route",
+    "generator_sha256": "7ef191ceac87a75d489e7431822f50233ce173b1da46ae06630928d08b286d44",
+    "independent_check_command": "python3 tools/check_realtime_candidate.py",
+    "checker_sha256": "22a34ce51a934b1bae5b52715226112ac17915f7b5fcedd7499b5d3d6bd5c331",
+    "categories": 9,
+    "files_by_category": {
+      "api_abi": 18,
+      "kernel": 39,
+      "adapter_binding": 49,
+      "runtime": 127,
+      "schedule_telemetry": 6,
+      "contract": 6,
+      "public_oracle": 541,
+      "work_budget": 7,
+      "gallery": 160
+    },
+    "explicit_contract_hashes": [
+      "scenario_fixtures",
+      "capture_validator",
+      "capture_producer",
+      "capability_obligations",
+      "kernel_device_obligations",
+      "oracle_suite",
+      "case_and_golden_manifest",
+      "budgets_and_tolerances"
+    ],
+    "result": "independent generation and validation hashes agree"
+  },
+  "portable_ci": {
+    "evidence": "docs/roadmap/evidence/F8-70-PROTECTED-CI.json",
+    "evidence_sha256": "9f716eeb970ccd27a48e04ede9657862fda2df84b0d23d79d021a9f8c1599eb1",
+    "run_id": 41257022787,
+    "run_url": "https://github.com/tabutyn/parallel-mater/actions/runs/41257022787",
+    "event": "workflow_dispatch",
+    "head_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "head_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "result": "success",
+    "required_jobs_passed": 17,
+    "required_jobs_total": 17,
+    "artifacts_hashed": 10,
+    "native_binaries_hashed": 6,
+    "application_artifacts_hashed": 7,
+    "candidate_cpu_binary": {
+      "artifact_id": 13064180841,
+      "path": "lib/libparallel_mater_driver_slang_cpu.so",
+      "sha256": "b83105bdeef1b251fe0e4a3c7b7eb862a38992907dfb72ea84957d86206c53f1"
+    },
+    "source_clean_reports": [
+      "linux",
+      "macos",
+      "windows",
+      "ipados"
+    ]
+  },
+  "exact_source_cpu_gallery": {
+    "evidence": "docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.json",
+    "evidence_sha256": "0fa01bf9388b22ae2e496413075bc38313a9db1ff4d8d188fc44f2c687807be3",
+    "archive": "docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.tar.zst",
+    "archive_sha256": "1f7b331df54d9fea577f8e9e902285442ba972e200e030c40b66366fe9d7c8d9",
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "source_dirty": false,
+    "clean_release_targets": 610,
+    "registered_cpu_suite": {
+      "total": 112,
+      "passed": 97,
+      "explicit_unsupported_skips": 15,
+      "failed": 0
+    },
+    "isolated_discovery_and_launcher": {
+      "passed": 3,
+      "failed": 0
+    },
+    "installed_sdk": {
+      "passed": 14,
+      "failed": 0,
+      "realtime_driver_required": true
+    },
+    "repeated_gallery_lifecycle": "passed with plain and validation-enabled create/reset/background/failure recovery",
+    "unsupported_capability_added": false,
+    "explicit_unadvertised_skips_preserved": 15
+  },
+  "sole_path_audit": {
+    "evidence": "docs/roadmap/evidence/F8-70-SOLE-PATH-AUDIT.json",
+    "evidence_sha256": "18970f5c8bd8edd69362ac70bfd5a5fdc7f820c8958186bf33ccc78b3bdac05c",
+    "capabilities": 49,
+    "public_cases": 30,
+    "scenarios": 12,
+    "measurements": 37,
+    "canonical_modules": 26,
+    "canonical_entries": 234,
+    "kernel_groups": 32,
+    "runtime_variants": 5,
+    "physical_targets": 8,
+    "status": "passed"
+  },
+  "rejected_history": {
+    "candidate_v8": {
+      "id": "realtime-single-step-v1-c05d320",
+      "manifest_sha256": "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33",
+      "linux_vulkan_pass_evidence_sha256": "429b929744ca7245aa31021e2a0850017cbe69dc0e232fa724f1e395c2a7a33b",
+      "linux_vulkan_pass_archive_sha256": "66dc30be8f4e5e1945eed339df6416c1d4318ab639ccf938bcaae454388606b5",
+      "cpu_failure_evidence_sha256": "e5e9a172c3bb2874e05b256f31827e7d1e174d9c52e4a4089fd78ba1d21d4741",
+      "cpu_failure_archive_sha256": "8362f1b3441244dec28d33db6d0684f639ad80f704fcedfe9a4e6efa1fb6a2ea",
+      "rejection_record_sha256": "f5d73479e054485a36e3876971384c4d1f09b6a6ea90242fa75d20a29d935b4a",
+      "verified_immutable": true
+    },
+    "evidence_union_allowed": false
+  },
+  "qualification_routing": {
+    "tasks": [
+      "F8-26",
+      "F8-27",
+      "F8-28",
+      "F8-29",
+      "F8-30",
+      "F8-53",
+      "F8-68",
+      "F8-71"
+    ],
+    "historical_completed_task": "F8-25",
+    "replacement_vulkan_task": "F8-71",
+    "bound_fields": [
+      "candidate_id",
+      "manifest_sha256",
+      "source_revision",
+      "source_tree",
+      "ci_run_id"
+    ],
+    "status": "passed"
+  },
+  "verification": [
+    {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 tests/solver/check_slang_architecture.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m unittest conformance.v1.tests.test_realtime_oracle conformance.v1.tests.test_realtime_device_suite conformance.v1.tests.test_realtime_scenario_fixtures",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "passed"
+    },
+    {
+      "command": "python3 tools/roadmap.py check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "invalidation_rule": "Any later protected-file change creates a new candidate and reruns every affected physical row; candidates v1 through v8 and their hashes remain immutable."
+}

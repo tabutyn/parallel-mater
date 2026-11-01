@@ -17,23 +17,23 @@ from check_realtime_candidate import (  # noqa: E402
 )
 
 
-class F867CandidateFreezeTests(unittest.TestCase):
+class F870CandidateFreezeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
     def test_rejected_candidate_is_immutable_after_refreeze(self):
         self.assertEqual(validate_candidate(), [])
-        self.assertEqual(self.candidate["task"], "F8-67")
+        self.assertEqual(self.candidate["task"], "F8-70")
         rejection = json.loads((
             ROOT / "conformance/v1/qualification/"
-            "realtime-candidate-v7-rejection.json"
+            "realtime-candidate-v8-rejection.json"
         ).read_text(encoding="utf-8"))
         self.assertEqual(
             rejection["status"],
-            "rejected-required-linux-vulkan-suite",
+            "rejected-required-cpu-gallery-suite",
         )
-        self.assertEqual(rejection["replacement"]["freeze_task"], "F8-67")
+        self.assertEqual(rejection["replacement"]["freeze_task"], "F8-70")
         self.assertEqual(rejection["replacement"]["candidate_id"], ACTIVE_ID)
         self.assertFalse(rejection["evidence_union_allowed"])
 
@@ -84,14 +84,14 @@ class F867CandidateFreezeTests(unittest.TestCase):
         self.assertFalse(routing["evidence_union_allowed"])
         self.assertEqual(
             self.candidate["supersedes"]["candidate_id"],
-            "realtime-single-step-v1-05f8b04",
+            "realtime-single-step-v1-c05d320",
         )
         for task_id in routing["tasks"]:
             task = json.loads(
                 (ROOT / "docs/roadmap/tasks" / f"{task_id}.json")
                 .read_text(encoding="utf-8")
             )
-            self.assertIn("F8-67", task["dependencies"])
+            self.assertIn("F8-70", task["dependencies"])
             self.assertIn(ACTIVE_ID, task["scope"])
             self.assertIn(ACTIVE_SOURCE_REVISION, task["scope"])
             self.assertIn("cannot be unioned", task["scope"])
