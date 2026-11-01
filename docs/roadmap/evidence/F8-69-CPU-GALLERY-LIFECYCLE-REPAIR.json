@@ -1,0 +1,112 @@
+{
+  "schema": "parallel-mater-realtime-repair/v1",
+  "status": "passed",
+  "captured_at": "2026-11-01T00:18:08Z",
+  "task": "F8-69",
+  "lease_token": "01fd45d7-c011-4de3-b6ee-710d3027f98d",
+  "failure_input": {
+    "candidate": "realtime-single-step-v1-c05d320",
+    "source_revision": "c05d3207138c6e969e1347558c08601aeaf1cc07",
+    "source_tree": "340ab85997363f328e25f1c549114c5b44571bc3",
+    "manifest_sha256": "7ce34cfa8e6258dc529ddeae8ea24e73427b8214f75ea49ea9e38ae42994ec33",
+    "failure_report": "docs/roadmap/evidence/F8-53-CANDIDATE-V8-CPU-GALLERY-FAILURE.json",
+    "failure_report_sha256": "e5e9a172c3bb2874e05b256f31827e7d1e174d9c52e4a4089fd78ba1d21d4741",
+    "failure_archive_sha256": "8362f1b3441244dec28d33db6d0684f639ad80f704fcedfe9a4e6efa1fb6a2ea",
+    "registered_suite": {
+      "total": 112,
+      "passed": 96,
+      "failed": 1,
+      "skipped": 15,
+      "failure": "parallel-mater-gallery-session-contract-tests"
+    }
+  },
+  "root_cause": {
+    "initial_classification": "The candidate-v8 log showed the first shared session pass followed by a generic scene-capability error, so F8-53 conservatively classified the failure at the session-recreation boundary.",
+    "established_cause": "Both MobileGallerySession recreation loops complete. The later explicit desktop-configuration section unconditionally selected the Fluid scene even when the CPU device catalog truthfully marked Fluid unavailable. CommandScene then correctly rejected the scene because the Slang CPU driver does not advertise particleLiquids.",
+    "diagnostic_before_repair": "selected device does not expose every scene capability: particleLiquids",
+    "not_a_driver_lifetime_defect": true,
+    "not_a_missing_cpu_capability": true
+  },
+  "repair": {
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "parent_revision": "5528ecdf6cb0e9061e15231e12db85c42d144557",
+    "source_dirty": false,
+    "changes": [
+      "CommandScene capability rejection names every missing required feature instead of returning an undifferentiated message.",
+      "The shared Gallery contract derives the desktop parameter scene from the observed device catalog: capable devices retain the Fluid parameter test, while CPU exercises the equivalent rigid brick parameter path.",
+      "The regression proves an unavailable Fluid selection preserves the existing CPU scene, a direct Fluid replacement preserves the live runtime and reports particleLiquids, repeated mobile construction/reset/background/failure recovery remains leak-free, and validation-enabled create/reset/teardown succeeds."
+    ],
+    "production_source_sha256": "be8851578ca90a10ce65aa2fd1b92f01a24cceb7a1c18dc8871a3c2c5a9256e9",
+    "contract_test_source_sha256": "2fd72d1e58993b33b9c7ede3b63fad80cd07654f7ce29eba04ec3141a1a05a8c"
+  },
+  "capability_preservation": {
+    "cpu_driver_before_sha256": "2b43b399be21c1bb317f2cc4e0551c2a56820b49836061bfbe10381fdd93ba19",
+    "cpu_driver_after_sha256": "2b43b399be21c1bb317f2cc4e0551c2a56820b49836061bfbe10381fdd93ba19",
+    "installed_driver_manifest_before_sha256": "627449185d2ed0a61ddc71d596ab2240fe9b16f33c27ece6ca1f27cc92035d1c",
+    "installed_driver_manifest_after_sha256": "627449185d2ed0a61ddc71d596ab2240fe9b16f33c27ece6ca1f27cc92035d1c",
+    "explicit_unadvertised_skips": 15,
+    "unsupported_capability_added": false,
+    "scene_or_quality_requirement_reduced": false
+  },
+  "gates": {
+    "clean_release_build": {
+      "status": "passed",
+      "targets": 610
+    },
+    "registered_cpu_suite": {
+      "status": "passed",
+      "total": 112,
+      "passed": 97,
+      "failed": 0,
+      "skipped": 15,
+      "elapsed_seconds": 9.04
+    },
+    "shared_gallery_contract": {
+      "status": "passed",
+      "plain": "passed",
+      "validation_enabled": "passed",
+      "mobile_recreations": 2,
+      "normal_tick_reset_background_and_failure_recovery": "passed",
+      "unsupported_scene_preservation": "passed"
+    },
+    "isolated_discovery_and_launcher": {
+      "status": "passed",
+      "passed": 3,
+      "failed": 0,
+      "elapsed_seconds": 0.16
+    },
+    "installed_sdk": {
+      "status": "passed",
+      "checks_passed": 14,
+      "checks_failed": 0,
+      "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+      "source_dirty": false,
+      "realtime_driver_required": true,
+      "plain_observation": "passed",
+      "validation_observation": "passed",
+      "capacity_regression": "passed"
+    }
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-69-CPU-GALLERY-LIFECYCLE-REPAIR.tar.zst",
+    "tracked_archive_sha256": "1f7b331df54d9fea577f8e9e902285442ba972e200e030c40b66366fe9d7c8d9",
+    "tracked_archive_bytes": 29002,
+    "tracked_archive_payload_bytes": 137825,
+    "tracked_archive_file_count": 8,
+    "before_registered_suite_sha256": "8fc7af39580649d63d7b641d4897a24a2930dfd2d4bde2ff56e39d85d84d42e9",
+    "after_registered_suite_sha256": "95249305812cfa55538b2a3d4a245ec71e46a86f2c3a53397b3cf23a9b904c6c",
+    "after_isolated_suite_sha256": "2f8f85de69bd1a11750e752f690ce9de45eaf88bf5402b6380adad850ed76bca",
+    "installed_sdk_report_sha256": "54e2514aea82552be69de1e58540a8130425afe5dc2fa325334ebc9405a65bd0",
+    "plain_observation_sha256": "43b9156d8e96c16a74f4284926f27e9168dc1dae7b212f755f548e5c32850a5f",
+    "validation_observation_sha256": "1c38d7ab44bd4a1d4eeb378bb4c7011f8394d3b5a31aff9819709ae524a5ca9b",
+    "capacity_observation_sha256": "b5935e673fc5fb1fab209673bca286880bb0508853d4446487729400220fcedd",
+    "gallery_session_contract_binary_sha256": "0bae75ce699dce2687b5dfc9cf3762dd098dca0c8ccfc1402754c4196ababd2b",
+    "gallery_binary_sha256": "cebb08488921287337aaaafdcb08a00a302cd74b7688c4a4ce0855c30f1b31b3",
+    "gallery_scene_library_sha256": "0ae1527acf5921f5b909a5c521e137fe84255bb0c38f10572e00c13b2faa804b",
+    "gallery_session_library_sha256": "f1ab46055f4431622a35592ea8f4a94aff967e6af2ebbff33989ef0034fa5706",
+    "loader_sha256": "b6ad5d274269a6a5d466ab4e1c65ee42d1db6c991769e030dc81a496e3d79afe",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb"
+  },
+  "qualification_effect": "The bounded CPU Gallery contract defect is repaired and fully evidenced for F8-70. Candidate v8 remains rejected history because its F8-53 required row failed; these repaired-source passes are not final qualification and cannot be unioned with candidate-v8 observations. F8-70 must freeze a new exact-source candidate before F8-53 or physical-device rows resume."
+}
