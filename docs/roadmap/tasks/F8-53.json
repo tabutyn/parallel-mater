@@ -1,7 +1,7 @@
 {
   "id": "F8-53",
   "title": "Requalify CPU and public contracts on the sole-path candidate",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-23",
     "F8-52",
@@ -27,7 +27,15 @@
     "Attach durable exact-candidate/device/toolchain/artifact evidence and preserve failures. Add separately leased repair and requalification leaves when needed; unsupported or missing required cases do not count as passes."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "63497730-36cd-429f-9fdc-c83ac50bef45",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-53/ThomasLaptop-v9",
+    "claimed_at": "2026-11-01T01:32:46Z",
+    "heartbeat_at": "2026-11-01T01:32:46Z",
+    "expires_at": "2026-11-02T01:32:46Z"
+  },
   "history": [
     {
       "lease": {
