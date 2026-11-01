@@ -1,7 +1,7 @@
 {
   "id": "F8-28",
   "title": "Qualify the candidate on macOS Metal devices",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -29,15 +29,7 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
   "evidence": [],
-  "lease": {
-    "token": "8e788262-87fa-496d-9abd-ce2f30a87850",
-    "owner": "codex-f8-macos-metal-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-28/Thomass-MacBook-Air-v9",
-    "claimed_at": "2026-11-01T17:37:29Z",
-    "heartbeat_at": "2026-11-01T17:37:29Z",
-    "expires_at": "2026-11-02T17:37:29Z"
-  },
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -52,6 +44,21 @@
       "outcome": "released",
       "at": "2026-10-29T01:14:48Z",
       "reason": "Candidate v4 cannot pass its own final matrix: physical Metal advertises 45/49 required capabilities, executes 28/30 public cases, and the frozen suite lacks executable fixed-tick scenario observations; exact passing work retained for requalification",
+      "evidence": []
+    },
+    {
+      "lease": {
+        "token": "8e788262-87fa-496d-9abd-ce2f30a87850",
+        "owner": "codex-f8-macos-metal-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-28/Thomass-MacBook-Air-v9",
+        "claimed_at": "2026-11-01T17:37:29Z",
+        "heartbeat_at": "2026-11-01T17:37:29Z",
+        "expires_at": "2026-11-02T17:37:29Z"
+      },
+      "outcome": "released",
+      "at": "2026-11-01T17:46:34Z",
+      "reason": "Candidate v9 fails mandatory physical macOS Metal qualification: 143/151 preset tests pass, five of 30 public cases fail, and the installed Gallery loses the device on rope_realtime_finalize_self_contacts because the D3D12-only no-op entry compiles to a zero-argument Metal kernel while the adapter supplies 16 arguments. Preserve the exact failure; repair under a separate lease and refreeze if protected closure changes.",
       "evidence": []
     }
   ]
