@@ -1,0 +1,182 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v1",
+  "status": "failed",
+  "captured_at": "2026-11-01T18:12:57.150969+00:00",
+  "task": "F8-26",
+  "claim_pr": 633,
+  "lease_token": "d294c5b8-34e9-4255-83bd-bf0a45d8ab23",
+  "candidate": {
+    "id": "realtime-single-step-v1-ba67db3",
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+    "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+    "exact_source_ci_run": 41257022787,
+    "target": "windows-gtx1080-slang-cuda",
+    "runtime_variant": "cuda-runtime"
+  },
+  "qualification_harness": {
+    "source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+    "source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+    "source_dirty": false,
+    "candidate_production_delta": "none",
+    "unprotected_test_delta": "Merged F8-72 repairs the CUDA rigid spatial fixture only.",
+    "protected_closures_unchanged": true,
+    "candidate_checker": "PASS: realtime-single-step-v1-ba67db3 protected closure and routing are exact",
+    "windows_checkout": "Restore Git LF bytes, refresh newline-only index metadata, and prove the index tree equals HEAD before configuring/building. No tracked source changes."
+  },
+  "machine": {
+    "task": "F8-26",
+    "lease_token": "d294c5b8-34e9-4255-83bd-bf0a45d8ab23",
+    "captured_at": "2026-11-01T14:18:06.9357779-03:30",
+    "source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+    "source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+    "source_dirty": false,
+    "os": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200",
+      "OSArchitecture": "64-bit"
+    },
+    "cpu": {
+      "Name": "AMD Ryzen 5 5500                               ",
+      "NumberOfCores": 6,
+      "NumberOfLogicalProcessors": 12
+    },
+    "gpu": "NVIDIA GeForce GTX 1080, 582.66, 8192 MiB, 30",
+    "cmake": "cmake version 4.4.2",
+    "ninja": "1.12.1",
+    "cuda": [
+      "nvcc: NVIDIA (R) Cuda compiler driver",
+      "Copyright (c) 2005-2025 NVIDIA Corporation",
+      "Built on Tue_May_27_02:24:01_Pacific_Daylight_Time_2025",
+      "Cuda compilation tools, release 12.9, V12.9.86",
+      "Build cuda_12.9.r12.9/compiler.36037853_0"
+    ],
+    "slang": "2026.18",
+    "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+  },
+  "cuda_memory_attributes": {
+    "managed_memory": {
+      "result": 0,
+      "value": 1
+    },
+    "concurrent_managed_access": {
+      "result": 0,
+      "value": 0
+    }
+  },
+  "results": {
+    "clean_release_build": {
+      "status": "passed",
+      "configuration": "Release",
+      "generator": "Ninja",
+      "cuda_architectures": "61",
+      "source_dirty": false
+    },
+    "registered_tests": {
+      "status": "failed",
+      "total": 130,
+      "passed": 128,
+      "failed": 2,
+      "skipped": 0,
+      "elapsed_seconds": 270.59,
+      "failed_tests": [
+        "parallel-mater-command-gallery-tests",
+        "parallel-mater-fluid-realtime-cuda-tests"
+      ]
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_dirty": false
+    },
+    "installed_public_capture": {
+      "status": "failed",
+      "capture_exit_code": 2,
+      "runner_exit_code": 3221225478,
+      "runner_exception": "0xc0000006",
+      "stopped_at": "soft-body-fluid",
+      "capability_rows_discovered": 49,
+      "plain_public_cases_completed": 19,
+      "required_public_cases": 30,
+      "plain_public_cases_with_quality_evaluated": 0,
+      "validation_mode": "not_reached",
+      "scenarios": "not_reached",
+      "negative_controls": "not_reached",
+      "workloads": "not_reached",
+      "independent_validation": "not_run_no_complete_capture"
+    },
+    "installed_gallery": "not_deployed_after_required_Gallery_crash",
+    "fixed_tick_quality_and_performance": "not_qualified; required installed-public scenarios and cold/sustained workload distributions were not reached"
+  },
+  "failures": [
+    {
+      "id": "windows-fluid-fixture-managed-read",
+      "kind": "test_harness",
+      "reproduction": "parallel-mater-fluid-realtime-cuda-tests.exe",
+      "exception": "0xc0000006",
+      "access_status": "0xc0000022",
+      "source": "tests/solver/fluid_realtime_cuda_tests.cu:Fixture::run_tick",
+      "finding": "The fixture launches fluid_realtime_predict and then dereferences managed *count on the CPU to form later kernel arguments. The device reports concurrentManagedAccess=0. Normal execution crashes; unchanged binary with CUDA_LAUNCH_BLOCKING=1 finishes all assertions. Forced synchronization is diagnostic only and does not qualify the fixture or performance.",
+      "normal_diagnostic": "fluid-debug-d.json",
+      "blocking_diagnostic": "fluid-blocking-diagnostic.json"
+    },
+    {
+      "id": "windows-gallery-peg-paint",
+      "kind": "production_runtime",
+      "reproduction": "parallel-mater-command-gallery-tests.exe --backend cuda --scene Pegs.glb --frames 1",
+      "exception": "0xc0000006",
+      "access_status": "0xc0000022",
+      "faulting_module": "parallel_mater_driver_slang_cuda.dll",
+      "finding": "Fails in the first PEG PAINT frame and in an isolated single-scene reproduction. CPU read of managed-address range fails with access denied. Forced kernel launch synchronization does not remove this failure. Production boundary code reads paint field metadata after asynchronous native clear operations; this is a source-level lead, not a symbolized root-cause proof.",
+      "source_lead": "src/simulation/production_realtime_backend.cu.inc:NativeRealtimeBackend::boundary",
+      "normal_diagnostic": "gallery-peg-debug.json",
+      "blocking_diagnostic": "gallery-peg-blocking-diagnostic.json"
+    },
+    {
+      "id": "windows-installed-soft-body-fluid",
+      "kind": "production_runtime",
+      "reproduction": "parallel-mater-conformance.exe --case soft-body-fluid --root <source> --output <new-directory>",
+      "exception": "0xc0000006",
+      "access_status": "0xc0000022",
+      "finding": "The relocated public runner crashes at soft-body-fluid in --case all after 19 completed cases. Isolated normal-execution reproduction also fails with a managed-address CPU read and access-denied status. Exact runtime site requires follow-up diagnosis.",
+      "normal_diagnostic": "soft-fluid-debug.json"
+    }
+  ],
+  "reference": {
+    "url": "https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/unified-memory.html",
+    "relevance": "NVIDIA documents that devices without concurrent managed access cannot access globally attached managed memory on the CPU while GPU operations make it inaccessible; Windows uses this restricted model. Device attributes and exception parameters are retained separately from the source-level diagnosis."
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.zip",
+    "tracked_archive_sha256": "0e04f4cd40fa2d762830ed625edc0b0a1acc35e2412d9b0c52cc8161628ae4a2",
+    "tracked_archive_bytes": 233557,
+    "tracked_archive_file_count": 61,
+    "member_manifest": "SHA256SUMS.json",
+    "member_manifest_sha256": "f3664476d38396e1a5662490f8c8e473d2e7f75c850449ec54dfcd5b1c92deb5",
+    "contents": "Complete configure/build/CTest logs and JUnit, SDK report and logs, partial public capture, native exception monitor and normal/blocking diagnostic results, machine attributes, exact candidate manifest, binary hashes in this report. Executables are identified by hashes rather than embedded.",
+    "binary_hashes": {
+      "build_cuda_driver": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+      "build_conformance_runner": "632e5cd66d0123cd437d21032fad8239671473940a6bebef20b3281087b8180f",
+      "build_gallery": "b798e82452e3b9c350645821b9f601ce237c7efd90342fa9563a3dc80dea3134",
+      "gallery_test": "6aaf8331cfef32a78369002e148a554f0f5643633184920dff464ab2b74a1702",
+      "fluid_test": "ac763294d9537944d5d9050b69d0baf21824804f37bbbd04dafd2d0192b5f2a2",
+      "installed_cuda_driver": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+      "installed_runner": "632e5cd66d0123cd437d21032fad8239671473940a6bebef20b3281087b8180f",
+      "installed_validation_layer": "bd7a2307dec86ec2e29295366e128d9f1d3d8459b43ce0fb8219609efedc1b3e",
+      "installed_driver_manifest": "d4da37d22e3a9a3628e3f19a5036558e14693e942ea2f82290f4a8582cf91318",
+      "installed_layer_manifest": "4d6e36e5536e84372956350b6c50af547d589f32dca65380a11ebf170620fad9"
+    }
+  },
+  "commands": {
+    "environment": "Visual Studio 2022 x64 developer shell; CUDA 12.9 bin and Python 3.13 on PATH; no CUDA_LAUNCH_BLOCKING in qualification runs.",
+    "configure": "cmake -S <source> -B <build> -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=\"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/bin/nvcc.exe\" -DCMAKE_CUDA_ARCHITECTURES=61 -DPython3_EXECUTABLE=<python313> -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_D3D12=OFF -DPARALLEL_MATER_BUILD_VULKAN=OFF -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=OFF -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON -DPARALLEL_MATER_SLANGC_EXECUTABLE=<slang2026.18>/bin/slangc.exe -DFETCHCONTENT_SOURCE_DIR_PARALLEL_MATER_GLFW=<existing-glfw-source>",
+    "build": "cmake --build <build> --parallel 4",
+    "registered_suite": "ctest --test-dir <build> -C Release --output-on-failure --no-tests=error --output-junit <evidence>/ctest.xml -j1",
+    "sdk": "python tools/check_sdk_install.py --build-dir <build> --output <evidence>/sdk",
+    "capture": "python conformance/v1/realtime_device_capture.py --runner <sdk>/bin/parallel-mater-conformance.exe --driver-manifest <sdk>/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json --validation-layer-manifest <sdk>/share/parallel-mater/layers.d/parallel_mater_validation.json --runtime-variant cuda-runtime --target-id windows-gtx1080-slang-cuda --output <new-capture-directory>"
+  },
+  "qualification_effect": "F8-26 remains incomplete. No partial pass or forced-synchronization diagnostic qualifies Windows. Preserve failure evidence; separately repair the fixture and production managed-memory ordering, then use F8-74 to freeze/reroute any protected changes before a fresh F8-26 lease and complete rerun."
+}

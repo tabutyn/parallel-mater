@@ -1,0 +1,27 @@
+{
+  "id": "F8-76",
+  "title": "Repair Windows CUDA managed metadata access",
+  "status": "open",
+  "dependencies": [
+    "F8-70",
+    "F8-75"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule",
+    "f8-windows-cuda-managed-runtime"
+  ],
+  "requires": [
+    "Physical Windows GTX 1080 CUDA device without concurrent managed access, merged F8-75 fixture repair, and exact F8-26 candidate-v9 failure archive"
+  ],
+  "scope": "Diagnose and repair production CPU accesses to CUDA managed metadata during in-flight GPU work exposed by docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json. Reproduce parallel-mater-command-gallery-tests --backend cuda --scene Pegs.glb --frames 1 and the relocated public runner --case soft-body-fluid; both fail with 0xc0000006/0xc0000022 in candidate v9. The paint boundary currently reads PaintFieldResource metadata after asynchronous native clear operations; this is an investigation lead, not a license to patch only the first crash. Locate both exact host access sites and preserve resource lifetime, atomic failure recovery and the sole fixed-tick contract through deliberate host metadata snapshots or equivalent correct ownership. No CUDA_LAUNCH_BLOCKING workaround, backend physics fork, global/per-kernel synchronization blanket, weakened capability, smaller workload or increased budget is allowed.",
+  "acceptance": [
+    "Retain exact before/after normal-execution reproductions for PEG PAINT and installed soft-body-fluid, identify the host managed-memory accesses and explain their Windows ownership/synchronization contract.",
+    "Normal public creation, first tick, repeated ticks, reset, resource replacement and failure recovery pass for painted fluid scenes and soft-body/fluid coupling with plain and validation-enabled execution. Add focused regressions that fail before the repair.",
+    "After merged F8-75, a clean Windows Release build and all 130 registered tests pass with no required skip. The relocated SDK, complete 30 public cases, 12 scenarios, five negative controls and five desktop workloads pass in both modes at frozen counts, quality limits and performance budgets.",
+    "Verify one 1/60-second advance, one spatial publication, existing dispatch/iteration/submission/readback/synchronization budgets and atomic recovery. Shared runtime changes retain cross-backend semantics and pass affected portable/reference checks.",
+    "Publish exact source/tree, binary, manifest, device, compiler, memory attributes and raw before/after hashes. Classify every protected closure change for F8-74; do not mutate candidate v9 or relabel repaired-source observations as final qualification."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
