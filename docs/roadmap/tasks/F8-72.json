@@ -1,7 +1,7 @@
 {
   "id": "F8-72",
   "title": "Repair the Linux CUDA rigid spatial query contract",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-70"
   ],
@@ -20,6 +20,14 @@
     "Mechanically compare every F8-70 protected closure. If any protected closure changes, freeze a new immutable candidate and reroute all affected physical rows before requalification; if the repair is test-only outside every protected closure, prove those hashes remain exact before F8-68 may reclaim candidate v9."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "a9c6f23d-956d-4f72-acd4-7b2e0c9c8752",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-72/ThomasLaptop",
+    "claimed_at": "2026-11-01T01:59:04Z",
+    "heartbeat_at": "2026-11-01T01:59:04Z",
+    "expires_at": "2026-11-02T01:59:04Z"
+  },
   "history": []
 }
