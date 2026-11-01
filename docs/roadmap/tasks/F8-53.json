@@ -1,7 +1,7 @@
 {
   "id": "F8-53",
   "title": "Requalify CPU and public contracts on the sole-path candidate",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-23",
     "F8-52",
@@ -26,16 +26,11 @@
     "Exercise shared Gallery timing and lifecycle tests: high-rate interpolation, low-rate slow-motion, no catch-up, scene reset and background recovery. Record CPU timing distributions and unchanged quality/workload limits.",
     "Attach durable exact-candidate/device/toolchain/artifact evidence and preserve failures. Add separately leased repair and requalification leaves when needed; unsupported or missing required cases do not count as passes."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "63497730-36cd-429f-9fdc-c83ac50bef45",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-53/ThomasLaptop-v9",
-    "claimed_at": "2026-11-01T01:32:46Z",
-    "heartbeat_at": "2026-11-01T01:32:46Z",
-    "expires_at": "2026-11-02T01:32:46Z"
-  },
+  "evidence": [
+    "docs/roadmap/evidence/F8-53-CANDIDATE-V9-LINUX-CPU.json",
+    "docs/roadmap/evidence/F8-53-CANDIDATE-V9-LINUX-CPU.tar.zst"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -51,6 +46,24 @@
       "at": "2026-10-31T23:57:06Z",
       "reason": "Candidate v8 fails the required shared Gallery CPU lifecycle gate: the first session passes, but recreation returns 'selected device does not expose every scene capability'. Exact-source suite: 96 passed, 15 explicit unsupported skips, 1 failed; installed SDK 14/14 and isolated discovery 3/3 pass. Preserve work/F8-53/ThomasLaptop-v8 and add separate repair/refreeze/requalification leaves.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "63497730-36cd-429f-9fdc-c83ac50bef45",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-53/ThomasLaptop-v9",
+        "claimed_at": "2026-11-01T01:32:46Z",
+        "heartbeat_at": "2026-11-01T01:32:46Z",
+        "expires_at": "2026-11-02T01:32:46Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-01T01:43:56Z",
+      "reason": "PASS: exact candidate v9 Linux CPU row; 97 registered passes plus 15 explicit unsupported skips, 3 isolated passes, SDK 14/14, v9 plain and validation observations, 7800/7800 fixed-work ticks with p95 0.821852 ms and 25.0987585x realtime ratio, Gallery lifecycle and 545 independent assertions.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-53-CANDIDATE-V9-LINUX-CPU.json",
+        "docs/roadmap/evidence/F8-53-CANDIDATE-V9-LINUX-CPU.tar.zst"
+      ]
     }
   ]
 }
