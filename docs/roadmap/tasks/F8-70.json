@@ -1,7 +1,7 @@
 {
   "id": "F8-70",
   "title": "Refreeze candidate after CPU Gallery lifecycle repair",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-69"
   ],
@@ -20,6 +20,14 @@
     "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, work budgets, tolerances, required timeouts or schedule. Any later protected change creates another candidate rather than mutating this freeze."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "90a88c66-2e6a-4dc9-9839-1e6ace5970f9",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-70/ThomasLaptop",
+    "claimed_at": "2026-11-01T00:29:07Z",
+    "heartbeat_at": "2026-11-01T00:29:07Z",
+    "expires_at": "2026-11-02T00:29:07Z"
+  },
   "history": []
 }
