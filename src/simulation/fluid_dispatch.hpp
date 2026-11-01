@@ -311,7 +311,9 @@ void filter_fluid_spatial_candidates(
     const std::uint32_t *target_live_count, std::uint32_t target_capacity,
     const std::uint32_t *candidate_counts,
     const std::uint32_t *candidate_sources,
-    std::uint32_t candidates_per_query, std::uint32_t *filtered_counts,
+    std::uint32_t candidates_per_query, bool output_payload_refs,
+    std::uint32_t output_candidates_per_query,
+    std::uint32_t *filtered_counts,
     std::uint32_t *filtered_sources, std::uint32_t *status) noexcept;
 
 PmResult gather_fluid_spatial_payloads(

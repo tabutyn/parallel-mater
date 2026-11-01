@@ -42,7 +42,6 @@ public:
     PmResult activate() noexcept override { context_.activate(); return PM_SUCCESS; }
     PmResult create_event(bool timing, Event &out) noexcept override {
         out = {};
-        if (timing) return PM_ERROR_FEATURE_NOT_PRESENT;
         cudaEvent_t event{};
         const auto result = cudaEventCreateWithFlags(&event, timing ? cudaEventDefault : cudaEventDisableTiming);
         out = {reinterpret_cast<std::uintptr_t>(event)};
@@ -58,8 +57,10 @@ public:
         ready = result == cudaSuccess;
         return result == cudaErrorNotReady ? PM_SUCCESS : from_driver_error(result);
     }
-    PmResult elapsed_time(Event, Event, float &) noexcept override {
-        return PM_ERROR_FEATURE_NOT_PRESENT;
+    PmResult elapsed_time(Event begin, Event end,
+                          float &milliseconds) noexcept override {
+        return from_driver_error(cudaEventElapsedTime(
+            &milliseconds, event(begin), event(end)));
     }
     PmResult allocate(PmDeviceSize bytes, bool, void **out) noexcept override {
         if (!out || !bytes || bytes > SIZE_MAX) return PM_ERROR_INVALID_ARGUMENT;

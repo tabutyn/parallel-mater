@@ -273,6 +273,32 @@ void transfers_supply_read_and_write_accesses() {
     expect_dependency(state->events[5].dependencies.at(0), destination->identity(), 0, 8,
         compute::ResourceAccess::write, compute::ResourceAccess::read);
 }
+
+void untouched_allocations_keep_history() {
+    compute::SubmissionQueue queue;
+    auto state = std::make_shared<State>();
+    auto command = queue.commands(std::make_unique<Encoder>(state));
+    auto first = std::make_shared<Buffer>(61);
+    auto second = std::make_shared<Buffer>(62);
+
+    command->fill(first, 0, 8, 1);
+    command->fill(second, 0, 8, 2);
+    auto first_read = access(first, 0, 8, compute::ResourceAccess::read);
+    command->dispatch(first_read, {1});
+    auto second_read = access(second, 0, 8, compute::ResourceAccess::read);
+    command->dispatch(second_read, {1});
+    (void)command->submit();
+
+    std::vector<const Event *> barriers;
+    for (const auto &event : state->events)
+        if (event.name == "barrier") barriers.push_back(&event);
+    require(barriers.size() == 2,
+        "command on one allocation discarded untouched allocation history");
+    expect_dependency(barriers[0]->dependencies.at(0), first->identity(), 0, 8,
+        compute::ResourceAccess::write, compute::ResourceAccess::read);
+    expect_dependency(barriers[1]->dependencies.at(0), second->identity(), 0, 8,
+        compute::ResourceAccess::write, compute::ResourceAccess::read);
+}
 } // namespace
 
 int main() {
@@ -282,6 +308,7 @@ int main() {
         partial_history_and_same_command_aliases();
         invalid_alias_keeps_prior_recording();
         transfers_supply_read_and_write_accesses();
+        untouched_allocations_keep_history();
         std::cout << "Common range dependency scheduling passed\n";
         return 0;
     } catch (const std::exception &error) {

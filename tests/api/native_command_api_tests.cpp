@@ -59,8 +59,7 @@ int main() {
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
     device_info.enabledFeatures.debugData = PM_TRUE;
     device_info.enabledFeatures.memoryBudget = PM_TRUE;
-    CHECK(features.timestampQueries ==
-        (PM_TEST_NATIVE_BACKEND == PM_NATIVE_BACKEND_METAL ? PM_FALSE : PM_TRUE));
+    CHECK(features.timestampQueries == PM_TRUE);
     device_info.enabledFeatures.timestampQueries = features.timestampQueries;
     PmDevice device{};
     // The same public command fixture runs against each selected native driver.

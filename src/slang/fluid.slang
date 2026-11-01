@@ -771,7 +771,8 @@ void fluid_filter_spatial_candidates(
     uniform PMBuffer<uint> target_live_count, uniform uint target_capacity,
     uniform PMBuffer<uint> candidate_counts,
     uniform PMBuffer<uint> candidate_sources,
-    uniform uint candidates_per_query,
+    uniform uint candidates_per_query, uniform uint output_payload_refs,
+    uniform uint output_candidates_per_query,
     uniform PMBuffer<uint> filtered_counts,
     uniform PMBuffer<uint> filtered_sources,
     uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
@@ -802,10 +803,11 @@ void fluid_filter_spatial_candidates(
         return;
     }
     uint written = 0u;
-    uint base = query * candidates_per_query;
+    uint inputBase = query * candidates_per_query;
+    uint outputBase = query * output_candidates_per_query;
     for (uint candidate = 0u; candidate < count; ++candidate)
     {
-        uint source = candidate_sources[base + candidate];
+        uint source = candidate_sources[inputBase + candidate];
         if (source >= leaf_capacity)
         {
             pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
@@ -830,7 +832,14 @@ void fluid_filter_spatial_candidates(
             filtered_counts[query] = 0u;
             return;
         }
-        filtered_sources[base + written++] = source;
+        if (written >= output_candidates_per_query)
+        {
+            pmAtomicOr(status, kFluidSpatialQueryOverflow);
+            filtered_counts[query] = 0u;
+            return;
+        }
+        filtered_sources[outputBase + written++] = output_payload_refs != 0u
+            ? target.payload_ref : source;
     }
     filtered_counts[query] = written;
 }

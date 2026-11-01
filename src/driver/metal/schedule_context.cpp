@@ -265,16 +265,20 @@ void *ScheduleContext::allocate(std::size_t bytes) {
     if (!pointer) throw std::bad_alloc();
     std::lock_guard lock(allocation_mutex);
     allocations.emplace(reinterpret_cast<std::uintptr_t>(pointer), Allocation{buffer, this});
+    slices_.emplace(pointer, CachedSlice{buffer, 0U});
     return pointer;
 }
 void ScheduleContext::free(void *pointer) {
     if (!pointer) return;
     wait();
+    launch_cache_.clear();
+    launch_cursor_ = 0U;
     std::lock_guard lock(allocation_mutex);
     const auto it = allocations.find(reinterpret_cast<std::uintptr_t>(pointer));
     if (it == allocations.end() || it->second.owner != this)
         throw std::invalid_argument("foreign Metal allocation");
     allocations.erase(it);
+    slices_.clear();
 }
 void *ScheduleContext::native_resource(const void *pointer) const {
     const auto slice = find(pointer);
@@ -284,20 +288,43 @@ compute::KernelPtr ScheduleContext::kernel(const std::string &entry) {
     if (auto found = kernels_.find(entry); found != kernels_.end()) return found->second;
     const auto &path = paths_.at(entry);
     auto result = device_->load_kernel(path + ".metallib", path + ".json", entry);
+    std::vector<Parameter> parameters;
+    parameters.reserve(result->parameters.size());
+    for (const auto &[name, field] : result->parameters) {
+        parameters.push_back({name, &field});
+    }
+    std::sort(parameters.begin(), parameters.end(), [](const auto &a, const auto &b) {
+        return a.field->offset < b.field->offset;
+    });
+    parameters_.emplace(result.get(), std::move(parameters));
     kernels_.emplace(entry, result);
     return result;
 }
-void ScheduleContext::bind(compute::Arguments &arguments, const std::string &name, const void *pointer) {
-    if (!pointer) { arguments.bind(name, {}); return; }
-    const auto &field = arguments.kernel()->parameter(name);
-    auto slice = find(pointer, field.pointee_size);
-    if (!slice.buffer || slice.owner != this) throw std::invalid_argument("unregistered Metal shader pointer: " + name);
+ScheduleContext::CachedSlice ScheduleContext::slice(
+    const void *pointer, std::size_t bytes) {
+    if (!pointer) return {};
+    if (auto cached = slices_.find(pointer); cached != slices_.end()) {
+        if (bytes > cached->second.buffer->size() - cached->second.offset)
+            throw std::invalid_argument("Metal allocation range exceeded");
+        return cached->second;
+    }
+    const auto found = find(pointer, bytes);
+    if (!found.buffer || found.owner != this) return {};
+    CachedSlice result{found.buffer, found.offset};
+    slices_.emplace(pointer, result);
+    return result;
+}
+void ScheduleContext::bind(compute::Arguments &arguments, const std::string &name,
+                           const compute::Field &field, const void *pointer) {
+    if (!pointer) { arguments.bind_positional(name, field, {}); return; }
+    auto slice = this->slice(pointer, field.pointee_size);
+    if (!slice.buffer) throw std::invalid_argument("unregistered Metal shader pointer: " + name);
     if (name == "meshes" || name == "paint_fields") {
         const auto extent = table_counts.find(pointer);
         if (extent == table_counts.end())
             throw std::invalid_argument("Metal resource table extent missing: " + name);
         const auto count = extent->second;
-        if (count == 0) { arguments.bind(name, {}); return; }
+        if (count == 0) { arguments.bind_positional(name, field, {}); return; }
         const auto stride = name == "meshes" ? sizeof(simulation::TriangleMeshResource)
                                             : sizeof(simulation::PaintFieldResource);
         if (field.pointee_size != stride || count > (slice.buffer->size() - slice.offset) / stride)
@@ -315,13 +342,13 @@ void ScheduleContext::bind(compute::Arguments &arguments, const std::string &nam
                 arguments.reference(name + "[]." + binding.name, binding.range.buffer,
                     binding.range.offset, binding.range.size, binding.range.access);
         }
-        arguments.bind(name, translated);
+        arguments.bind_positional(name, field, translated);
     } else {
         // Unknown pointer-bearing arrays need an explicit extent and layout.
         for (const auto &[member, child] : field.fields)
             if (compute::contains_pointers(child))
                 throw std::invalid_argument("unrelocated Metal resource table: " + name + "." + member);
-        arguments.bind(name, slice.buffer, slice.offset);
+        arguments.bind_positional(name, field, slice.buffer, slice.offset);
     }
 }
 void ScheduleContext::meshes(const void *table, const void *parameters, std::uint32_t count) {
@@ -331,14 +358,19 @@ void ScheduleContext::meshes(const void *table, const void *parameters, std::uin
     for (std::uint32_t i = 0; i < count; ++i)
         size = std::max(size, std::size_t(bodies[i].mesh.index) + 1);
     table_counts[table] = size;
+    table_strides[table] = sizeof(simulation::TriangleMeshResource);
 }
 void ScheduleContext::record(compute::Arguments &arguments, const std::string &name,
+                             const compute::Field &field,
                              const RelocatedRecord &host) {
-    arguments.record(name, relocate_record(arguments.kernel()->parameter(name), host));
+    arguments.record_positional(name, field, relocate_record(field, host));
 }
 void ScheduleContext::paint_fields(const void *table, std::uint32_t count, const void *meshes) {
     std::lock_guard lock(mutex);
     table_counts[table] = count;
+    table_strides[table] = sizeof(simulation::PaintFieldResource);
+    if (meshes)
+        table_strides[meshes] = sizeof(simulation::TriangleMeshResource);
     // Painting may reference a UV-bearing mesh distinct from collision geometry.
     // Include these resources in the relocated table, not only body mesh IDs.
     const auto *fields = static_cast<const simulation::PaintFieldResource *>(table);
@@ -378,8 +410,8 @@ compute::Record ScheduleContext::relocate_record(compute::Field layout, const Re
                     throw std::invalid_argument("Metal nested pointer outside host record");
                 const void *pointer{};
                 std::memcpy(&pointer, host.bytes.data() + offset, sizeof(pointer));
-                const auto resource = find(pointer, field.pointee_size);
-                if (pointer && (!resource.buffer || resource.owner != this))
+                const auto resource = slice(pointer, field.pointee_size);
+                if (pointer && !resource.buffer)
                     throw std::invalid_argument("unregistered Metal record pointer: " + name + "." + path);
                 translated.bind(path, resource.buffer, resource.offset);
             } else if (field.element) {
@@ -436,6 +468,7 @@ void ScheduleContext::collect_profiles(bool wait_for_completion) {
     }
 }
 compute::SubmissionPtr ScheduleContext::submit() {
+    launch_cursor_ = 0U;
     collect_profiles(false);
     std::erase_if(pending_, [](const auto &completion) { return completion->ready(); });
     if (!command_) command_ = device_->commands();
@@ -647,6 +680,28 @@ cudaError_t pmMetalQueryEvent(cudaEvent_t event) noexcept {
         return cudaErrorLaunchFailure;
     } catch (...) {
         std::fprintf(stderr, "Metal preview: unknown event query failure\n");
+        return cudaErrorLaunchFailure;
+    }
+}
+cudaError_t pmMetalElapsedTime(float *milliseconds, cudaEvent_t begin,
+                              cudaEvent_t end) noexcept {
+    // The device epoch is deliberately a non-timing synchronization event;
+    // timestamp slots are timing events measured from that same GPU epoch.
+    if (!milliseconds || !begin || !end || !end->timing ||
+        !begin->submission || !end->submission ||
+        begin->stream != end->stream)
+        return cudaErrorInvalidValue;
+    try {
+        const double seconds = end->submission->completion_seconds() -
+            begin->submission->completion_seconds();
+        if (seconds < 0.0) return cudaErrorInvalidValue;
+        *milliseconds = static_cast<float>(seconds * 1000.0);
+        return cudaSuccess;
+    } catch (const std::exception &error) {
+        std::fprintf(stderr, "Metal preview: %s\n", error.what());
+        return cudaErrorLaunchFailure;
+    } catch (...) {
+        std::fprintf(stderr, "Metal preview: unknown event timing failure\n");
         return cudaErrorLaunchFailure;
     }
 }
