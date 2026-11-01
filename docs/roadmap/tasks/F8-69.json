@@ -1,0 +1,25 @@
+{
+  "id": "F8-69",
+  "title": "Repair shared Gallery CPU session recreation",
+  "status": "open",
+  "dependencies": [
+    "F8-67"
+  ],
+  "locks": [
+    "f8-cpu-gallery-lifecycle-repair"
+  ],
+  "requires": [
+    "Linux CPU installed SDK/Gallery toolchain and the exact candidate-v8 failure archive"
+  ],
+  "scope": "Repair the mandatory shared Gallery CPU lifecycle failure exposed by F8-53 on exact candidate realtime-single-step-v1-c05d320. Reproduce the first-session pass followed by MobileGallerySession recreation failure from docs/roadmap/evidence/F8-53-CANDIDATE-V8-CPU-GALLERY-FAILURE.json, establish the loader/driver/session lifetime root cause, and preserve the CPU driver's truthful rigid/constraint-only capability set across repeated create, destroy and recreate cycles. Do not advertise unsupported domains, retain sessions forever, remove teardown/recreation, weaken scene requirements, skip the test or hide errors. Candidate v8 remains rejected for final CPU qualification and none of its partial passing observations can be unioned with repaired-source evidence.",
+  "acceptance": [
+    "Reproduce the exact candidate-v8 failure before repair from source c05d320 and retain hash-bound before/after output. Add a focused regression that fails for the same capability/lifetime reason before the production fix.",
+    "Repeated shared Gallery and MobileGallerySession create, destroy and recreate cycles select the same CPU device for the required rigid scene, complete normal ticks, reset scenes and recover after background/foreground transitions without leaked or stale loader, driver, instance, device or scene state.",
+    "The CPU backend continues to advertise only implemented rigid, constraint and geometry behavior. The 15 unadvertised domain/coupling/quality tests remain explicit unsupported skips; no capability, scene requirement, negative control, schedule, budget or quality assertion is reduced.",
+    "A clean Release build passes every required registered CPU test, the focused lifecycle regression, shared Gallery contract/clock/timing/reset/background/failure recovery, isolated discovery/launcher checks and installed SDK relocation with --require-realtime-driver, with and without the validation layer.",
+    "Attach exact source/tree, binary, manifest, installed SDK, capability observation and raw before/after artifact hashes for F8-70. Preserve candidate-v8 failure evidence as immutable history and do not claim final qualification from the repair source."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
