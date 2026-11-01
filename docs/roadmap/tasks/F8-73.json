@@ -1,0 +1,26 @@
+{
+  "id": "F8-73",
+  "title": "Repair candidate-v9 macOS Metal failures",
+  "status": "open",
+  "dependencies": [
+    "F8-70"
+  ],
+  "locks": [
+    "f8-macos-metal-candidate-repair"
+  ],
+  "requires": [
+    "Physical Apple M4 macOS Metal hardware, current Slang/Metal toolchain and the exact F8-28 candidate-v9 failure archive"
+  ],
+  "scope": "Repair the mandatory physical macOS Metal failures exposed by F8-28 on exact candidate realtime-single-step-v1-ba67db3. Reproduce the zero-argument rope_realtime_finalize_self_contacts Metal binding failure and the independent desktop/mobile reset semantic mismatch from docs/roadmap/evidence/F8-28-CANDIDATE-V9-MACOS-METAL-FAILURE.json. Repair adapter/schedule integration without adding Metal-specific physics equations, changing the shared Slang physics result, reducing advertised capabilities, weakening the Gallery contract, or changing quality tolerances, work budgets or the sole fixed-tick schedule. Candidate v9 remains failed history; repaired-source observations do not qualify F8-28.",
+  "acceptance": [
+    "Reproduce the exact candidate-v9 failures before repair and retain hash-bound before/after output. Prove the rope finalizer is a D3D12-only no-op on Metal and fix the adapter contract deliberately rather than teaching the loader to ignore arbitrary optimized-away arguments.",
+    "Metal rope, rope-fluid, rope-soft-body, rope-cloth and smoke-rope execute through normal public creation with no device loss. The fixed schedule remains one 1/60 step, one spatial publication and bounded dispatch/synchronization work; no backend physics fork or hidden retry is introduced.",
+    "Desktop and mobile reset semantic actions agree in the shared Gallery session contract, and focused reset/background/recreation tests pass without weakening either platform path.",
+    "A clean Release build and complete macOS Metal preset pass in CTest semantics, including every previously failing kernel, transport, realtime, Gallery, mobile-session, lifecycle and installed-app check. The canonical /Applications bundle verifies the exact repaired revision/backend and passes all 30 public cases plus the complete 12-scenario, five-negative-control and five-workload capture in plain and validation modes.",
+    "Attach exact source/tree, device, toolchain, binary, deployment, manifest, generated Metal/reflection and raw before/after artifact hashes. Preserve the F8-28 candidate-v9 failure as immutable history and do not union its partial passes with repaired-source evidence.",
+    "Mechanically compare all F8-70 protected closures. The expected adapter-binding and shared-Gallery changes require F8-74 to freeze a new immutable candidate and reroute every affected physical row before any final qualification is reclaimed."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

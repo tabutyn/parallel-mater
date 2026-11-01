@@ -1,0 +1,133 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification-failure/v1",
+  "task": "F8-28",
+  "status": "failed",
+  "lease_token": "8e788262-87fa-496d-9abd-ce2f30a87850",
+  "captured_at": "2026-11-01T17:48:43Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-ba67db3",
+    "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+    "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+    "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+    "active_pointer_sha256": "73930b6f8f68363a6bb90a5918958d2794f44ba3ec2ec5b69abfd86408130754",
+    "capture_producer_sha256": "78c93cf688af6667d07abb78e30dea9540bbb253261679ccb1797b5aa9e83595",
+    "exact_source_ci_run": 41257022787,
+    "target": "macos-m4-slang-metal",
+    "runtime_variant": "metal-runtime"
+  },
+  "device": {
+    "machine": "Thomass-MacBook-Air",
+    "model": "MacBook Air Mac16,12",
+    "chip": "Apple M4",
+    "memory_gib": 16,
+    "gpu": "Apple M4, 8 cores",
+    "metal_support": "Metal 4",
+    "os": "macOS 26.5.2 (25F84)",
+    "kernel": "Darwin 25.5.0 arm64",
+    "vendor_id": 4203
+  },
+  "toolchain": {
+    "cmake": "4.3.4",
+    "generator": "Unix Makefiles",
+    "build_type": "Release",
+    "host_compiler": "AppleClang 21.0.0.21000101",
+    "xcode": "26.6 (17F113)",
+    "metal": "32023.883",
+    "slang": "2026.18"
+  },
+  "results": {
+    "clean_release_build": {
+      "status": "passed",
+      "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+      "source_tree": "2dfc4b680fac97519aee1c67526bddffdd01c474",
+      "source_dirty": false,
+      "automatic_deployment": "passed"
+    },
+    "physical_registered_suite": {
+      "status": "failed",
+      "total": 151,
+      "executed_passed": 128,
+      "explicit_unsupported_skips": 15,
+      "failed": 8,
+      "non_failed": 143,
+      "elapsed_seconds": 52.29,
+      "failed_tests": [
+        "parallel-mater-slang-metal-transport-tests",
+        "parallel-mater-slang-metal-realtime-tests",
+        "parallel-mater-slang-metal-gallery-domains",
+        "parallel-mater-ipad-session-tests",
+        "parallel-mater-gallery-session-contract-tests",
+        "parallel-mater-slang-metal-kernel-tests",
+        "parallel-mater-metal-coupling-lifecycle-tests",
+        "parallel-mater-metal-interaction-graph-lifecycle-tests"
+      ]
+    },
+    "installed_public_capture": {
+      "status": "failed",
+      "advertised_capabilities": 49,
+      "public_cases_total": 30,
+      "public_cases_completed": 25,
+      "public_cases_failed": 5,
+      "public_cases_unsupported": 0,
+      "failed_cases": [
+        "rope-core",
+        "rope-fluid",
+        "rope-soft-body",
+        "rope-cloth",
+        "smoke-rope"
+      ],
+      "failure": "rope_realtime_finalize_self_contacts: missing/oversized argument buffers",
+      "downstream_scenarios_and_workloads": "not run after mandatory public-case failure"
+    },
+    "installed_gallery": {
+      "status": "failed",
+      "path": "/Applications/ParallelMater Gallery.app",
+      "signature": "codesign --verify --deep --strict passed",
+      "revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5",
+      "backend": "metal",
+      "dirty": false,
+      "execution_contract": "fixed-tick-60hz-v1",
+      "rope_headless_exit_code": 1,
+      "rope_headless_result": "device lost on frame 1"
+    },
+    "root_cause_boundary": {
+      "originating_change": "861e8f11c fix(cuda): repair F8 public qualification",
+      "shared_entry": "src/slang/rope.slang:rope_realtime_finalize_self_contacts",
+      "entry_semantics": "The entry contains only PM_D3D12_DISPATCH_PROLOGUE and is a no-op on Metal.",
+      "generated_metal": "Slang correctly emits a zero-argument Metal kernel because every parameter is unused.",
+      "metal_adapter": "src/simulation/metal_rope_dispatch.cpp still launches the entry with 16 arguments; src/device/metal_compute.mm rejects the missing native argument buffer.",
+      "affected_failures": "Seven preset failures and all five failed public cases share this binding/device-loss path.",
+      "additional_failure": "parallel-mater-gallery-session-contract-tests separately reports that desktop reset did not match the mobile reset semantic action.",
+      "repair_rule": "A separate lease must repair both mandatory failures without adding Metal physics equations, hiding the errors, reducing capability, or weakening tests, budgets or tolerances."
+    }
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-28-CANDIDATE-V9-MACOS-METAL-FAILURE.tar.zst",
+    "tracked_archive_sha256": "b9f86b6cb0726a4da5d80fde58a8f5519e77d9aacdafd25d2db9aabbb97d90ed",
+    "tracked_archive_bytes": 182901,
+    "tracked_archive_file_count": 41,
+    "ctest_log_sha256": "62431a565fc7de3a7be2a50749429cdeda7b034bcd25317c220c425e5cb9aa8d",
+    "ctest_failure_list_sha256": "0f4eb6e87007912fa9ab30d2ca7c477bf1f32c9e35ae751bc08ac32bb2337f89",
+    "public_case_log_sha256": "4c7a545ec8515e27b2b885b2b8d5a9db5d91b002eaea307c38b6376cd046e5f8",
+    "capability_log_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5",
+    "provenance_log_sha256": "2329f87dd3bc8803a9ad20754c1ad53ce4b73f0d965558d99798ff71273a7b45",
+    "installed_gallery_log_sha256": "e3eb28e0f1b0c056c85a94e524929f357269f06618383739acdafb77ae5bfdb5",
+    "generated_metal_source_sha256": "bc29e03ff3127d4d4f6e0cf531d28eab7769b09d3c79fd03d60694fc7f91bd5c",
+    "generated_metal_reflection_sha256": "63d226e5a9d0f71d58e8e7283434b4b9fb9896db46ce75ca43f3a29d7bd16b5b",
+    "conformance_runner_sha256": "eb4001d83d7a0004f293884a26f87e5aaafa78e887c0bdd234376237597df59f",
+    "driver_manifest_sha256": "2e04e1ce0c9e8d120a4df381bcc61e7ac50fc3906131e36ce35f56d76aaaf89a",
+    "validation_manifest_sha256": "e4001f2e97f5fc3213e9597aefacd82d0210b480eb08640db495dcd0a92b733c",
+    "installed_gallery_executable_sha256": "3a742adb090610687919bf6dfa7f0561962e07b83c0c985a10877b152bd39cff",
+    "installed_metal_driver_sha256": "db1037baa378cdb6521aeaa7ee3c6688f48fb2b8b0b6d1b77d2ca7841d884e16",
+    "installed_build_info_sha256": "a9673398a47fdf2b2992b6a7bf5b45a961ef60090356b9cf06e482dfe40103ab"
+  },
+  "qualification_effect": "Candidate v9 does not qualify macOS Metal. The 128 executed passes, 15 explicit CPU skips and 25 public-case passes cannot be combined with a later repair or another candidate. F8-28 was released; F8-73 owns repair and F8-74 owns the required protected refreeze and rerouting.",
+  "commands": {
+    "configure": "cmake --preset macos-metal-preview",
+    "build_and_deploy": "cmake --build --preset macos-metal-preview",
+    "physical_suite": "ctest --preset macos-metal-preview --output-on-failure",
+    "device_capture": "python3 conformance/v1/realtime_device_capture.py --runner <exact-source-build>/parallel-mater-conformance --driver-manifest <exact-source-build>/Release/manifests/slang-metal.json --validation-layer-manifest <exact-source-build>/Release/manifests/validation.json --runtime-variant metal-runtime --target-id macos-m4-slang-metal --output <retained-output>",
+    "installed_gallery": "'/Applications/ParallelMater Gallery.app/Contents/MacOS/ParallelMater Gallery' --backend metal --rope --headless <output.ppm> --frames 1"
+  }
+}
