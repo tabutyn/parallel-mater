@@ -1,7 +1,7 @@
 {
   "id": "F8-75",
   "title": "Repair the Windows CUDA fluid fixture memory ordering",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-70"
   ],
@@ -20,6 +20,14 @@
     "This repair does not qualify F8-26. F8-74 still gates the new candidate after Metal and Windows production repair; all final Windows tests and captures require a fresh F8-26 lease."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "e44a1793-17a4-4184-a09f-ee34e0955c99",
+    "owner": "codex-windows-fluid-fixture",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-75/windows-gtx1080",
+    "claimed_at": "2026-11-01T18:59:23Z",
+    "heartbeat_at": "2026-11-01T18:59:23Z",
+    "expires_at": "2026-11-02T18:59:23Z"
+  },
   "history": []
 }
