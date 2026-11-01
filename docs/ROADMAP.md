@@ -194,7 +194,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-65](roadmap/tasks/F8-65.json) | Refreeze candidate after public CUDA repairs | done | F8-64 | — |
 | [F8-66](roadmap/tasks/F8-66.json) | Repair Linux Vulkan Gallery candidate failures | done | F8-65 | — |
 | [F8-67](roadmap/tasks/F8-67.json) | Refreeze candidate after Linux Vulkan repairs | done | F8-66 | — |
-| [F8-68](roadmap/tasks/F8-68.json) | Requalify the replacement candidate on Linux CUDA devices | ready | F8-24, F8-67, F8-70 | — |
+| [F8-68](roadmap/tasks/F8-68.json) | Requalify the replacement candidate on Linux CUDA devices | leased | F8-24, F8-67, F8-70 | codex-linux-thomas-laptop / ThomasLaptop / 2026-11-02T02:42:19Z |
 | [F8-69](roadmap/tasks/F8-69.json) | Repair shared Gallery CPU session recreation | done | F8-67 | — |
 | [F8-70](roadmap/tasks/F8-70.json) | Refreeze candidate after CPU Gallery lifecycle repair | done | F8-69 | — |
 | [F8-71](roadmap/tasks/F8-71.json) | Requalify candidate v9 on Linux Vulkan devices | done | F8-25, F8-70 | — |

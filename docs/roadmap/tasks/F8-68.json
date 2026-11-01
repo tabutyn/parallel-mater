@@ -1,7 +1,7 @@
 {
   "id": "F8-68",
   "title": "Requalify the replacement candidate on Linux CUDA devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-24",
     "F8-67",
@@ -23,7 +23,15 @@
     "Attach durable exact-candidate, binary, device, driver, toolchain and raw artifact hashes. Candidate-v7 F8-24 evidence remains separate historical provenance and cannot satisfy this follow-up."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bd0d581c-7880-4ed3-b9a9-f1d479e7eeea",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-68/ThomasLaptop-v9-r2",
+    "claimed_at": "2026-11-01T02:42:19Z",
+    "heartbeat_at": "2026-11-01T02:42:19Z",
+    "expires_at": "2026-11-02T02:42:19Z"
+  },
   "history": [
     {
       "lease": {
