@@ -44,6 +44,7 @@ Status SimulationRuntime::add_rigid_body(RigidBodyOptions options,
     const std::uint32_t dense = impl_->rigid_body_count;
     slot.alive = true;
     slot.dense_index = dense;
+    slot.mesh = options.mesh;
     if (slot.generation == 0U) {
         slot.generation = 1U;
     }
@@ -100,8 +101,8 @@ Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
                            "rigid body is still referenced by a paint field");
     for (std::uint32_t index = 0;
          index < impl_->options.paint_rule_capacity; ++index)
-        if (impl_->paint_rules[index].alive &&
-            impl_->paint_rules[index].options.rigid_source == body)
+        if (impl_->paint_rules_host[index].alive &&
+            impl_->paint_rules_host[index].options.rigid_source == body)
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by a paint rule");
     for(const auto &rope:impl_->ropes)

@@ -28,7 +28,7 @@ Status SimulationRuntime::add_triangle_mesh(
     std::uint32_t slot = k_invalid_dense;
     for (std::uint32_t index = 0;
          index < impl_->options.triangle_mesh_capacity; ++index) {
-        if (!impl_->meshes[index].alive) {
+        if (!impl_->mesh_slots[index].alive) {
             slot = index;
             break;
         }
@@ -289,6 +289,7 @@ Status SimulationRuntime::add_triangle_mesh(
     mesh.shell_normals = owned.plan.shell_normals;
     owned.disarm();
     mesh.alive = true;
+    impl_->mesh_slots[slot] = {mesh.generation, true};
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
     output = {slot, mesh.generation};
@@ -310,8 +311,8 @@ Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept 
     if (!status) {
         return status;
     }
-    for (std::uint32_t index = 0; index < impl_->rigid_body_count; ++index) {
-        if (impl_->parameters[index].mesh == mesh_id) {
+    for (const auto &body : impl_->slots) {
+        if (body.alive && body.mesh == mesh_id) {
             return failure(StatusCode::invalid_argument,
                            "triangle mesh is still referenced by a rigid body");
         }
@@ -338,6 +339,7 @@ Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept 
     if (mesh.generation == 0U) {
         mesh.generation = 1U;
     }
+    impl_->mesh_slots[mesh_id.index] = {mesh.generation, false};
     --impl_->triangle_mesh_count;
     ++impl_->revision;
     return success();

@@ -7134,8 +7134,8 @@ private:
                             body_slot.dense_index >= state_.rigid_body_count ||
                             owner->mesh.index >=
                                 state_.options.triangle_mesh_capacity ||
-                            !state_.meshes[owner->mesh.index].alive ||
-                            state_.meshes[owner->mesh.index].generation !=
+                            !state_.mesh_slots[owner->mesh.index].alive ||
+                            state_.mesh_slots[owner->mesh.index].generation !=
                                 owner->mesh.generation)
                             return PM_ERROR_INVALID_STATE;
                         const auto actual_family =

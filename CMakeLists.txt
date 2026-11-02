@@ -697,7 +697,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         # Windows managed-memory ownership: construction, asynchronous ticks,
         # and reset must work for affected public scenes in both modes.
-        foreach(scene Pegs SoftbodyFluid RopeSoftbody RopeCloth)
+        foreach(scene Pegs SoftbodyFluid RopeSoftbody RopeCloth Smoke SmokeWater)
             foreach(mode plain validation)
                 set(metadata_test parallel-mater-cuda-managed-metadata-${scene}-${mode})
                 add_test(NAME ${metadata_test}
