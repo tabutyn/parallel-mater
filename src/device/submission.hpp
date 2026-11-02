@@ -4,6 +4,7 @@
 #include <parallel_mater/parallel_mater.h>
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -45,6 +46,12 @@ class SubmissionQueue {
         const std::shared_ptr<SubmissionCompletion> &completion,
         const std::function<void()> &accepted) noexcept;
     [[nodiscard]] PmResult wait_idle() noexcept;
+    // Observe before checking public fence/timeline predicates. A completion
+    // between that check and blocking changes the epoch and cannot be lost.
+    [[nodiscard]] std::uint64_t completion_epoch() noexcept;
+    [[nodiscard]] bool wait_for_completion(
+        std::uint64_t observed,
+        std::chrono::steady_clock::time_point deadline) noexcept;
 
   private:
     struct Work {
@@ -56,6 +63,8 @@ class SubmissionQueue {
     std::mutex mutex_;
     std::condition_variable changed_;
     std::condition_variable idle_;
+    std::condition_variable completed_;
+    std::uint64_t completion_epoch_{};
     std::deque<Work> work_;
     bool active_{};
     bool stopping_{};

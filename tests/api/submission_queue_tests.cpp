@@ -83,5 +83,50 @@ int main() {
         }, ready, completion, accepted) == PM_SUCCESS);
     }
     CHECK(destroyed_work.load());
+
+    // Completion before blocking must remain visible, including failure and
+    // capture retirement. No wall-clock latency threshold is involved.
+    for (const auto result : {PM_SUCCESS, PM_ERROR_CAPACITY_EXCEEDED}) {
+        const auto observed = queue.completion_epoch();
+        auto completion = std::make_shared<SubmissionCompletion>();
+        auto owned = std::make_shared<int>(7);
+        std::weak_ptr<int> lifetime = owned;
+        CHECK(queue.enqueue([owned, result] { return result; }, ready,
+                            completion, accepted) == PM_SUCCESS);
+        owned.reset();
+        CHECK(queue.wait_idle() == result);
+        CHECK(lifetime.expired());
+        CHECK(completion->status() == result);
+        CHECK(queue.wait_for_completion(
+            observed, std::chrono::steady_clock::time_point::min()));
+        CHECK(!queue.wait_for_completion(
+            queue.completion_epoch(), std::chrono::steady_clock::now()));
+    }
+
+    // Several waiters observe the same pending ownership boundary. Publishing
+    // it once wakes all of them; none may see live captured storage afterward.
+    const auto observed = queue.completion_epoch();
+    std::promise<void> finish_work;
+    const auto finish_gate = finish_work.get_future().share();
+    auto completion = std::make_shared<SubmissionCompletion>();
+    auto owned = std::make_shared<int>(9);
+    std::weak_ptr<int> lifetime = owned;
+    CHECK(queue.enqueue([owned, finish_gate] {
+        finish_gate.wait();
+        return PM_SUCCESS;
+    }, ready, completion, accepted) == PM_SUCCESS);
+    owned.reset();
+    CHECK(completion->status() == PM_NOT_READY && !lifetime.expired());
+    std::vector<std::future<bool>> waiters;
+    for (unsigned index = 0U; index < 8U; ++index)
+        waiters.push_back(std::async(std::launch::async, [&] {
+            const bool changed = queue.wait_for_completion(
+                observed, std::chrono::steady_clock::time_point::max());
+            return changed && completion->status() == PM_SUCCESS &&
+                   lifetime.expired();
+        }));
+    finish_work.set_value();
+    for (auto &waiter : waiters) CHECK(waiter.get());
+    CHECK(queue.wait_idle() == PM_SUCCESS);
     return 0;
 }

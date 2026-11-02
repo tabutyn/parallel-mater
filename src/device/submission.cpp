@@ -65,6 +65,25 @@ PmResult SubmissionQueue::wait_idle() noexcept {
     return result;
 }
 
+std::uint64_t SubmissionQueue::completion_epoch() noexcept {
+    std::lock_guard lock(mutex_);
+    return completion_epoch_;
+}
+
+bool SubmissionQueue::wait_for_completion(
+    std::uint64_t observed,
+    std::chrono::steady_clock::time_point deadline) noexcept {
+    std::unique_lock lock(mutex_);
+    const auto changed = [this, observed] {
+        return completion_epoch_ != observed;
+    };
+    if (deadline == std::chrono::steady_clock::time_point::max()) {
+        completed_.wait(lock, changed);
+        return true;
+    }
+    return completed_.wait_until(lock, deadline, changed);
+}
+
 void SubmissionQueue::run() noexcept {
     for (;;) {
         Work work;
@@ -103,7 +122,9 @@ void SubmissionQueue::run() noexcept {
             if (first_error_ == PM_SUCCESS && result != PM_SUCCESS)
                 first_error_ = result;
             active_ = false;
+            ++completion_epoch_;
         }
+        completed_.notify_all();
         idle_.notify_all();
     }
 }
