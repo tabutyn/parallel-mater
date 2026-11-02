@@ -26,7 +26,7 @@
   "requires": [
     "Any development host; access to current API, schedule and qualification records"
   ],
-  "scope": "Package, deploy and document the qualified single-path SDK and Gallery candidate. Normal simulation creation always uses the fixed-tick architecture; no F8/legacy mode selection remains. Verify installed revision/backend/artifact identities for desktop launchers, Android and iPad. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md; retain historical evidence and all baseline supported interactions. Mandatory dispatch reduction requirements are defined in docs/roadmap/F8-DISPATCH-REDUCTION.md.",
+  "scope": "This is a future qualified-release milestone. Scoped development Gallery/SDK previews follow docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md and do not depend on this card completing. Package, deploy and document the qualified single-path SDK and Gallery candidate. Normal simulation creation always uses the fixed-tick architecture; no F8/legacy mode selection remains. Verify installed revision/backend/artifact identities for desktop launchers, Android and iPad. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md; retain historical evidence and all baseline supported interactions. Mandatory dispatch reduction requirements are defined in docs/roadmap/F8-DISPATCH-REDUCTION.md.",
   "acceptance": [
     "Installed public C/C++ SDK and Gallery tests use normal creation and stepping with no execution-profile request. Every supported domain/interaction uses the same schedule; incompatible API/ABI requests fail clearly.",
     "Publish exact device/workload quality and performance limits and migration instructions for the single architecture; historical evidence is not relabeled and missing integration cannot be hidden as unsupported hardware.",

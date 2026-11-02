@@ -1,5 +1,11 @@
 # F8: 60 Hz single-step simulation and shared spatial indexing
 
+Current development direction, 2026-11-02: follow
+[Improve physics one system at a time](PHYSICS-QUALITY-DEVELOPMENT.md).
+The one-step, one-spatial-update, and existing solver-work limits below remain
+unchanged. Full candidate timing/device gates apply to broad qualification;
+they do not block scoped system improvements or labeled development previews.
+
 Status: implementation in progress; full production integration and device
 qualification remain incomplete. The 2026-10-25
 [single execution path decision](F8-SINGLE-EXECUTION-PATH.md) supersedes all

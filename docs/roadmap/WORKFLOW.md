@@ -5,13 +5,20 @@ in `docs/ROADMAP.md` is the human work queue. `main` is the ownership record;
 local edits, pushed branches and open PRs are only proposals until merged.
 This is cooperative Git coordination, not an identity/authentication service.
 
+Physics development follows [the 2026-11-02 quality policy](PHYSICS-QUALITY-DEVELOPMENT.md):
+improve one concrete Gallery behavior, preserve the solver limits, and judge
+the affected system before pursuing full candidate qualification. Scoped
+development merges and previews do not wait for every device or the aggregate
+mixed-workload p95 target. Task ownership and truthful evidence still apply.
+
 ## Pick one bounded task
 
 1. Fetch current `main`; inspect open lease PRs to avoid duplicate proposals.
 2. Run `python3 tools/roadmap.py list --ready` and read the selected task card.
 3. Check its machine requirements, acceptance checks, dependencies and locks.
-   F8 is the next architecture/performance priority; honor existing leases and
-   finish outstanding foundation reviews. Independent ready tasks may run concurrently.
+   F8-79 through F8-84 are the current per-system quality priority. F8-73
+   supplies the repaired Mac development base. Honor existing leases;
+   independent ready tasks may run concurrently without an all-system gate.
 4. Reserve one leaf ID per claim PR. Do not claim an entire F-series area. If a
    leaf is too large for one focused implementation/review, split it in a
    planning PR before claiming. Keep old IDs and history; never renumber/reuse.
@@ -177,7 +184,10 @@ production architecture; an optional mode or rigid-only public execution path
 cannot close it. Preserve historical legacy quality evidence, but remove the
 legacy production schedule and profile choice before the final candidate freeze.
 Only the complete candidate, its kernel/device matrix and installed Gallery
-behavior can satisfy final qualification.
+behavior can satisfy a broad final qualification claim. This is not a merge or
+development-preview prerequisite for the focused tasks defined by the current
+quality policy. Their correctness/work-budget checks remain mandatory;
+aggregate timing misses are retained as outstanding release targets.
 The [dispatch reduction requirements](F8-DISPATCH-REDUCTION.md) also apply:
 F8-54--56 must complete Metal batching, coupling search/batching and independent
 installed Mac/iPad work measurements before F8-52 freezes the final candidate.

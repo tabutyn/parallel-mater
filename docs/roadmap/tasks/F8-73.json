@@ -1,6 +1,6 @@
 {
   "id": "F8-73",
-  "title": "Repair candidate-v9 macOS Metal failures",
+  "title": "Repair macOS Metal and Gallery for development",
   "status": "open",
   "dependencies": [
     "F8-70"
@@ -11,14 +11,14 @@
   "requires": [
     "Physical Apple M4 macOS Metal hardware, current Slang/Metal toolchain and the exact F8-28 candidate-v9 failure archive"
   ],
-  "scope": "Repair the mandatory physical macOS Metal failures exposed by F8-28 on exact candidate realtime-single-step-v1-ba67db3. Reproduce the zero-argument rope_realtime_finalize_self_contacts Metal binding failure and the independent desktop/mobile reset semantic mismatch from docs/roadmap/evidence/F8-28-CANDIDATE-V9-MACOS-METAL-FAILURE.json. Repair adapter/schedule integration without adding Metal-specific physics equations, changing the shared Slang physics result, reducing advertised capabilities, weakening the Gallery contract, or changing quality tolerances, work budgets or the sole fixed-tick schedule. Candidate v9 remains failed history; repaired-source observations do not qualify F8-28.",
+  "scope": "Repair the candidate-v9 macOS Metal rope-finalizer binding and shared Gallery reset/lifetime failures, retaining the implementation and evidence in PR 639. Apply docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md: this bounded adapter/Gallery repair establishes a working development base and can merge with affected correctness, lifecycle and solver-work checks passing. Preserve shared Slang physics results, one 1/60-second advance, one spatial publication, all existing solver-work budgets, API behavior and capability coverage. Record aggregate performance misses and negative-control baseline failures honestly; their full qualification is a later release milestone, not this repair's development merge gate. No task becomes complete solely because its gate was replanned. Candidate-v9 and earlier repaired-source captures remain separate immutable history.",
   "acceptance": [
-    "Reproduce the exact candidate-v9 failures before repair and retain hash-bound before/after output. Prove the rope finalizer is a D3D12-only no-op on Metal and fix the adapter contract deliberately rather than teaching the loader to ignore arbitrary optimized-away arguments.",
-    "Metal rope, rope-fluid, rope-soft-body, rope-cloth and smoke-rope execute through normal public creation with no device loss. The fixed schedule remains one 1/60 step, one spatial publication and bounded dispatch/synchronization work; no backend physics fork or hidden retry is introduced.",
-    "Desktop and mobile reset semantic actions agree in the shared Gallery session contract, and focused reset/background/recreation tests pass without weakening either platform path.",
-    "A clean Release build and complete macOS Metal preset pass in CTest semantics, including every previously failing kernel, transport, realtime, Gallery, mobile-session, lifecycle and installed-app check. The canonical /Applications bundle verifies the exact repaired revision/backend and passes all 30 public cases plus the complete 12-scenario, five-negative-control and five-workload capture in plain and validation modes.",
-    "Attach exact source/tree, device, toolchain, binary, deployment, manifest, generated Metal/reflection and raw before/after artifact hashes. Preserve the F8-28 candidate-v9 failure as immutable history and do not union its partial passes with repaired-source evidence.",
-    "Mechanically compare all F8-70 protected closures. The expected adapter-binding and shared-Gallery changes require F8-74 to freeze a new immutable candidate and reroute every affected physical row before any final qualification is reclaimed."
+    "Retain hash-bound reproduction of the historical rope-finalizer binding and reset/lifetime failures. Prove the rope finalizer is a D3D12-only no-op on Metal and repair that adapter contract deliberately; do not ignore arbitrary optimized-away arguments.",
+    "Metal rope, rope-fluid, rope-soft-body, rope-cloth and smoke-rope execute through normal public creation without device loss. Preserve the shared physics result, one 1/60-second advance, one spatial publication and every existing iteration/dispatch/submission/readback/synchronization budget; no backend physics fork or hidden retry.",
+    "Desktop/mobile reset semantics and command-resource retirement agree with shared Gallery and validation contracts. A clean Release macOS preset passes affected native, transport, realtime, Gallery, mobile-session, lifecycle, completion-wait and installed-app tests, with unsupported skips identified.",
+    "Verify the canonical /Applications Gallery revision, Metal backend, signature and Dock target. All 30 installed public cases per mode execute successfully. Retain the complete 12-scenario capture and evaluate affected physical, numerical, work and recovery checks independently of aggregate timing. A genuine correctness or work-budget failure remains blocking.",
+    "Retain exact source/tree, device/toolchain, installed binary/manifest, generated Metal/reflection, raw timings and before/after evidence. Report both workload modes, all stalls and negative-control results. A timing-failed baseline does not count as a negative-control pass. The unchanged whole-project 10 ms/16.667 ms targets are reported outstanding when missed; they do not block this development repair.",
+    "Compare all F8-70 protected closures and clearly label this as development repair acceptance, not final physics/performance or multi-device qualification. Keep the original passing ffdafab7 capture and failed integrated-source capture separate; F8-74 requires its own future source freeze and appropriate qualification."
   ],
   "evidence": [],
   "lease": null,

@@ -1,5 +1,11 @@
 # F8 dispatch reduction is a completion requirement
 
+Current development direction, 2026-11-02: follow
+[Improve physics one system at a time](PHYSICS-QUALITY-DEVELOPMENT.md).
+The one-step, one-spatial-update, and existing solver-work limits below remain
+unchanged. Full candidate timing/device gates apply to broad qualification;
+they do not block scoped system improvements or labeled development previews.
+
 Maintainer direction, 2026-10-25: F8 must substantially reduce the GPU work
 submission overhead that motivated the redesign. One time advance and one
 dynamic BVH build/publication are necessary, but do not alone establish success.
