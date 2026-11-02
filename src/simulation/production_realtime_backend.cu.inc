@@ -432,8 +432,7 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
     boundary.bytes_moved += 4U * sizeof(std::uint32_t);
     boundary.barriers += 4U;
     if (state.paint_rule_count != 0U) {
-        for (const auto &field : std::span(
-                 state.paint_fields, state.options.paint_field_capacity)) {
+        for (const auto &field : state.paint_fields_host) {
             if (!field.alive) continue;
             boundary.bytes_moved += std::uint64_t{field.options.width} *
                 field.options.height * sizeof(std::uint32_t);
@@ -1878,7 +1877,7 @@ public:
         if (state_.paint_rule_count != 0U) {
             for (std::uint32_t slot = 0U;
                  slot < state_.options.paint_field_capacity; ++slot) {
-                const auto &field = state_.paint_fields[slot];
+                const auto &field = state_.paint_fields_host[slot];
                 if (!field.alive) continue;
                 if (slot >= state_.paint_rollback_pixels.size() ||
                     state_.paint_rollback_pixels[slot] == nullptr)
@@ -5177,7 +5176,7 @@ public:
         PmResult rollback_result = PM_SUCCESS;
         for (std::uint32_t slot = 0U;
              slot < paint_rollback_slot_limit_; ++slot) {
-            const auto &field = state_.paint_fields[slot];
+            const auto &field = state_.paint_fields_host[slot];
             if (!field.alive) continue;
             const auto bytes = std::size_t{field.options.width} *
                 field.options.height * sizeof(std::uint32_t);

@@ -695,6 +695,27 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         set_tests_properties(parallel-mater-command-gallery-tests PROPERTIES
             LABELS "api;gallery;cuda" SKIP_RETURN_CODE 77 TIMEOUT 300
             ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+        # Windows managed-memory ownership: construction, asynchronous ticks,
+        # and reset must work for both affected public scenes in both modes.
+        foreach(scene Pegs SoftbodyFluid)
+            foreach(mode plain validation)
+                set(metadata_test parallel-mater-cuda-managed-metadata-${scene}-${mode})
+                add_test(NAME ${metadata_test}
+                    COMMAND parallel-mater-command-gallery-tests --backend cuda
+                        --scene ${scene}.glb --frames 8)
+                set_tests_properties(${metadata_test} PROPERTIES
+                    LABELS "api;gallery;cuda;realtime;f8;regression"
+                    TIMEOUT 300 RUN_SERIAL TRUE
+                    ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+                if(mode STREQUAL "validation")
+                    set_tests_properties(${metadata_test} PROPERTIES
+                        ENVIRONMENT_MODIFICATION "PM_TEST_VALIDATION=set:1")
+                else()
+                    set_tests_properties(${metadata_test} PROPERTIES
+                        ENVIRONMENT_MODIFICATION "PM_TEST_VALIDATION=unset:")
+                endif()
+            endforeach()
+        endforeach()
         add_test(NAME parallel-mater-rigid-constraint-command-tests
                  COMMAND parallel-mater-rigid-constraint-command-tests)
         set_tests_properties(

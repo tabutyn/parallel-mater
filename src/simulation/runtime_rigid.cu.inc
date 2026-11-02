@@ -94,8 +94,8 @@ Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
                            "rigid body is still referenced by smoke coupling");
     for (std::uint32_t index = 0;
          index < impl_->options.paint_field_capacity; ++index)
-        if (impl_->paint_fields[index].alive &&
-            impl_->paint_fields[index].options.body == body)
+        if (impl_->paint_fields_host[index].alive &&
+            impl_->paint_fields_host[index].options.body == body)
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by a paint field");
     for (std::uint32_t index = 0;

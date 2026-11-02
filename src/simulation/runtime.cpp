@@ -1416,6 +1416,9 @@ struct SimulationRuntime::Impl {
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
     PaintRuleResource *paint_rules{};
+    // Host metadata remains readable while device descriptors/pixels are in use.
+    std::vector<PaintFieldResource> paint_fields_host{};
+    std::vector<PaintRuleResource> paint_rules_host{};
     std::vector<std::uint32_t *> paint_rollback_pixels{};
     std::uint32_t paint_rule_count{};
     std::uint32_t *fluid_neighbor_overflow{};
@@ -1700,8 +1703,8 @@ struct SimulationRuntime::Impl {
         if (paint_fields != nullptr) {
             for (std::uint32_t index = 0;
                  index < options.paint_field_capacity; ++index) {
-                release_managed(paint_fields[index].uvs);
-                release_managed(paint_fields[index].pixels);
+                release_managed(paint_fields_host[index].uvs);
+                release_managed(paint_fields_host[index].pixels);
                 release_managed(paint_rollback_pixels[index]);
             }
         }
@@ -2173,6 +2176,8 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
         implementation->paint_rollback_pixels.resize(
             options.paint_field_capacity);
+        implementation->paint_fields_host.resize(options.paint_field_capacity);
+        implementation->paint_rules_host.resize(options.paint_rule_capacity);
         implementation->debug_frames.resize(
             options.physics_debug.frame_capacity);
         implementation->realtime_smoke_payload_refs_host.resize(
