@@ -1,0 +1,1772 @@
+{
+  "schema": "parallel-mater-runtime-ownership-repair/v1",
+  "task": "F8-76",
+  "status": "incomplete",
+  "captured_at": "2026-11-02T17:04:47.109265+00:00",
+  "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/642",
+  "lease_token": "3d5aa79b-50c7-4545-aaee-a5b3e03779eb",
+  "scope": "Repair Windows CUDA host access to managed metadata; repaired-source progress evidence against unchanged frozen v9 limits. Acceptance remains incomplete.",
+  "baseline_provenance": {
+    "retained_record": "before-release-identity.json",
+    "retained_record_sha256": "05e6b2346704c7da0d77be02dd5b793a08578bead69fcbbce8b0eaa17923ca62",
+    "clarification": "The source_revision/source_tree in before-release-identity.json describe the F8-76 evidence harness checkout at capture time. The retained Release binaries were built earlier for F8-26. Use the original tracked failure report below for their actual compiled-source identity. The raw record is preserved without changes.",
+    "compiled_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+    "compiled_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+    "authoritative_report": "docs\\roadmap\\evidence\\F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json",
+    "authoritative_report_sha256": "b0858b7ff180c76bd1ee15af09c3fd3cb59f229d2ff655852773404c7e4b35f8",
+    "fresh_symbol_build_identity": "before-symbol-identity.json",
+    "fresh_symbol_source_revision": "7e0e86a18255c36d649eef7017fa4badf194f296",
+    "fresh_symbol_source_tree": "fe78e835dd5e6117db7bb95b6d8c2e68f8f28be2"
+  },
+  "fresh_baseline_symbol_build": {
+    "captured_at": "2026-11-02T14:28:23.468147+00:00",
+    "phase": "before-symbol",
+    "source_revision": "7e0e86a18255c36d649eef7017fa4badf194f296",
+    "source_tree": "fe78e835dd5e6117db7bb95b6d8c2e68f8f28be2",
+    "source_status": "",
+    "build": "D:\\Repos\\parallel-mater-f8-76-diagnostic-20261102",
+    "cuda_memory_attributes": {
+      "managed_memory": {
+        "result": 0,
+        "value": 1
+      },
+      "concurrent_managed_access": {
+        "result": 0,
+        "value": 0
+      }
+    },
+    "candidate_v9_manifest": {
+      "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\conformance\\v1\\qualification\\realtime-candidate-v9.json",
+      "bytes": 31867,
+      "sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+    },
+    "artifacts": [
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-diagnostic-20261102\\parallel_mater_driver_slang_cuda.dll",
+        "bytes": 11637248,
+        "sha256": "94f3a03e8573ce8532e973774d02b60fd4812c081957a5855aa60f835ff76e9d"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-diagnostic-20261102\\parallel_mater_driver_slang_cuda.pdb",
+        "bytes": 24514560,
+        "sha256": "f461b28dd86a3c6d7ea974613e0380a27bddb16e8acf39d6315f714d8d1dd46a"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-diagnostic-20261102\\parallel-mater-command-gallery-tests.exe",
+        "bytes": 1613824,
+        "sha256": "f78d19a43f79d3adea9c4256492cd771e764e60c73b011830a88ef6798736b13"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-diagnostic-20261102\\parallel-mater-conformance.exe",
+        "bytes": 4100608,
+        "sha256": "450eba37e4ebe005cc565e79b280cba23decfeb19c2ac8c276a6b7c698f103ca"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-diagnostic-20261102\\parallel_mater_layer_validation.dll",
+        "bytes": 659968,
+        "sha256": "e16ed880db871a07f80148c417095aeca4185ffbd6343b800dcee4edae9d40f9"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-diagnostic-20261102\\CMakeCache.txt",
+        "bytes": 47147,
+        "sha256": "6810c13b3d94be673a61875711c6326a2601e85a6971f63b1260702966ea9c34"
+      }
+    ]
+  },
+  "after": {
+    "captured_at": "2026-11-02T16:19:59.735630+00:00",
+    "phase": "after-current-release",
+    "source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+    "source_tree": "ff988c80e7ae52285197b6fd9fb23e0c55c93c0e",
+    "source_status": "",
+    "build": "D:\\Repos\\parallel-mater-f8-76-current-20261102",
+    "cuda_memory_attributes": {
+      "managed_memory": {
+        "result": 0,
+        "value": 1
+      },
+      "concurrent_managed_access": {
+        "result": 0,
+        "value": 0
+      }
+    },
+    "candidate_v9_manifest": {
+      "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\conformance\\v1\\qualification\\realtime-candidate-v9.json",
+      "bytes": 31867,
+      "sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+    },
+    "artifacts": [
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel_mater_driver_slang_cuda.dll",
+        "bytes": 8531968,
+        "sha256": "456509e1ae3f12742f3bcd264528ca878fcb53ab0e04d77f0b5f0fec98deb1f2"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater.dll",
+        "bytes": 233984,
+        "sha256": "ec85b197377dad381c58a2bf38dfdb0a4dabe9eec2d7507b0dbbd77472032e24"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\cudart64_12.dll",
+        "bytes": 580608,
+        "sha256": "cf68ac7d47c621988db3343b8a211188e6f94cccf30dec3b15dd52d69fdcf512"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater-slang-cuda-realtime-tests.exe",
+        "bytes": 109056,
+        "sha256": "9a2eabc72d9caddb2ff89ecd2224ced51b425636d8a4b83943b06a4d8ac58457"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater-command-gallery-tests.exe",
+        "bytes": 519168,
+        "sha256": "6ee15b0988a26d8d3e588ae51a2937abebd89165b04ebf07e881185e26d5d543"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater-conformance.exe",
+        "bytes": 2052096,
+        "sha256": "c9e1b377145290263c8e6d8d9f452fc80e57e6e1a6985232e0229ff1f0936974"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel_mater_layer_validation.dll",
+        "bytes": 131584,
+        "sha256": "ae19f86556f5e60c8acb41f300582e4f405b0b747fa558517133a82715e4a134"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\CMakeCache.txt",
+        "bytes": 47122,
+        "sha256": "2ad467c5aa94417c62dd148414b49861b001151642109c09e80fddacc5605982"
+      }
+    ]
+  },
+  "machine": {
+    "captured_at": "2026-11-02T14:45:18.6927394Z",
+    "os": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200",
+      "OSArchitecture": "64-bit"
+    },
+    "cpu": {
+      "Name": "AMD Ryzen 5 5500                               ",
+      "NumberOfCores": 6,
+      "NumberOfLogicalProcessors": 12
+    },
+    "gpu": "NVIDIA GeForce GTX 1080, 582.66, 8192 MiB",
+    "cmake": "cmake version 4.4.2",
+    "ninja": "1.12.1",
+    "cuda": [
+      "nvcc: NVIDIA (R) Cuda compiler driver",
+      "Copyright (c) 2005-2025 NVIDIA Corporation",
+      "Built on Tue_May_27_02:24:01_Pacific_Daylight_Time_2025",
+      "Cuda compilation tools, release 12.9, V12.9.86",
+      "Build cuda_12.9.r12.9/compiler.36037853_0"
+    ],
+    "slang": "2026.18",
+    "msvc_toolset": "14.44.35207",
+    "python": "Python 3.13.15"
+  },
+  "ownership_diagnosis": {
+    "contract": "This GTX 1080 supports managed memory but concurrentManagedAccess is zero. A public idle frame does not retire asynchronous native uploads. Ordinary host metadata stays accessible while the managed device arenas are unavailable to the CPU.",
+    "faults": [
+      {
+        "artifact": "before-symbol-peg-symbols.json",
+        "symbol": "parallel_mater::`anonymous namespace'::native_realtime_limits<parallel_mater::SimulationRuntime::Impl>",
+        "source": {
+          "file": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\src\\simulation\\production_realtime_backend.cu.inc",
+          "line": 437,
+          "offset": 0
+        },
+        "exception": "0xc0000006",
+        "status": "0xc0000022"
+      },
+      {
+        "artifact": "before-symbol-soft-fluid-symbols.json",
+        "symbol": "parallel_mater::SimulationRuntime::add_fluid_soft_body_coupling",
+        "source": {
+          "file": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\src\\simulation\\runtime_deformables.cu.inc",
+          "line": 2137,
+          "offset": 14
+        },
+        "exception": "0xc0000006",
+        "status": "0xc0000022"
+      },
+      {
+        "artifact": "repair-full-gallery-debug-symbols.json",
+        "symbol": "parallel_mater::SimulationRuntime::add_rope_soft_body_coupling",
+        "source": {
+          "file": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\src\\simulation\\runtime_deformables.cu.inc",
+          "line": 1734,
+          "offset": 0
+        },
+        "exception": "0xc0000006",
+        "status": "0xc0000022"
+      },
+      {
+        "artifact": "repair-full-gallery-v2-symbols.json",
+        "symbol": "parallel_mater::SimulationRuntime::add_rope_cloth_coupling",
+        "source": {
+          "file": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\src\\simulation\\runtime_deformables.cu.inc",
+          "line": 1964,
+          "offset": 27
+        },
+        "exception": "0xc0000006",
+        "status": "0xc0000022"
+      },
+      {
+        "artifact": "repair-full-gallery-v3-symbols.json",
+        "symbol": "parallel_mater::SimulationRuntime::add_smoke_rigid_coupling",
+        "source": {
+          "file": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\src\\simulation\\runtime_domains.cu.inc",
+          "line": 909,
+          "offset": 18
+        },
+        "exception": "0xc0000006",
+        "status": "0xc0000022"
+      },
+      {
+        "artifact": "SmokeWater-before-plain-symbols.json",
+        "symbol": "parallel_mater::`anonymous namespace'::NativeRealtimeBackend<parallel_mater::SimulationRuntime::Impl>::stage_coupling_graph",
+        "source": {
+          "file": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\src\\simulation\\production_realtime_backend.cu.inc",
+          "line": 7137,
+          "offset": 32
+        },
+        "exception": "0xc0000006",
+        "status": "0xc0000022"
+      },
+      {
+        "artifact": "lifecycle-extra-debug-symbols.json",
+        "symbol": "parallel_mater::SimulationRuntime::query_hit_box",
+        "source": {
+          "file": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\src\\simulation\\runtime_rigid.cu.inc",
+          "line": 467,
+          "offset": 19
+        },
+        "exception": "0xc0000006",
+        "status": "0xc0000022"
+      }
+    ],
+    "repair": [
+      "Keep paint descriptors, mesh generation/liveness and immutable body-to-mesh identities in ordinary host storage; publish device paint descriptors at resource edits and retire payloads after publication completes.",
+      "Retire pending execution once at each fluid/soft-body, rope/soft-body and rope/cloth constructor before CPU geometry/attachment traversal. Services.wait_idle may be device-wide; these three waits are resource-edit boundaries outside fixed ticks.",
+      "Snapshot all live fluid counts together before public hit-box query launches, retaining the host destinations through transfer completion even on error; use immutable counts until the existing final query completion."
+    ],
+    "fixed_tick": "Only five host-metadata substitutions in the entire production realtime backend. No kernel, dispatch, equation, iteration, timestep, publication or budget-formula change; no added fixed-tick wait/readback.",
+    "hit_box_cost": "Public host-result query adds one batched count-completion boundary (one wait becomes two when live fluids exist), outside fixed ticks; no per-kernel synchronization blanket."
+  },
+  "clean_release_tests": {
+    "existing_tests": 130,
+    "all_existing_tests_retained": true,
+    "total": 144,
+    "passed": 144,
+    "failed": 0,
+    "skipped": 0,
+    "added_tests": [
+      "parallel-mater-cuda-managed-metadata-Pegs-plain",
+      "parallel-mater-cuda-managed-metadata-Pegs-validation",
+      "parallel-mater-cuda-managed-metadata-RopeCloth-plain",
+      "parallel-mater-cuda-managed-metadata-RopeCloth-validation",
+      "parallel-mater-cuda-managed-metadata-RopeSoftbody-plain",
+      "parallel-mater-cuda-managed-metadata-RopeSoftbody-validation",
+      "parallel-mater-cuda-managed-metadata-Smoke-plain",
+      "parallel-mater-cuda-managed-metadata-Smoke-validation",
+      "parallel-mater-cuda-managed-metadata-SmokeWater-plain",
+      "parallel-mater-cuda-managed-metadata-SmokeWater-validation",
+      "parallel-mater-cuda-managed-metadata-SoftbodyFluid-plain",
+      "parallel-mater-cuda-managed-metadata-SoftbodyFluid-validation",
+      "parallel-mater-cuda-managed-metadata-auxiliary-plain",
+      "parallel-mater-cuda-managed-metadata-auxiliary-validation"
+    ],
+    "elapsed_seconds": 291.06
+  },
+  "relocated_sdk": {
+    "schema": "parallel-mater-sdk-evidence/v1",
+    "scope": "packaging_and_public_abi",
+    "status": "passed",
+    "physics_quality": "not_evaluated",
+    "host": "Windows-11-10.0.26200-SP0",
+    "checks": [
+      {
+        "name": "install",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "consumer-configure",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "consumer-build",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "consumer-tests",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "reject-version-0.2",
+        "status": "passed",
+        "exit_code": 1,
+        "expected": 1
+      },
+      {
+        "name": "reject-version-0.4",
+        "status": "passed",
+        "exit_code": 1,
+        "expected": 1
+      },
+      {
+        "name": "conformance-configure",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "conformance-build",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "conformance-inputs",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "installed-runner-inputs",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "unsupported-case",
+        "status": "passed",
+        "exit_code": 77,
+        "expected": 77
+      },
+      {
+        "name": "missing-driver",
+        "status": "passed",
+        "exit_code": 2,
+        "expected": 2
+      }
+    ],
+    "architecture": "AMD64",
+    "configuration": "Release",
+    "compiler": {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "id": "MSVC",
+      "version": "19.44.35228.0",
+      "architecture": "x64"
+    },
+    "windows_sdk": {
+      "version": "10.0.26100.0",
+      "resource_compiler": "C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/rc.exe"
+    },
+    "source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+    "source_dirty": false,
+    "realtime_profile": {
+      "status": "not_available",
+      "required": false
+    }
+  },
+  "public_lifecycle": {
+    "executions": [
+      {
+        "mode": "plain",
+        "exit_code": 0,
+        "elapsed_seconds": 1.2004899,
+        "command": [
+          "D:/Repos/parallel-mater-f8-76-evidence-20261102/lifecycle-current-probe.exe",
+          "--production-auxiliary"
+        ],
+        "debugger": false,
+        "cuda_launch_blocking": null,
+        "probe_sha256": "3fdd615e2da612f4f10faa0fc055dea81de476ffd63d7e5958b206fdf6d43a93",
+        "driver_manifest": "D:/Repos/parallel-mater-f8-76-evidence-20261102/sdk-current/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "validation_layer_manifest": "D:/Repos/parallel-mater-f8-76-evidence-20261102/sdk-current/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json"
+      },
+      {
+        "mode": "validation",
+        "exit_code": 0,
+        "elapsed_seconds": 2.2454169,
+        "command": [
+          "D:/Repos/parallel-mater-f8-76-evidence-20261102/lifecycle-current-probe.exe",
+          "--production-auxiliary"
+        ],
+        "debugger": false,
+        "cuda_launch_blocking": null,
+        "probe_sha256": "3fdd615e2da612f4f10faa0fc055dea81de476ffd63d7e5958b206fdf6d43a93",
+        "driver_manifest": "D:/Repos/parallel-mater-f8-76-evidence-20261102/sdk-current/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "validation_layer_manifest": "D:/Repos/parallel-mater-f8-76-evidence-20261102/sdk-current/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json"
+      }
+    ],
+    "source": {
+      "base_fixture": "tests\\api\\native_realtime_runtime_tests.cpp",
+      "base_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+      "base_sha256": "d69cf64d591d05fa2e187bc2d06aa256a3cc9ca407e01f27d085c062b45c54dd",
+      "probe_sha256": "7f8fd569db5cab719b18b5804081605a6b1380b9c62b30ddbc787d0c9f083ce6",
+      "scope": "Independent public API probe compiled against relocated SDK headers/import library; no runtime private state. Existing public fixture plus painted-field edit/replacement checks and queued-upload soft-body/fluid construction/recovery."
+    },
+    "paint": {
+      "repeated_ticks_per_mode": 5,
+      "rejected_edit_atomic": true,
+      "replacement_pixels": 6,
+      "clear_reset": true
+    },
+    "soft_fluid": {
+      "constructions_per_mode": 2,
+      "ticks_per_mode": 10,
+      "rejected_edits_atomic_per_mode": 2,
+      "reset_replacement": true
+    },
+    "tick_assertions": "Every successful probe tick asserts one advance/publication and zero intra-tick host readbacks; rejected edits preserve public bytes and recovery advances once."
+  },
+  "failing_before_regressions": {
+    "total": 14,
+    "all_expected_crashes_observed": true,
+    "plan": [
+      {
+        "id": "Pegs-plain",
+        "mode": "plain",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "Pegs.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "Pegs-validation",
+        "mode": "validation",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "Pegs.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "SoftbodyFluid-plain",
+        "mode": "plain",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "SoftbodyFluid.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "SoftbodyFluid-validation",
+        "mode": "validation",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "SoftbodyFluid.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "RopeSoftbody-plain",
+        "mode": "plain",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "RopeSoftbody.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "RopeSoftbody-validation",
+        "mode": "validation",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "RopeSoftbody.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "RopeCloth-plain",
+        "mode": "plain",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "RopeCloth.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "RopeCloth-validation",
+        "mode": "validation",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "RopeCloth.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "Smoke-plain",
+        "mode": "plain",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "Smoke.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "Smoke-validation",
+        "mode": "validation",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "Smoke.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "SmokeWater-plain",
+        "mode": "plain",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "SmokeWater.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "SmokeWater-validation",
+        "mode": "validation",
+        "executable": "D:/Repos/parallel-mater-f8-76-diagnostic-20261102/parallel-mater-command-gallery-tests.exe",
+        "arguments": [
+          "--backend",
+          "cuda",
+          "--scene",
+          "SmokeWater.glb",
+          "--frames",
+          "8"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-26-build-20261101/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-26-build-20261101/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "bf3ba752792cd54f144e0ddf525a05911d5f65d8",
+        "driver_source_tree": "598912e3bfeb32f8c8f97f45842ed2b2cfc1973f",
+        "executable_sha256": "10442d008ed14a205398abc63630997bd4f4f578361d922149c32e339d4d9ef3",
+        "driver_binary_sha256": "4086c32935eb66c7fb8e06d70a7461bdfaf697fe09a53ee6ae502f4ac67982d8",
+        "driver_manifest_sha256": "95767f0312b4e62b698093dbef723eafb692ef14a480c878272e306c6c1f2622",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "auxiliary-plain",
+        "mode": "plain",
+        "executable": "D:/Repos/parallel-mater-f8-76-evidence-20261102/auxiliary-regression-control.exe",
+        "arguments": [
+          "--production-managed-auxiliary"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-76-final-20261102/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-76-final-20261102/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-76-final-20261102/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "8c24d4b2f6017a8def5e2db88036ec4093321290",
+        "driver_source_tree": "c1e0a5feab03ffa9fa2d69cae1f2530d23491188",
+        "executable_sha256": "7a405b129059fe4e31e928ce1cbd8cffdaa5dee7d73312d30b3649b18ec2e1c7",
+        "driver_binary_sha256": "03e4f6f4562370d26bcc8000558f396a180feb0bd58d71740ddaccccd9590b86",
+        "driver_manifest_sha256": "4a28e68701e0bb70728555bf3920aed5943592eb18d79b8088eda393d72c2bfc",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      },
+      {
+        "id": "auxiliary-validation",
+        "mode": "validation",
+        "executable": "D:/Repos/parallel-mater-f8-76-evidence-20261102/auxiliary-regression-control.exe",
+        "arguments": [
+          "--production-managed-auxiliary"
+        ],
+        "driver_manifest": "D:/Repos/parallel-mater-f8-76-final-20261102/Release/manifests/slang-cuda.json",
+        "layer_manifest": "D:/Repos/parallel-mater-f8-76-final-20261102/Release/manifests/validation.json",
+        "driver_binary": "D:/Repos/parallel-mater-f8-76-final-20261102/parallel_mater_driver_slang_cuda.dll",
+        "driver_source_revision": "8c24d4b2f6017a8def5e2db88036ec4093321290",
+        "driver_source_tree": "c1e0a5feab03ffa9fa2d69cae1f2530d23491188",
+        "executable_sha256": "7a405b129059fe4e31e928ce1cbd8cffdaa5dee7d73312d30b3649b18ec2e1c7",
+        "driver_binary_sha256": "03e4f6f4562370d26bcc8000558f396a180feb0bd58d71740ddaccccd9590b86",
+        "driver_manifest_sha256": "4a28e68701e0bb70728555bf3920aed5943592eb18d79b8088eda393d72c2bfc",
+        "consumer_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2"
+      }
+    ]
+  },
+  "installed_public_capture": {
+    "report": {
+      "candidate": {
+        "id": "realtime-single-step-v1-ba67db3",
+        "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+        "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5"
+      },
+      "failure_count": 12,
+      "failures": [
+        {
+          "actual": 16.0499,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[rigid-wall].timings.physics_ms.p95"
+        },
+        {
+          "actual": 16.0295,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[fluid-rigid].timings.physics_ms.p95"
+        },
+        {
+          "actual": 16.0256,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[deformable-mixed].timings.physics_ms.p95"
+        },
+        {
+          "actual": 16.0497,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[smoke-coupled].timings.physics_ms.p95"
+        },
+        {
+          "actual": 0.5320352399411297,
+          "expected": 0.99,
+          "message": "sustained workload missed the realtime rate",
+          "path": "$.workloads[six-family-mixed].simulated_to_wall_time_ratio"
+        },
+        {
+          "actual": 32.0495,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[six-family-mixed].timings.physics_ms.p95"
+        },
+        {
+          "actual": 32.0495,
+          "expected": 16.666666666666668,
+          "message": "frame p95 exceeds the 60 Hz budget",
+          "path": "$.workloads[six-family-mixed].timings.frame_ms.p95"
+        },
+        {
+          "actual": {
+            "id": "candidate_missing_pair",
+            "passed": false,
+            "rejected_failure_count": 8
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[candidate_missing_pair]"
+        },
+        {
+          "actual": {
+            "id": "atomic_failure_violation",
+            "passed": false,
+            "rejected_failure_count": 10
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[atomic_failure_violation]"
+        },
+        {
+          "actual": {
+            "id": "hidden_retry_violation",
+            "passed": false,
+            "rejected_failure_count": 10
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[hidden_retry_violation]"
+        },
+        {
+          "actual": {
+            "id": "timing_stall_retained",
+            "passed": false,
+            "rejected_failure_count": 8
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[timing_stall_retained]"
+        },
+        {
+          "actual": {
+            "id": "timing_failed_tick",
+            "passed": false,
+            "rejected_failure_count": 8
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[timing_failed_tick]"
+        }
+      ],
+      "negative_control_count": 5,
+      "passed": false,
+      "runtime_variant": "cuda-runtime",
+      "scenario_count": 12,
+      "schema": "parallel-mater-realtime-device-suite-report/v1",
+      "target_id": "windows-gtx1080-slang-cuda"
+    },
+    "public_cases": 30,
+    "scenarios": 12,
+    "workloads": 5,
+    "negative_controls": 5,
+    "modes": [
+      "plain",
+      "validation"
+    ],
+    "workload_warmup_ticks": 600,
+    "workload_measured_ticks": 7200,
+    "capture_sha256": "d59c25f62d0a7e5c2f893d203a28e4f440f6128708f989d26aba67288c359cdd",
+    "report_sha256": "cd963a1bc1f6c1b71f80ecf154d92b1d21a42bcdce8e3c65a806762c9d66bec2",
+    "qualification_identity": "Candidate v9 is an immutable qualification input, execution_identity_claimed is false. Actual executing source is the after identity above."
+  },
+  "performance_observations": {
+    "plain": {
+      "rigid-wall": {
+        "counts": {
+          "constraints_capacity": 0,
+          "constraints_live": 0,
+          "contact_capacity": 65536,
+          "rigid_bodies_capacity": 386,
+          "rigid_bodies_live": 386
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "rigid-wall",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.070320052417997,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.1812,
+            "p50": 0.0125,
+            "p95": 0.0187,
+            "p99": 0.0299
+          },
+          "frame_ms": {
+            "maximum": 28.7729,
+            "p50": 15.5233,
+            "p95": 16.0607,
+            "p99": 16.2488
+          },
+          "gpu_ms": {
+            "maximum": 19.10784,
+            "p50": 4.603904,
+            "p95": 6.008832,
+            "p99": 7.061504
+          },
+          "physics_ms": {
+            "maximum": 28.7729,
+            "p50": 15.5233,
+            "p95": 16.0607,
+            "p99": 16.2488
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "fluid-rigid": {
+        "counts": {
+          "contact_capacity": 65536,
+          "couplings_capacity": 1,
+          "couplings_live": 1,
+          "fluid_particles_capacity": 30000,
+          "fluid_particles_live": 30000,
+          "fluid_systems": 1,
+          "neighbors_per_particle_capacity": 128,
+          "rigid_bodies_capacity": 65,
+          "rigid_bodies_live": 65
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "fluid-rigid",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.0687796535419827,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.3001,
+            "p50": 0.013,
+            "p95": 0.0188,
+            "p99": 0.0297
+          },
+          "frame_ms": {
+            "maximum": 16.9279,
+            "p50": 15.528,
+            "p95": 16.0607,
+            "p99": 16.2513
+          },
+          "gpu_ms": {
+            "maximum": 12.189696,
+            "p50": 7.61856,
+            "p95": 9.617408,
+            "p99": 10.518528
+          },
+          "physics_ms": {
+            "maximum": 16.9279,
+            "p50": 15.528,
+            "p95": 16.0607,
+            "p99": 16.2513
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "deformable-mixed": {
+        "counts": {
+          "cloth_systems": 2,
+          "cloth_triangle_indices_capacity": 3072,
+          "cloth_triangle_indices_live": 3072,
+          "cloth_vertices_capacity": 578,
+          "cloth_vertices_live": 578,
+          "contact_capacity": 65536,
+          "couplings_capacity": 3,
+          "couplings_live": 3,
+          "rope_nodes_capacity": 72,
+          "rope_nodes_live": 72,
+          "rope_systems": 1,
+          "soft_body_systems": 1,
+          "soft_bonds_capacity": 130033,
+          "soft_bonds_live": 130033,
+          "soft_nodes_capacity": 912,
+          "soft_nodes_live": 912
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "deformable-mixed",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.0694455072182951,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.6134,
+            "p50": 0.0127,
+            "p95": 0.0177,
+            "p99": 0.0252
+          },
+          "frame_ms": {
+            "maximum": 30.9815,
+            "p50": 15.5078,
+            "p95": 16.0562,
+            "p99": 16.1583
+          },
+          "gpu_ms": {
+            "maximum": 17.646592,
+            "p50": 11.167744,
+            "p95": 11.862016,
+            "p99": 12.222464
+          },
+          "physics_ms": {
+            "maximum": 30.9815,
+            "p50": 15.5078,
+            "p95": 16.0562,
+            "p99": 16.1583
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "smoke-coupled": {
+        "counts": {
+          "contact_capacity": 16384,
+          "couplings_capacity": 1,
+          "couplings_live": 1,
+          "rigid_bodies_capacity": 4,
+          "rigid_bodies_live": 4,
+          "smoke_particles_capacity": 4500,
+          "smoke_particles_live": 4500,
+          "smoke_systems": 1
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "smoke-coupled",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.0685859267789108,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.173,
+            "p50": 0.0132,
+            "p95": 0.0192,
+            "p99": 0.0274
+          },
+          "frame_ms": {
+            "maximum": 18.3422,
+            "p50": 15.5362,
+            "p95": 16.0545,
+            "p99": 16.1896
+          },
+          "gpu_ms": {
+            "maximum": 12.320768,
+            "p50": 5.545984,
+            "p95": 8.404992,
+            "p99": 10.145792
+          },
+          "physics_ms": {
+            "maximum": 18.3422,
+            "p50": 15.5362,
+            "p95": 16.0545,
+            "p99": 16.1896
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "six-family-mixed": {
+        "counts": {
+          "cloth_systems": 1,
+          "cloth_vertices_capacity": 1024,
+          "cloth_vertices_live": 1024,
+          "contact_capacity": 32768,
+          "couplings_capacity": 16,
+          "couplings_live": 16,
+          "fluid_particles_capacity": 4096,
+          "fluid_particles_live": 4096,
+          "fluid_systems": 2,
+          "rigid_bodies_capacity": 32,
+          "rigid_bodies_live": 32,
+          "rope_nodes_capacity": 512,
+          "rope_nodes_live": 512,
+          "rope_systems": 1,
+          "smoke_particles_capacity": 2048,
+          "smoke_particles_live": 2048,
+          "smoke_systems": 1,
+          "soft_body_systems": 1,
+          "soft_nodes_capacity": 512,
+          "soft_nodes_live": 512
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "six-family-mixed",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 0.5331121820514448,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.1138,
+            "p50": 0.0143,
+            "p95": 0.0201,
+            "p99": 0.0279
+          },
+          "frame_ms": {
+            "maximum": 33.7526,
+            "p50": 31.1763,
+            "p95": 32.0861,
+            "p99": 32.16
+          },
+          "gpu_ms": {
+            "maximum": 28.708864,
+            "p50": 23.558144,
+            "p95": 24.53504,
+            "p99": 25.06752
+          },
+          "physics_ms": {
+            "maximum": 33.7526,
+            "p50": 31.1763,
+            "p95": 32.0861,
+            "p99": 32.16
+          }
+        },
+        "warmup_ticks": 600
+      }
+    },
+    "validation": {
+      "rigid-wall": {
+        "counts": {
+          "constraints_capacity": 0,
+          "constraints_live": 0,
+          "contact_capacity": 65536,
+          "rigid_bodies_capacity": 386,
+          "rigid_bodies_live": 386
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "rigid-wall",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.0619712161569321,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.1973,
+            "p50": 0.0332,
+            "p95": 0.0428,
+            "p99": 0.0546
+          },
+          "frame_ms": {
+            "maximum": 17.7651,
+            "p50": 15.9374,
+            "p95": 16.0499,
+            "p99": 16.1268
+          },
+          "gpu_ms": {
+            "maximum": 12.746752,
+            "p50": 3.219456,
+            "p95": 7.46496,
+            "p99": 8.15104
+          },
+          "physics_ms": {
+            "maximum": 17.7651,
+            "p50": 15.9374,
+            "p95": 16.0499,
+            "p99": 16.1268
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "fluid-rigid": {
+        "counts": {
+          "contact_capacity": 65536,
+          "couplings_capacity": 1,
+          "couplings_live": 1,
+          "fluid_particles_capacity": 30000,
+          "fluid_particles_live": 30000,
+          "fluid_systems": 1,
+          "neighbors_per_particle_capacity": 128,
+          "rigid_bodies_capacity": 65,
+          "rigid_bodies_live": 65
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "fluid-rigid",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.0596879938915982,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.3158,
+            "p50": 0.0329,
+            "p95": 0.0432,
+            "p99": 0.0539
+          },
+          "frame_ms": {
+            "maximum": 27.7619,
+            "p50": 15.9638,
+            "p95": 16.0295,
+            "p99": 16.0883
+          },
+          "gpu_ms": {
+            "maximum": 13.787136,
+            "p50": 9.003008,
+            "p95": 9.63584,
+            "p99": 10.110976
+          },
+          "physics_ms": {
+            "maximum": 27.7619,
+            "p50": 15.9638,
+            "p95": 16.0295,
+            "p99": 16.0883
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "deformable-mixed": {
+        "counts": {
+          "cloth_systems": 2,
+          "cloth_triangle_indices_capacity": 3072,
+          "cloth_triangle_indices_live": 3072,
+          "cloth_vertices_capacity": 578,
+          "cloth_vertices_live": 578,
+          "contact_capacity": 65536,
+          "couplings_capacity": 3,
+          "couplings_live": 3,
+          "rope_nodes_capacity": 72,
+          "rope_nodes_live": 72,
+          "rope_systems": 1,
+          "soft_body_systems": 1,
+          "soft_bonds_capacity": 130033,
+          "soft_bonds_live": 130033,
+          "soft_nodes_capacity": 912,
+          "soft_nodes_live": 912
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "deformable-mixed",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.0551942820942306,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.2732,
+            "p50": 0.0342,
+            "p95": 0.0447,
+            "p99": 0.0563
+          },
+          "frame_ms": {
+            "maximum": 38.2449,
+            "p50": 15.973,
+            "p95": 16.0256,
+            "p99": 16.0801
+          },
+          "gpu_ms": {
+            "maximum": 25.00608,
+            "p50": 10.571776,
+            "p95": 11.280384,
+            "p99": 11.935744
+          },
+          "physics_ms": {
+            "maximum": 38.2449,
+            "p50": 15.973,
+            "p95": 16.0256,
+            "p99": 16.0801
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "smoke-coupled": {
+        "counts": {
+          "contact_capacity": 16384,
+          "couplings_capacity": 1,
+          "couplings_live": 1,
+          "rigid_bodies_capacity": 4,
+          "rigid_bodies_live": 4,
+          "smoke_particles_capacity": 4500,
+          "smoke_particles_live": 4500,
+          "smoke_systems": 1
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "smoke-coupled",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 1.061146231199796,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.2395,
+            "p50": 0.0336,
+            "p95": 0.0445,
+            "p99": 0.0578
+          },
+          "frame_ms": {
+            "maximum": 30.1996,
+            "p50": 15.9476,
+            "p95": 16.0497,
+            "p99": 16.1515
+          },
+          "gpu_ms": {
+            "maximum": 29.401088,
+            "p50": 7.995392,
+            "p95": 9.269248,
+            "p99": 10.52672
+          },
+          "physics_ms": {
+            "maximum": 30.1996,
+            "p50": 15.9476,
+            "p95": 16.0497,
+            "p99": 16.1515
+          }
+        },
+        "warmup_ticks": 600
+      },
+      "six-family-mixed": {
+        "counts": {
+          "cloth_systems": 1,
+          "cloth_vertices_capacity": 1024,
+          "cloth_vertices_live": 1024,
+          "contact_capacity": 32768,
+          "couplings_capacity": 16,
+          "couplings_live": 16,
+          "fluid_particles_capacity": 4096,
+          "fluid_particles_live": 4096,
+          "fluid_systems": 2,
+          "rigid_bodies_capacity": 32,
+          "rigid_bodies_live": 32,
+          "rope_nodes_capacity": 512,
+          "rope_nodes_live": 512,
+          "rope_systems": 1,
+          "smoke_particles_capacity": 2048,
+          "smoke_particles_live": 2048,
+          "smoke_systems": 1,
+          "soft_body_systems": 1,
+          "soft_nodes_capacity": 512,
+          "soft_nodes_live": 512
+        },
+        "driver_private_state_used": false,
+        "failed_ticks": 0,
+        "id": "six-family-mixed",
+        "measured_ticks": 7200,
+        "schema": "parallel-mater-realtime-workload-capture/v1",
+        "simulated_to_wall_time_ratio": 0.5320352399411297,
+        "source": "installed-public-api",
+        "timings": {
+          "cpu_ms": {
+            "maximum": 0.2183,
+            "p50": 0.0344,
+            "p95": 0.0453,
+            "p99": 0.0568
+          },
+          "frame_ms": {
+            "maximum": 46.9268,
+            "p50": 31.066,
+            "p95": 32.0495,
+            "p99": 32.1181
+          },
+          "gpu_ms": {
+            "maximum": 42.483712,
+            "p50": 22.511616,
+            "p95": 24.264704,
+            "p99": 25.88672
+          },
+          "physics_ms": {
+            "maximum": 46.9268,
+            "p50": 31.066,
+            "p95": 32.0495,
+            "p99": 32.1181
+          }
+        },
+        "warmup_ticks": 600
+      }
+    }
+  },
+  "remaining_work": [
+    "The complete unmodified capture fails the frozen performance acceptance. All observed stalls remain in the raw samples; the task card must not be marked done or this implementation merged.",
+    "Investigate the existing public fence polling sleep and GPU execution cost. A Windows performance-only expansion beyond managed metadata ownership needs the release/replan/claim workflow before implementation.",
+    "The five negative controls require a passing unmodified baseline; their statuses remain exactly as emitted by the canonical evaluator."
+  ],
+  "source_audit": {
+    "source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+    "fixed_tick_backend": {
+      "path": "src/simulation/production_realtime_backend.cu.inc",
+      "before_sha256": "6195fbcb9b529d10135dd96673c1c9550755fe374464075439b6a84744c9752d",
+      "after_sha256": "59120f552241faf8081632ac330f8d7d192f94fc62b2e26bfa281c83e919ee12",
+      "entire_file_matches_only_five_host_metadata_substitutions": true,
+      "dispatches_iterations_timestep_publications_budget_formulas_unchanged": true,
+      "no_added_fixed_tick_wait_or_readback": true
+    },
+    "public_oracle_test_harness": {
+      "path": "tests/api/native_realtime_runtime_tests.cpp",
+      "only_cli_validation_and_strict_auxiliary_selector_added": true,
+      "existing_fixture_assertions_tolerances_workloads_byte_identical": true
+    },
+    "work_budget_closure": {
+      "changed_file": "tests/api/native_realtime_runtime_tests.cpp",
+      "change_is_test_routing_only": true,
+      "existing_budget_assertions_and_production_budget_formulas_unchanged": true
+    },
+    "public_hit_box": {
+      "no_managed_count_read_between_query_launches_and_existing_completion": true,
+      "counts_snapshotted_together_at_public_readback_boundary": true,
+      "query_wait_count_before": 1,
+      "query_wait_count_after": 2,
+      "scope": "Host-result query outside the fixed tick; no per-kernel wait or launch-count change."
+    },
+    "resource_construction": "Three CPU geometry/attachment constructors retire pending native work at resource-edit boundaries; no fixed-tick ownership blanket.",
+    "unchanged_protected_categories": [
+      "api_abi",
+      "kernel",
+      "adapter_binding",
+      "contract"
+    ],
+    "frozen_candidate_limits_and_fixtures_unchanged": true
+  },
+  "closure_classification": {
+    "before_revision": "7e0e86a18255c36d649eef7017fa4badf194f296",
+    "after_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+    "after_tree": "ff988c80e7ae52285197b6fd9fb23e0c55c93c0e",
+    "method": "SHA-256 over clean Git archives; ignored/generated cache files excluded.",
+    "candidate_v9_manifest_unchanged": true,
+    "frozen_limits_and_fixtures_unchanged": true,
+    "changed_files": [
+      {
+        "path": "CMakeLists.txt",
+        "classification": "Register fourteen public-scene/auxiliary ownership regressions; production configuration and workload parameters unchanged."
+      },
+      {
+        "path": "src/simulation/production_realtime_backend.cu.inc",
+        "classification": "Read host metadata in telemetry-limit planning, paint boundary backup, abort restoration and smoke coupling mesh validation. Dispatch sequence, numerical equations and budget values unchanged."
+      },
+      {
+        "path": "src/simulation/runtime.cpp",
+        "classification": "Own paint descriptors and mesh generation/liveness identities in ordinary host storage; retain existing GPU storage and capacities."
+      },
+      {
+        "path": "src/simulation/runtime_deformables.cu.inc",
+        "classification": "Publish/retire paint descriptors at resource-edit boundaries; acquire CPU arena ownership once when constructing fluid/soft-body, rope/soft-body and rope/cloth couplings. Publish host mesh identities with existing mesh lifecycle."
+      },
+      {
+        "path": "src/simulation/runtime_domains.cu.inc",
+        "classification": "Read immutable host body-to-mesh identity when constructing smoke/rigid coupling."
+      },
+      {
+        "path": "src/simulation/runtime_rigid.cu.inc",
+        "classification": "Retain immutable body-to-mesh identity in host slots and validate paint references through host descriptors. Snapshot live particle counts at the public hit-box readback boundary before asynchronous query launches."
+      },
+      {
+        "path": "tests/api/native_realtime_runtime_tests.cpp",
+        "classification": "Enable explicit validation executions and a strict auxiliary regression selector; existing fixtures, assertions and tolerances unchanged."
+      },
+      {
+        "path": "tests/gallery/command_gallery_tests.cpp",
+        "classification": "Request the validation layer for explicit validation regression executions."
+      }
+    ],
+    "protected_closures": [
+      {
+        "category": "api_abi",
+        "patterns": [
+          "include/parallel_mater/**/*",
+          "include/parallel_mater_scene/**/*",
+          "registry/pm.xml",
+          "src/loader/**/*",
+          "cmake/ParallelMaterLoader.cmake",
+          "cmake/ParallelMaterConfig.cmake.in",
+          "MIGRATION.md"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 18,
+            "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+          },
+          "after": {
+            "file_count": 18,
+            "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+          },
+          "frozen": {
+            "file_count": 18,
+            "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+          }
+        },
+        "changed_by_F8_76": false,
+        "changes": []
+      },
+      {
+        "category": "kernel",
+        "patterns": [
+          "cmake/SlangKernelManifest.cmake",
+          "src/slang/**/*.slang"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 39,
+            "sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993"
+          },
+          "after": {
+            "file_count": 39,
+            "sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993"
+          },
+          "frozen": {
+            "file_count": 39,
+            "sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993"
+          }
+        },
+        "changed_by_F8_76": false,
+        "changes": []
+      },
+      {
+        "category": "adapter_binding",
+        "patterns": [
+          "src/api/**/*",
+          "src/layers/**/*",
+          "src/driver/**/*",
+          "src/device/**/*",
+          "tools/generate_cpu_dispatch_stubs.py",
+          "tools/generate_dxil_dispatch.py",
+          "tools/generate_vulkan_dispatch.py",
+          "tests/solver/test_dxil_bindings.py"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 49,
+            "sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67"
+          },
+          "after": {
+            "file_count": 49,
+            "sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67"
+          },
+          "frozen": {
+            "file_count": 49,
+            "sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67"
+          }
+        },
+        "changed_by_F8_76": false,
+        "changes": []
+      },
+      {
+        "category": "runtime",
+        "patterns": [
+          "src/simulation/**/*"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 127,
+            "sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7"
+          },
+          "after": {
+            "file_count": 127,
+            "sha256": "ecf3447e2b222b14d688b9535aad64981056ad3704f91b3700659cba6cb93fe5"
+          },
+          "frozen": {
+            "file_count": 127,
+            "sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7"
+          }
+        },
+        "changed_by_F8_76": true,
+        "changes": [
+          {
+            "path": "src/simulation/production_realtime_backend.cu.inc",
+            "before_sha256": "6195fbcb9b529d10135dd96673c1c9550755fe374464075439b6a84744c9752d",
+            "after_sha256": "59120f552241faf8081632ac330f8d7d192f94fc62b2e26bfa281c83e919ee12",
+            "classification": "Read host metadata in telemetry-limit planning, paint boundary backup, abort restoration and smoke coupling mesh validation. Dispatch sequence, numerical equations and budget values unchanged."
+          },
+          {
+            "path": "src/simulation/runtime.cpp",
+            "before_sha256": "3d1353b3876fd857cc26f0ed2e5c4fc9bd29a220ae9c0a9e0ece924ff31a2ee3",
+            "after_sha256": "a760fcb0914d1b357afbe337839a2a059d1fc7909736c77e26912fb49ca69eeb",
+            "classification": "Own paint descriptors and mesh generation/liveness identities in ordinary host storage; retain existing GPU storage and capacities."
+          },
+          {
+            "path": "src/simulation/runtime_deformables.cu.inc",
+            "before_sha256": "0d524db471028bebd7e098d8b3e458b83dc2cae6134534ea6a65a69682be43c3",
+            "after_sha256": "5fd4f4a58b73e60e4ddd92a92a226daad766d0229697963a12287c54c5241d44",
+            "classification": "Publish/retire paint descriptors at resource-edit boundaries; acquire CPU arena ownership once when constructing fluid/soft-body, rope/soft-body and rope/cloth couplings. Publish host mesh identities with existing mesh lifecycle."
+          },
+          {
+            "path": "src/simulation/runtime_domains.cu.inc",
+            "before_sha256": "4626dcc4a559e47e2dd27626f1b137c49b2c55d43e11cb5d48b16281cbed0551",
+            "after_sha256": "cee492f75ca85cb0d1e64f9f2394f5eea7cc5745f4bb1a62ea3322c872147dc4",
+            "classification": "Read immutable host body-to-mesh identity when constructing smoke/rigid coupling."
+          },
+          {
+            "path": "src/simulation/runtime_rigid.cu.inc",
+            "before_sha256": "40a705640c1eac00d665b8327eda9863c1d7cbb620d7d1964bcece910556b0e7",
+            "after_sha256": "aa9e16b73f06597440961d81c4fd1797b11bb6a082de736ba3a73098a742f75b",
+            "classification": "Retain immutable body-to-mesh identity in host slots and validate paint references through host descriptors. Snapshot live particle counts at the public hit-box readback boundary before asynchronous query launches."
+          }
+        ]
+      },
+      {
+        "category": "schedule_telemetry",
+        "patterns": [
+          "src/simulation/realtime_schedule.hpp",
+          "src/simulation/runtime_schedule.cu.inc",
+          "src/simulation/production_realtime_backend.cu.inc",
+          "src/simulation/native_schedule_backend.cu.inc",
+          "src/simulation/realtime_telemetry.hpp",
+          "src/simulation/runtime_diagnostics.cu.inc"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 6,
+            "sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037"
+          },
+          "after": {
+            "file_count": 6,
+            "sha256": "7c2cfdfe8f80fa2850ae56669cce69efd08454ee1ad607781534d41523648adc"
+          },
+          "frozen": {
+            "file_count": 6,
+            "sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037"
+          }
+        },
+        "changed_by_F8_76": true,
+        "changes": [
+          {
+            "path": "src/simulation/production_realtime_backend.cu.inc",
+            "before_sha256": "6195fbcb9b529d10135dd96673c1c9550755fe374464075439b6a84744c9752d",
+            "after_sha256": "59120f552241faf8081632ac330f8d7d192f94fc62b2e26bfa281c83e919ee12",
+            "classification": "Read host metadata in telemetry-limit planning, paint boundary backup, abort restoration and smoke coupling mesh validation. Dispatch sequence, numerical equations and budget values unchanged."
+          }
+        ]
+      },
+      {
+        "category": "contract",
+        "patterns": [
+          "conformance/v1/qualification/realtime-profile-v1.json",
+          "conformance/v1/qualification/capability-obligations-v1.json",
+          "conformance/v1/qualification/kernel-device-obligations-v1.json",
+          "config/device-profiles.json",
+          "docs/INTERACTION-MODES.md",
+          "docs/DRIVER_SDK.md"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 6,
+            "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+          },
+          "after": {
+            "file_count": 6,
+            "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+          },
+          "frozen": {
+            "file_count": 6,
+            "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+          }
+        },
+        "changed_by_F8_76": false,
+        "changes": []
+      },
+      {
+        "category": "public_oracle",
+        "patterns": [
+          "conformance/v1/**/*",
+          "tests/sdk/realtime_profile.c",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/solver/check_slang_architecture.py"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 543,
+            "sha256": "812787c635db8865507e7acf3f6b13b6d9120bae17af5943ec3b5de84efa485c"
+          },
+          "after": {
+            "file_count": 543,
+            "sha256": "b42e6d7c12ef27231b666dbbb284492cf3c5d03678f1be6cac65dbcf221f339f"
+          },
+          "frozen": {
+            "file_count": 541,
+            "sha256": "234ff210221d3fc30e5800d41cb9cc3b0509b9ce99273f02f06bae8122cd48cb"
+          }
+        },
+        "changed_by_F8_76": true,
+        "changes": [
+          {
+            "path": "tests/api/native_realtime_runtime_tests.cpp",
+            "before_sha256": "4a8efb081419322e4cc09246e5289aedba4e95a57c69d4860ff3c5bd446382bf",
+            "after_sha256": "d69cf64d591d05fa2e187bc2d06aa256a3cc9ca407e01f27d085c062b45c54dd",
+            "classification": "Enable explicit validation executions and a strict auxiliary regression selector; existing fixtures, assertions and tolerances unchanged."
+          }
+        ]
+      },
+      {
+        "category": "work_budget",
+        "patterns": [
+          "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+          "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+          "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+          "tests/solver/rigid_realtime_tests.cpp",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/gallery/metal_schedule_profile_tests.py",
+          "tests/gallery/test_mobile_metal_qualification.py"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 7,
+            "sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405"
+          },
+          "after": {
+            "file_count": 7,
+            "sha256": "f3af25d62dc3ecc6d4b443b2d6004bea45e2371322da2a8704bf7a6d55127b7f"
+          },
+          "frozen": {
+            "file_count": 7,
+            "sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405"
+          }
+        },
+        "changed_by_F8_76": true,
+        "changes": [
+          {
+            "path": "tests/api/native_realtime_runtime_tests.cpp",
+            "before_sha256": "4a8efb081419322e4cc09246e5289aedba4e95a57c69d4860ff3c5bd446382bf",
+            "after_sha256": "d69cf64d591d05fa2e187bc2d06aa256a3cc9ca407e01f27d085c062b45c54dd",
+            "classification": "Enable explicit validation executions and a strict auxiliary regression selector; existing fixtures, assertions and tolerances unchanged."
+          }
+        ]
+      },
+      {
+        "category": "gallery",
+        "patterns": [
+          "examples/support/**/*",
+          "examples/gallery/**/*",
+          "examples/android/app/src/**/*",
+          "examples/ios/**/*",
+          "cmake/*Gallery*.cmake",
+          "cmake/BundleMacOSRuntime.cmake",
+          "cmake/DeployMacOSBundle.cmake",
+          "scripts/Build-*Gallery*",
+          "scripts/Deploy-*Gallery*",
+          "tests/gallery/**/*"
+        ],
+        "frozen_identity_verified": true,
+        "identities": {
+          "before": {
+            "file_count": 160,
+            "sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80"
+          },
+          "after": {
+            "file_count": 160,
+            "sha256": "f7173222821dfc6926b5b1b711ccb9f2cafbb88e1befa86d0fc746ce39b58a24"
+          },
+          "frozen": {
+            "file_count": 160,
+            "sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80"
+          }
+        },
+        "changed_by_F8_76": true,
+        "changes": [
+          {
+            "path": "tests/gallery/command_gallery_tests.cpp",
+            "before_sha256": "3cca5b075353d7a526090633c1d4f53b55b3d25c89e207be5c0e378b2a094ff0",
+            "after_sha256": "4b8aa93fd636f9036189d7ecc4f65c33a3479bf514d36cd862ff49db7b8d5789",
+            "classification": "Request the validation layer for explicit validation regression executions."
+          }
+        ]
+      }
+    ],
+    "qualification_status": "F8-76 repair regression only. Changed source requires F8-74 refreeze and a fresh F8-26 qualification lease."
+  },
+  "frozen_candidate_check": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\tools\\check_realtime_candidate.py:361: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.\n  stream.extractall(extracted)\nPASS: realtime-single-step-v1-ba67db3 protected closure and routing are exact",
+  "limitations": [
+    "This is F8-76 repaired-source regression evidence on one physical Windows GTX 1080; it is not final F8-26 qualification or evidence for other physical devices.",
+    "F8-74 must refreeze after the Metal F8-73 and Windows F8-76 production repairs; final Windows qualification requires a fresh F8-26 lease.",
+    "public_oracle and work_budget closure hashes change because their native realtime test source gains validation/strict-selector routing. Existing numerical fixtures, tolerances, workloads and budget assertions are byte-identical.",
+    "Original baseline raw source fields identify the capture harness checkout; the preserved baseline-source-provenance.json records the retained binary compiled-source identity from the authoritative F8-26 failure report."
+  ],
+  "artifacts": {
+    "archive": "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.zip",
+    "sha256": "6c7c472f0d7066b0e15a1787f46e2b5c9212c73740852dfbc911a3dd38e5d222",
+    "bytes": 11089323,
+    "files": 279,
+    "member_manifest": "SHA256SUMS-current.json",
+    "member_manifest_sha256": "92033a313a281aa92711dbe5036b6b94fc828246ebc1956e7fd96ef50f42a9f1",
+    "verification": "ZIP CRC and every member SHA-256/size verified after writing; raw executable/driver hashes retained without binary payloads."
+  }
+}

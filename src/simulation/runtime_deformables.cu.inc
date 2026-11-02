@@ -28,7 +28,7 @@ Status SimulationRuntime::add_triangle_mesh(
     std::uint32_t slot = k_invalid_dense;
     for (std::uint32_t index = 0;
          index < impl_->options.triangle_mesh_capacity; ++index) {
-        if (!impl_->meshes[index].alive) {
+        if (!impl_->mesh_slots[index].alive) {
             slot = index;
             break;
         }
@@ -289,6 +289,7 @@ Status SimulationRuntime::add_triangle_mesh(
     mesh.shell_normals = owned.plan.shell_normals;
     owned.disarm();
     mesh.alive = true;
+    impl_->mesh_slots[slot] = {mesh.generation, true};
     ++impl_->triangle_mesh_count;
     ++impl_->revision;
     output = {slot, mesh.generation};
@@ -310,16 +311,16 @@ Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept 
     if (!status) {
         return status;
     }
-    for (std::uint32_t index = 0; index < impl_->rigid_body_count; ++index) {
-        if (impl_->parameters[index].mesh == mesh_id) {
+    for (const auto &body : impl_->slots) {
+        if (body.alive && body.mesh == mesh_id) {
             return failure(StatusCode::invalid_argument,
                            "triangle mesh is still referenced by a rigid body");
         }
     }
     for (std::uint32_t index = 0;
          index < impl_->options.paint_field_capacity; ++index)
-        if (impl_->paint_fields[index].alive &&
-            impl_->paint_fields[index].options.mesh == mesh_id)
+        if (impl_->paint_fields_host[index].alive &&
+            impl_->paint_fields_host[index].options.mesh == mesh_id)
             return failure(StatusCode::invalid_argument,
                            "triangle mesh is still referenced by a paint field");
     TriangleMeshResource &mesh = impl_->meshes[mesh_id.index];
@@ -338,6 +339,7 @@ Status SimulationRuntime::remove_triangle_mesh(TriangleMeshId mesh_id) noexcept 
     if (mesh.generation == 0U) {
         mesh.generation = 1U;
     }
+    impl_->mesh_slots[mesh_id.index] = {mesh.generation, false};
     --impl_->triangle_mesh_count;
     ++impl_->revision;
     return success();
@@ -379,7 +381,7 @@ Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
                        "paint field UV count or dimensions are invalid");
     std::uint32_t slot = 0U;
     for (; slot < impl_->options.paint_field_capacity; ++slot)
-        if (!impl_->paint_fields[slot].alive) break;
+        if (!impl_->paint_fields_host[slot].alive) break;
     if (slot == impl_->options.paint_field_capacity)
         return failure(StatusCode::capacity_exceeded,
                        "paint field capacity exhausted");
@@ -413,13 +415,18 @@ Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
             !finite(owned.plan.uvs[i].y))
             return failure(StatusCode::invalid_argument,
                            "paint field contains non-finite UVs");
-    PaintFieldResource &field = impl_->paint_fields[slot];
+    auto field = impl_->paint_fields_host[slot];
     options.vertex_uvs = {owned.plan.uvs, vertex_count};
     field.options = options;
     field.uvs = owned.plan.uvs;
     field.pixels = owned.plan.pixels;
-    impl_->paint_rollback_pixels[slot] = owned.plan.rollback_pixels;
     field.alive = true;
+    error = copy_bytes_wait(&impl_->paint_fields[slot], &field, sizeof(field),
+        device::CopyDirection::host_to_device, stream);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "paint field descriptor upload failed");
+    impl_->paint_fields_host[slot] = field;
+    impl_->paint_rollback_pixels[slot] = owned.plan.rollback_pixels;
     output = {slot, field.generation};
     ++impl_->revision;
     owned.disarm();
@@ -431,22 +438,32 @@ Status SimulationRuntime::remove_paint_field(PaintFieldId id) noexcept {
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_field_capacity ||
-        !impl_->paint_fields[id.index].alive ||
-        impl_->paint_fields[id.index].generation != id.generation)
+        !impl_->paint_fields_host[id.index].alive ||
+        impl_->paint_fields_host[id.index].generation != id.generation)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
     for (std::uint32_t i = 0; i < impl_->options.paint_rule_capacity; ++i)
-        if (impl_->paint_rules[i].alive &&
-            impl_->paint_rules[i].options.target == id)
+        if (impl_->paint_rules_host[i].alive &&
+            impl_->paint_rules_host[i].options.target == id)
             return failure(StatusCode::invalid_argument,
                            "paint field is still referenced by a paint rule");
-    PaintFieldResource &field = impl_->paint_fields[id.index];
-    release_managed(field.pixels);
-    release_managed(field.uvs);
-    release_managed(impl_->paint_rollback_pixels[id.index]);
-    impl_->paint_rollback_pixels[id.index] = nullptr;
+    auto field = impl_->paint_fields_host[id.index];
+    auto *retired_pixels = field.pixels;
+    auto *retired_uvs = field.uvs;
+    field.pixels = nullptr;
+    field.uvs = nullptr;
+    field.options.vertex_uvs = {};
     field.alive = false;
     ++field.generation;
     if (field.generation == 0U) field.generation = 1U;
+    const auto error = copy_bytes_wait(&impl_->paint_fields[id.index], &field,
+        sizeof(field), device::CopyDirection::host_to_device, impl_->execution);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "paint field retirement upload failed");
+    release_managed(retired_pixels);
+    release_managed(retired_uvs);
+    release_managed(impl_->paint_rollback_pixels[id.index]);
+    impl_->paint_rollback_pixels[id.index] = nullptr;
+    impl_->paint_fields_host[id.index] = field;
     ++impl_->revision;
     return success();
 }
@@ -458,10 +475,10 @@ Status SimulationRuntime::clear_paint_field(
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_field_capacity ||
-        !impl_->paint_fields[id.index].alive ||
-        impl_->paint_fields[id.index].generation != id.generation)
+        !impl_->paint_fields_host[id.index].alive ||
+        impl_->paint_fields_host[id.index].generation != id.generation)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
-    const PaintFieldResource &field = impl_->paint_fields[id.index];
+    const PaintFieldResource &field = impl_->paint_fields_host[id.index];
     PmResult error = clear_bytes(field.pixels, 0,
         static_cast<std::size_t>(field.options.width) *
         field.options.height * sizeof(std::uint32_t), stream);
@@ -479,12 +496,7 @@ Status SimulationRuntime::paint_field_view(PaintFieldId id,
     if (id.index >= impl_->options.paint_field_capacity ||
         impl_->paint_fields == nullptr)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
-    PaintFieldResource field{};
-    const PmResult error = copy_bytes_wait(
-        &field, &impl_->paint_fields[id.index], sizeof(field),
-        device::CopyDirection::device_to_host, impl_->execution);
-    if (error != PM_SUCCESS)
-        return backend_failure(error, "paint field view readback failed");
+    const auto &field = impl_->paint_fields_host[id.index];
     if (!field.alive || field.generation != id.generation)
         return failure(StatusCode::invalid_handle, "paint field handle is stale");
     output = {{field.pixels, static_cast<std::uint64_t>(field.options.width) *
@@ -512,12 +524,12 @@ Status SimulationRuntime::add_paint_rule(PaintRuleOptions options,
             return status;
     }
     if (options.target.index >= impl_->options.paint_field_capacity ||
-        !impl_->paint_fields[options.target.index].alive ||
-        impl_->paint_fields[options.target.index].generation !=
+        !impl_->paint_fields_host[options.target.index].alive ||
+        impl_->paint_fields_host[options.target.index].generation !=
             options.target.generation)
         return failure(StatusCode::invalid_handle, "paint target field is stale");
     const PaintFieldResource &target =
-        impl_->paint_fields[options.target.index];
+        impl_->paint_fields_host[options.target.index];
     if ((fluid_source && target.options.cloth.generation != 0U) ||
         (rigid_source && target.options.cloth.generation == 0U))
         return failure(StatusCode::not_supported,
@@ -531,13 +543,18 @@ Status SimulationRuntime::add_paint_rule(PaintRuleOptions options,
                        "paint brush radius is invalid");
     std::uint32_t slot = 0U;
     for (; slot < impl_->options.paint_rule_capacity; ++slot)
-        if (!impl_->paint_rules[slot].alive) break;
+        if (!impl_->paint_rules_host[slot].alive) break;
     if (slot == impl_->options.paint_rule_capacity)
         return failure(StatusCode::capacity_exceeded,
                        "paint rule capacity exhausted");
-    PaintRuleResource &rule = impl_->paint_rules[slot];
+    auto rule = impl_->paint_rules_host[slot];
     rule.options = options;
     rule.alive = true;
+    const auto error = copy_bytes_wait(&impl_->paint_rules[slot], &rule,
+        sizeof(rule), device::CopyDirection::host_to_device, impl_->execution);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "paint rule descriptor upload failed");
+    impl_->paint_rules_host[slot] = rule;
     ++impl_->paint_rule_count;
     output = {slot, rule.generation};
     ++impl_->revision;
@@ -549,14 +566,19 @@ Status SimulationRuntime::remove_paint_rule(PaintRuleId id) noexcept {
     Status status = impl_->require_idle();
     if (!status) return status;
     if (id.index >= impl_->options.paint_rule_capacity ||
-        !impl_->paint_rules[id.index].alive ||
-        impl_->paint_rules[id.index].generation != id.generation)
+        !impl_->paint_rules_host[id.index].alive ||
+        impl_->paint_rules_host[id.index].generation != id.generation)
         return failure(StatusCode::invalid_handle, "paint rule handle is stale");
-    PaintRuleResource &rule = impl_->paint_rules[id.index];
+    auto rule = impl_->paint_rules_host[id.index];
     rule.alive = false;
-    --impl_->paint_rule_count;
     ++rule.generation;
     if (rule.generation == 0U) rule.generation = 1U;
+    const auto error = copy_bytes_wait(&impl_->paint_rules[id.index], &rule,
+        sizeof(rule), device::CopyDirection::host_to_device, impl_->execution);
+    if (error != PM_SUCCESS)
+        return backend_failure(error, "paint rule retirement upload failed");
+    impl_->paint_rules_host[id.index] = rule;
+    --impl_->paint_rule_count;
     ++impl_->revision;
     return success();
 }
@@ -929,8 +951,8 @@ Status SimulationRuntime::remove_cloth(ClothId id) noexcept {
         return failure(StatusCode::invalid_handle, "cloth handle is stale");
     for (std::uint32_t field = 0U;
          field < impl_->options.paint_field_capacity; ++field)
-        if (impl_->paint_fields[field].alive &&
-            impl_->paint_fields[field].options.cloth == id)
+        if (impl_->paint_fields_host[field].alive &&
+            impl_->paint_fields_host[field].options.cloth == id)
             return failure(StatusCode::invalid_argument,
                            "cloth is still referenced by a paint field");
     for (const FluidClothCouplingResource &coupling :
@@ -1702,6 +1724,11 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
           impl_->rope_soft_body_couplings[slot]->alive)++slot;
     if(slot==impl_->rope_soft_body_couplings.size())
         return failure(StatusCode::capacity_exceeded,"rope soft-body coupling capacity exhausted");
+    // This constructor traverses managed rest geometry and writes arena
+    // storage on the CPU. Earlier command uploads must release that memory.
+    const auto idle_error = wait_queue(impl_->execution);
+    if (idle_error != PM_SUCCESS)
+        return backend_failure(idle_error, "rope soft-body construction wait failed");
     std::unique_ptr<RopeSoftBodyCouplingStorage> owner(
         new(std::nothrow)RopeSoftBodyCouplingStorage());
     if(!owner)return failure(StatusCode::out_of_memory,"rope soft-body coupling allocation failed");
@@ -1927,6 +1954,10 @@ Status SimulationRuntime::add_rope_cloth_coupling(RopeClothCouplingOptions optio
         options.maximum_cloth_acceleration <= 0.0F ||
         (options.first_vertex == UINT32_MAX && options.last_vertex == UINT32_MAX))
         return failure(StatusCode::invalid_argument, "invalid rope cloth options");
+    // Attachment validation samples managed endpoint positions on the CPU.
+    const auto idle_error = wait_queue(impl_->execution);
+    if (idle_error != PM_SUCCESS)
+        return backend_failure(idle_error, "rope cloth construction wait failed");
     auto &rope = impl_->ropes[options.rope.index]->data;
     auto &cloth = *impl_->cloths[options.cloth.index];
     const std::uint32_t vertices[2]{options.first_vertex, options.last_vertex};
@@ -2123,6 +2154,12 @@ Status SimulationRuntime::add_fluid_soft_body_coupling(
         if (!impl_->fluid_soft_couplings[slot] || !impl_->fluid_soft_couplings[slot]->alive) break;
     if (slot == impl_->fluid_soft_couplings.size())
         return failure(StatusCode::capacity_exceeded, "fluid soft-body coupling capacity exhausted");
+    // require_idle() retires public frames, but earlier commands can still
+    // have native uploads in flight. Acquire CPU ownership once at this
+    // resource-construction boundary before traversing/writing arena memory.
+    const auto idle_error = wait_queue(impl_->execution);
+    if (idle_error != PM_SUCCESS)
+        return backend_failure(idle_error, "fluid soft-body construction wait failed");
     auto &body = *impl_->soft_bodies[options.soft_body.index];
     std::unique_ptr<FluidSoftCouplingStorage> coupling;
     std::vector<BvhNode> tree;

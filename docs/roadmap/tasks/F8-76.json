@@ -1,7 +1,7 @@
 {
   "id": "F8-76",
   "title": "Repair Windows CUDA managed metadata access",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-70",
     "F8-75"
@@ -21,16 +21,12 @@
     "Verify one 1/60-second advance, one spatial publication, existing dispatch/iteration/submission/readback/synchronization budgets and atomic recovery. Shared runtime changes retain cross-backend semantics and pass affected portable/reference checks.",
     "Publish exact source/tree, binary, manifest, device, compiler, memory attributes and raw before/after hashes. Classify every protected closure change for F8-74; do not mutate candidate v9 or relabel repaired-source observations as final qualification."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "798407b0-36fb-49c4-8ed9-41b214a7dfe8",
-    "owner": "codex-windows-managed-runtime",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-76/windows-gtx1080",
-    "claimed_at": "2026-11-02T17:38:40Z",
-    "heartbeat_at": "2026-11-02T17:38:40Z",
-    "expires_at": "2026-11-03T17:38:40Z"
-  },
+  "evidence": [
+    "PASS: clean Windows GTX 1080 Release at 68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2/tree ff988c80e7ae52285197b6fd9fb23e0c55c93c0e; ctest --test-dir D:/Repos/parallel-mater-f8-76-current-20261102 --output-on-failure --no-tests=error -j 1: 144/144, zero skips, original 130 retained; fourteen pinned failing-before ownership regressions. docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.json and hash-verified raw ZIP.",
+    "PASS: relocated SDK twelve checks; plain/validation public lifecycle creation, repeated ticks, reset/replacement and atomic rejection/recovery; all thirty public cases and twelve physical scenarios with unchanged quality/work checks; complete five-workload 600/7200 capture in both modes has zero failed ticks. docs/roadmap/evidence/F8-76-WINDOWS-CUDA-OWNERSHIP-ACCEPTANCE.json binds revised claim #646 and verifies all nine protected closures match tested code.",
+    "LIMITATION: original complete capture remains failed performance history (16-32 ms physics p95 versus 10 ms); five negative controls need a passing baseline. F8-77 owns completion waits, F8-78 owns successful full performance/negative controls; F8-74 directly waits for both. Candidate v9 is unchanged and F8-26 is not qualified."
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -46,6 +42,25 @@
       "at": "2026-11-02T17:13:37Z",
       "reason": "Managed metadata repair retained in draft PR #643 on work/F8-76/windows-gtx1080 at ff12dffa; 144 tests, SDK and physical scenarios pass, but unchanged 10 ms performance gate fails at 16-32 ms. Broader performance work requires planning; task remains incomplete.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "798407b0-36fb-49c4-8ed9-41b214a7dfe8",
+        "owner": "codex-windows-managed-runtime",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-76/windows-gtx1080",
+        "claimed_at": "2026-11-02T17:38:40Z",
+        "heartbeat_at": "2026-11-02T17:38:40Z",
+        "expires_at": "2026-11-03T17:38:40Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-02T17:42:40Z",
+      "reason": "Windows managed metadata ownership repaired and accepted under user-approved planning PR #645. All 144 Release tests, relocated SDK, both lifecycle probes, 30 public cases and 12 physical scenarios pass. Full workload execution retained without failed ticks; unchanged performance and negative-control gates remain mandatory F8-78 work before F8-74.",
+      "evidence": [
+        "PASS: clean Windows GTX 1080 Release at 68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2/tree ff988c80e7ae52285197b6fd9fb23e0c55c93c0e; ctest --test-dir D:/Repos/parallel-mater-f8-76-current-20261102 --output-on-failure --no-tests=error -j 1: 144/144, zero skips, original 130 retained; fourteen pinned failing-before ownership regressions. docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.json and hash-verified raw ZIP.",
+        "PASS: relocated SDK twelve checks; plain/validation public lifecycle creation, repeated ticks, reset/replacement and atomic rejection/recovery; all thirty public cases and twelve physical scenarios with unchanged quality/work checks; complete five-workload 600/7200 capture in both modes has zero failed ticks. docs/roadmap/evidence/F8-76-WINDOWS-CUDA-OWNERSHIP-ACCEPTANCE.json binds revised claim #646 and verifies all nine protected closures match tested code.",
+        "LIMITATION: original complete capture remains failed performance history (16-32 ms physics p95 versus 10 ms); five negative controls need a passing baseline. F8-77 owns completion waits, F8-78 owns successful full performance/negative controls; F8-74 directly waits for both. Candidate v9 is unchanged and F8-26 is not qualified."
+      ]
     }
   ]
 }
