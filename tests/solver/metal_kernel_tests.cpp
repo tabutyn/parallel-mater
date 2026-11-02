@@ -6,6 +6,7 @@
 #include <simulation/avbd_schedule.hpp>
 #include <simulation/rigid_realtime.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
@@ -49,6 +50,7 @@ class Gpu {
 public:
     std::unique_ptr<compute::Device> device;
     std::map<std::string, Kernel> kernels;
+    mutable std::ofstream ordered_snapshot;
     explicit Gpu(std::unique_ptr<compute::Device> value) : device(std::move(value)) {}
     BufferPtr buffer(std::size_t size, const void *data = nullptr) const {
         auto result = device->allocate(size, true);
@@ -82,6 +84,8 @@ public:
                 name != "soft_body_realtime_project_shape" &&
                 name != "soft_body_realtime_project_contacts" &&
                 name != "soft_body_realtime_commit" &&
+                name != "fluid_rope_apply" &&
+                name != "rope_realtime_project_constraints" &&
                 name != "prepare_avbd_kernel" && name != "solve_avbd_kernel" &&
                 name != "solve_avbd_stage_kernel") continue;
             auto native = device->load_kernel(base + ".metallib", base + ".json", name);
@@ -108,6 +112,18 @@ public:
         auto command = device->commands();
         encode(arguments, groups, command);
         complete(command);
+        if (ordered_snapshot.is_open()) {
+            for (const auto &binding : arguments.bindings()) {
+                const auto &range = binding.range;
+                require(range.buffer->host_address() != nullptr,
+                    "ordered snapshot requires host-visible test buffers");
+                const std::uint64_t size = range.size;
+                ordered_snapshot.write(reinterpret_cast<const char *>(&size), sizeof(size));
+                ordered_snapshot.write(static_cast<const char *>(range.buffer->host_address()) +
+                    range.offset, range.size);
+            }
+            require(ordered_snapshot.good(), "ordered snapshot write failed");
+        }
     }
 };
 
@@ -386,6 +402,222 @@ void check_soft_body_simd(Gpu &gpu) {
                 "SIMD/scalar GPU soft-body mismatch at node " + std::to_string(node));
     }
     std::cout << "Soft-body SIMD tails, pinned nodes, variable degrees: projection/damping passed\n";
+}
+
+void check_fluid_rope_ordered_reactions(Gpu &gpu) {
+    // Partial particle tiles and node groups, anchored endpoints, empty tiles,
+    // cancellation-sensitive sums, and both velocity limits. The oracle
+    // scatters contributions once on the host, independently of GPU tiling.
+    constexpr std::uint32_t nodes = 257;
+    const auto &kernel = gpu.kernels.at("fluid_rope_apply");
+    const auto sentinel = std::numeric_limits<std::uint32_t>::max();
+    for (const std::uint32_t particles : {0U, 1U, 127U, 128U, 129U, 4097U}) {
+        for (unsigned fixture = 0; fixture != 4; ++fixture) {
+            const bool first_attached = (fixture & 1U) != 0;
+            const bool last_attached = (fixture & 2U) != 0;
+            std::vector<std::uint32_t> targets(std::max(1U, particles * 2U), sentinel);
+            std::vector<Vec3> impulses(targets.size());
+            std::vector<float> reaction(nodes);
+            for (std::uint32_t particle = 0; particle < particles; ++particle) {
+                // Whole empty tiles must neither read stale values nor
+                // suppress the contributions in later tiles.
+                if (fixture == 0 || (particle / 128U) % 3U == 1U) continue;
+                for (unsigned endpoint = 0; endpoint != 2; ++endpoint) {
+                    const auto index = particle * 2U + endpoint;
+                    const auto node = fixture == 1 ? (endpoint ? 256U : 0U)
+                        : (particle / 3U * 53U + endpoint * 128U) % nodes;
+                    targets[index] = node;
+                    // Large-small-large triples detect a reassociated sum.
+                    constexpr std::array<float, 3> values{16777216.0f, 0.25f, -16777216.0f};
+                    impulses[index].x = fixture == 1 ? 0.125f : values[particle % 3U];
+                    reaction[node] += impulses[index].x;
+                }
+            }
+            std::vector<Vec3> initial_positions(nodes, Vec3{2.0f, 3.0f, 4.0f});
+            std::vector<Vec3> initial_velocities(nodes, Vec3{0.5f, 0.0f, 0.0f});
+            std::vector<Vec3> initial_forces(nodes, Vec3{1.0f, 2.0f, 3.0f});
+            auto positions = gpu.buffer(initial_positions);
+            auto previous = gpu.buffer(initial_positions);
+            auto velocities = gpu.buffer(initial_velocities);
+            auto forces = gpu.buffer(initial_forces);
+            auto count = gpu.buffer(sizeof(particles), &particles);
+            Arguments args(kernel);
+            args.buffer("rope_positions", positions);
+            args.buffer("rope_previous_positions", previous);
+            args.buffer("rope_velocities", velocities);
+            args.buffer("fluid_contact_forces", forces);
+            args.set("rope_count", nodes);
+            args.set("rope_mass", float(nodes)); // unit node mass
+            args.set("rope_maximum_speed", 2.0f);
+            args.set("first_attached", first_attached);
+            args.set("last_attached", last_attached);
+            args.buffer("particle_count", count);
+            args.buffer("contribution_nodes", gpu.buffer(targets));
+            args.buffer("contribution_impulses", gpu.buffer(impulses));
+            args.set("maximum_acceleration", 16.0f);
+            args.set("dt", 0.125f);
+            args.set("frame_inverse_dt", 8.0f);
+            args.set("commit_velocity_scale", 1.0f);
+            gpu.run(args, (nodes + kernel.threads - 1U) / kernel.threads);
+            const auto *actual_positions = static_cast<const Vec3 *>(positions->host_address());
+            const auto *actual_velocities = static_cast<const Vec3 *>(velocities->host_address());
+            const auto *actual_forces = static_cast<const Vec3 *>(forces->host_address());
+            for (std::uint32_t node = 0; node < nodes; ++node) {
+                const bool anchored = (node == 0 && first_attached) ||
+                    (node + 1U == nodes && last_attached);
+                const float change = anchored ? 0.0f : std::clamp(
+                    0.5f + std::clamp(reaction[node], -2.0f, 2.0f), -2.0f, 2.0f) - 0.5f;
+                const Vec3 expected_position{2.0f + change * 0.125f, 3.0f, 4.0f};
+                const Vec3 expected_velocity{0.5f + change, 0.0f, 0.0f};
+                const Vec3 expected_force{1.0f + change * 8.0f, 2.0f, 3.0f};
+                require(std::memcmp(&actual_positions[node], &expected_position, sizeof(Vec3)) == 0 &&
+                    std::memcmp(&actual_velocities[node], &expected_velocity, sizeof(Vec3)) == 0 &&
+                    std::memcmp(&actual_forces[node], &expected_force, sizeof(Vec3)) == 0,
+                    "fluid-rope ordered reaction mismatch: particles=" + std::to_string(particles) +
+                    " fixture=" + std::to_string(fixture) + " node=" + std::to_string(node));
+            }
+            require(std::memcmp(previous->host_address(), initial_positions.data(),
+                nodes * sizeof(Vec3)) == 0, "fluid-rope changed previous positions");
+        }
+    }
+    std::cout << "Fluid-rope ordered reactions: 24 partial/empty/anchored/clamped fixtures passed\n";
+}
+
+void check_soft_body_ordered_shape(Gpu &gpu) {
+    // An isotropically expanded rest shape has an analytic correction toward
+    // its translated rest shape. Cover subgroup/tile boundaries and pinned
+    // nodes with a mass ratio; no GPU reduction is used by this oracle.
+    struct ShapeMatrixHost { Vec3 columns[3]; };
+    for (const std::uint32_t count : {31U, 32U, 33U, 127U, 128U, 129U, 512U, 513U}) {
+        std::vector<Vec3> rest(count), initial(count), expected(count);
+        std::vector<float> inverse_masses(count), lengths(count, 4.0f);
+        double mass_sum = 0.0, center[3]{};
+        for (std::uint32_t node = 0; node < count; ++node) {
+            rest[node] = {float(node % 7U) / 32.0f,
+                float((node / 7U) % 5U) / 32.0f, float(node % 11U) / 32.0f};
+            inverse_masses[node] = node % 13U == 0U ? 0.0f : (node % 3U ? 1.0f : 0.5f);
+            if (inverse_masses[node] == 0.0f) continue;
+            const double mass = 1.0 / inverse_masses[node];
+            mass_sum += mass;
+            center[0] += mass * rest[node].x;
+            center[1] += mass * rest[node].y;
+            center[2] += mass * rest[node].z;
+        }
+        for (auto &value : center) value /= mass_sum;
+        double augmented[3][6]{};
+        for (std::uint32_t node = 0; node < count; ++node) {
+            if (inverse_masses[node] == 0.0f) continue;
+            const double q[3]{rest[node].x - center[0],
+                rest[node].y - center[1], rest[node].z - center[2]};
+            for (unsigned row = 0; row != 3; ++row)
+                for (unsigned column = 0; column != 3; ++column)
+                    augmented[row][column] += q[row] * q[column] / inverse_masses[node];
+        }
+        for (unsigned row = 0; row != 3; ++row) augmented[row][row + 3] = 1.0;
+        for (unsigned pivot = 0; pivot != 3; ++pivot) {
+            const double divisor = augmented[pivot][pivot];
+            require(std::abs(divisor) > 1.0e-9, "singular ordered-shape fixture");
+            for (auto &value : augmented[pivot]) value /= divisor;
+            for (unsigned row = 0; row != 3; ++row) {
+                if (row == pivot) continue;
+                const double factor = augmented[row][pivot];
+                for (unsigned column = 0; column != 6; ++column)
+                    augmented[row][column] -= factor * augmented[pivot][column];
+            }
+        }
+        ShapeMatrixHost inverse{};
+        for (unsigned column = 0; column != 3; ++column)
+            inverse.columns[column] = {float(augmented[0][column + 3]),
+                float(augmented[1][column + 3]), float(augmented[2][column + 3])};
+        constexpr float stiffness = 0.25f, expansion = 1.125f;
+        for (std::uint32_t node = 0; node < count; ++node) {
+            initial[node] = {3.0f + expansion * rest[node].x,
+                5.0f + expansion * rest[node].y, 7.0f + expansion * rest[node].z};
+            expected[node] = initial[node];
+            if (inverse_masses[node] <= 0.0f) continue;
+            expected[node].x += float(stiffness * (1.0f - expansion) * (rest[node].x - center[0]));
+            expected[node].y += float(stiffness * (1.0f - expansion) * (rest[node].y - center[1]));
+            expected[node].z += float(stiffness * (1.0f - expansion) * (rest[node].z - center[2]));
+        }
+        const Quaternion identity{0.0f, 0.0f, 0.0f, 1.0f};
+        auto positions = gpu.buffer(initial);
+        auto corrections = gpu.buffer(count * sizeof(Vec3));
+        auto used = gpu.buffer(count * sizeof(float));
+        auto orientation = gpu.buffer(sizeof(identity), &identity);
+        auto status = gpu.buffer(sizeof(std::uint32_t));
+        Arguments args(gpu.kernels.at("soft_body_realtime_project_shape"));
+        args.buffer("positions", positions); args.buffer("corrections", corrections);
+        args.buffer("rest_positions", gpu.buffer(rest));
+        args.buffer("inverse_masses", gpu.buffer(inverse_masses));
+        args.buffer("characteristic_lengths", gpu.buffer(lengths));
+        args.buffer("correction_used", used);
+        args.set("count", count); args.set("capacity", count);
+        args.set("movable_mass", float(mass_sum));
+        args.set("rest_center", Vec3{float(center[0]), float(center[1]), float(center[2])});
+        args.set("inverse_rest", inverse); args.buffer("stored_orientation", orientation);
+        args.set("stiffness", stiffness); args.set("dt", 1.0f / 60.0f);
+        args.set("profile_version", 1U); args.buffer("status", status);
+        gpu.run(args, 1U);
+        require(*static_cast<const std::uint32_t *>(status->host_address()) == 0U,
+            "ordered shape reported an invalid state");
+        const auto *actual = static_cast<const Vec3 *>(positions->host_address());
+        for (std::uint32_t node = 0; node < count; ++node) {
+            const auto values = std::bit_cast<std::array<float, 3>>(actual[node]);
+            const auto reference = std::bit_cast<std::array<float, 3>>(expected[node]);
+            for (unsigned axis = 0; axis != 3; ++axis)
+                require(std::isfinite(values[axis]) && std::abs(values[axis] - reference[axis]) < 2.0e-5f,
+                    "ordered shape disagrees with analytic contraction: nodes=" + std::to_string(count));
+        }
+    }
+    std::cout << "Soft-body ordered shape: 8 partial/pinned/mass-weighted fixtures passed\n";
+}
+
+void check_rope_ordered_constraints(Gpu &gpu) {
+    for (const std::uint32_t count : {2U, 3U, 31U, 32U, 33U, 127U, 128U, 129U, 512U, 1024U}) {
+        for (unsigned fixture = 0; fixture != 3; ++fixture) {
+            std::vector<Vec3> positions(count);
+            for (std::uint32_t node = 0; node < count; ++node)
+                positions[node] = {float(node) / 32.0f, 0.0f, 0.0f};
+            if (fixture != 0) {
+                positions[count / 2].x += 0.0001f;
+                positions[count / 2].y = 0.001f;
+            }
+            std::vector<float> inverse(count, 1.0f), lengths(count, 1.0f / 32.0f),
+                bends(count, 1.0f / 16.0f);
+            if (fixture == 2)
+                for (std::uint32_t node = 0; node < count; ++node)
+                    inverse[node] = node % 3U == 0U ? 0.5f : 1.0f;
+            std::vector<std::uint8_t> anchors{std::uint8_t(fixture != 0),
+                std::uint8_t(fixture == 2 && count > 3)};
+            auto deltas = gpu.buffer(count * sizeof(Vec3));
+            auto status = gpu.buffer(sizeof(std::uint32_t));
+            Arguments args(gpu.kernels.at("rope_realtime_project_constraints"));
+            args.buffer("positions", gpu.buffer(positions)); args.buffer("position_deltas", deltas);
+            args.buffer("constraint_forces", gpu.buffer(count * sizeof(Vec3)));
+            args.buffer("correction_used", gpu.buffer(count * sizeof(float)));
+            args.buffer("inverse_masses", gpu.buffer(inverse)); args.buffer("rest_lengths", gpu.buffer(lengths));
+            args.buffer("rest_bend_lengths", gpu.buffer(bends)); args.buffer("anchor_active", gpu.buffer(anchors));
+            args.set("count", count); args.set("capacity", count);
+            args.set("node_spacing", 1.0f / 32.0f); args.set("structural_compliance", 1.0e-5f);
+            args.set("dt", 1.0f / 60.0f); args.set("profile_version", 1U); args.buffer("status", status);
+            gpu.run(args, 1U);
+            require(*static_cast<const std::uint32_t *>(status->host_address()) == 0U,
+                "ordered rope reported an invalid state");
+            const auto *actual = static_cast<const Vec3 *>(deltas->host_address());
+            bool corrected = false;
+            for (std::uint32_t node = 0; node < count; ++node) {
+                const auto value = actual[node];
+                const float magnitude = std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
+                require(std::isfinite(magnitude) && magnitude <= 0.006251f,
+                    "ordered rope correction exceeds the structural budget");
+                if (fixture == 0 || (node == 0 && anchors[0]) || (node + 1U == count && anchors[1]))
+                    require(magnitude == 0.0f, "ordered rope moved an anchor or equilibrium node");
+                corrected = corrected || magnitude > 0.0f;
+            }
+            require(fixture == 0 || corrected, "ordered rope ignored a nonzero constraint residual");
+        }
+    }
+    std::cout << "Rope ordered constraints: 30 equilibrium/perturbed/anchored fixtures passed\n";
 }
 
 void check_soft_body_realtime(Gpu &gpu) {
@@ -1137,8 +1369,9 @@ void check_realtime_avbd_batching(Gpu &gpu) {
 
 int main(int argc, char **argv) {
     try {
-        require(argc == 2 || (argc == 3 && std::string(argv[2]) == "--execution-only"),
-            "usage: metal-kernel-tests <manifest> [--execution-only]");
+        const bool snapshot = argc == 4 && std::string(argv[2]) == "--ordered-snapshot";
+        require(argc == 2 || snapshot || (argc == 3 && std::string(argv[2]) == "--execution-only"),
+            "usage: metal-kernel-tests <manifest> [--execution-only | --ordered-snapshot <file>]");
         auto device = compute::create_metal_device();
         if (!device) {
             std::cout << "SKIP: no supported native Metal device; no CPU fallback\n";
@@ -1147,11 +1380,24 @@ int main(int argc, char **argv) {
         std::cout << "GPU: " << device->name() << '\n';
         Gpu gpu(std::move(device));
         gpu.load(argv[1], argc == 3);
+        if (snapshot) {
+            gpu.ordered_snapshot.open(argv[3], std::ios::binary | std::ios::trunc);
+            require(gpu.ordered_snapshot.good(), "cannot open ordered snapshot output");
+            check_fluid_rope_ordered_reactions(gpu);
+            check_soft_body_ordered_shape(gpu);
+            check_rope_ordered_constraints(gpu);
+            gpu.ordered_snapshot.flush();
+            require(gpu.ordered_snapshot.good(), "ordered snapshot flush failed");
+            return 0;
+        }
         check_device_operations(gpu);
         check_transfers_and_records(gpu);
         check_device_teardown();
         check_rigid_integration(gpu);
         check_soft_body_simd(gpu);
+        check_fluid_rope_ordered_reactions(gpu);
+        check_soft_body_ordered_shape(gpu);
+        check_rope_ordered_constraints(gpu);
         check_soft_body_realtime(gpu);
         check_realtime_avbd_batching(gpu);
         check_avbd_schedule(gpu);

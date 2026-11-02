@@ -257,19 +257,25 @@ void rope_realtime_project_constraints(
     pmGroupBarrier();
     if (lane == 0u)
     {
+        float previousDiagonal = ropeDiagonal[0];
+        float previousRhs = ropeRhs[0];
         for (uint edge = 1u; edge < edges; ++edge)
         {
-            float factor = ropeUpper[edge - 1u] /
-                max(ropeDiagonal[edge - 1u], 1.0e-10f);
-            ropeDiagonal[edge] -= factor * ropeUpper[edge - 1u];
-            ropeRhs[edge] -= factor * ropeRhs[edge - 1u];
+            float upper = ropeUpper[edge - 1u];
+            float factor = upper / max(previousDiagonal, 1.0e-10f);
+            previousDiagonal = ropeDiagonal[edge] - factor * upper;
+            previousRhs = ropeRhs[edge] - factor * previousRhs;
+            ropeDiagonal[edge] = previousDiagonal;
+            ropeRhs[edge] = previousRhs;
         }
-        ropeRhs[edges - 1u] /= max(
-            ropeDiagonal[edges - 1u], 1.0e-10f);
+        float nextRhs = previousRhs / max(previousDiagonal, 1.0e-10f);
+        ropeRhs[edges - 1u] = nextRhs;
         for (int edge = int(edges) - 2; edge >= 0; --edge)
-            ropeRhs[edge] = (ropeRhs[edge] -
-                ropeUpper[edge] * ropeRhs[edge + 1]) /
+        {
+            nextRhs = (ropeRhs[edge] - ropeUpper[edge] * nextRhs) /
                 max(ropeDiagonal[edge], 1.0e-10f);
+            ropeRhs[edge] = nextRhs;
+        }
     }
     pmGroupBarrier();
 
@@ -332,25 +338,31 @@ void rope_realtime_project_constraints(
             ropeRealtimeDirections[bend], ropeRealtimeDirections[bend + 2u]);
     }
     pmGroupBarrier();
-    if (lane == 0u)
+    // Even and odd bend chains do not share matrix entries. Preserve each
+    // chain's forward/backward order while solving them on separate lanes.
+    if (lane < 2u && lane < bends)
     {
-        for (uint parity = 0u; parity < 2u; ++parity)
+        uint parity = lane;
+        uint last = parity;
+        float previousDiagonal = ropeDiagonal[parity];
+        float previousRhs = ropeRhs[parity];
+        for (uint bend = parity + 2u; bend < bends; bend += 2u)
         {
-            if (parity >= bends) continue;
-            uint last = parity;
-            for (uint bend = parity + 2u; bend < bends; bend += 2u)
-            {
-                float factor = ropeUpper[bend - 2u] /
-                    max(ropeDiagonal[bend - 2u], 1.0e-10f);
-                ropeDiagonal[bend] -= factor * ropeUpper[bend - 2u];
-                ropeRhs[bend] -= factor * ropeRhs[bend - 2u];
-                last = bend;
-            }
-            ropeRhs[last] /= max(ropeDiagonal[last], 1.0e-10f);
-            for (int bend = int(last) - 2; bend >= int(parity); bend -= 2)
-                ropeRhs[bend] = (ropeRhs[bend] -
-                    ropeUpper[bend] * ropeRhs[bend + 2]) /
-                    max(ropeDiagonal[bend], 1.0e-10f);
+            float upper = ropeUpper[bend - 2u];
+            float factor = upper / max(previousDiagonal, 1.0e-10f);
+            previousDiagonal = ropeDiagonal[bend] - factor * upper;
+            previousRhs = ropeRhs[bend] - factor * previousRhs;
+            ropeDiagonal[bend] = previousDiagonal;
+            ropeRhs[bend] = previousRhs;
+            last = bend;
+        }
+        float nextRhs = previousRhs / max(previousDiagonal, 1.0e-10f);
+        ropeRhs[last] = nextRhs;
+        for (int bend = int(last) - 2; bend >= int(parity); bend -= 2)
+        {
+            nextRhs = (ropeRhs[bend] - ropeUpper[bend] * nextRhs) /
+                max(ropeDiagonal[bend], 1.0e-10f);
+            ropeRhs[bend] = nextRhs;
         }
     }
     pmGroupBarrier();
