@@ -358,7 +358,7 @@ if(WIN32)
     # DLL. Windows has no build-tree RPATH; use the selected SDK's DLL directory
     # for tests instead of depending on a developer's global PATH or installation.
     get_property(api_lifecycle_tests DIRECTORY PROPERTY TESTS)
-    set_tests_properties(${api_lifecycle_tests} PROPERTIES
-        ENVIRONMENT_MODIFICATION
+    # Preserve per-test modes while adding the DLL lookup path.
+    set_property(TEST ${api_lifecycle_tests} APPEND PROPERTY ENVIRONMENT_MODIFICATION
         "PATH=path_list_prepend:$<TARGET_FILE_DIR:ParallelMater::parallel_mater>")
 endif()
