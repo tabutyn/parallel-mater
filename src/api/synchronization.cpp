@@ -9,6 +9,21 @@
 namespace {
 using Completion = parallel_mater::device::SubmissionCompletion;
 using CompletionPtr = std::shared_ptr<Completion>;
+using WaitClock = std::chrono::steady_clock;
+
+WaitClock::time_point completion_deadline(std::uint64_t timeout) noexcept {
+    const auto started = WaitClock::now();
+    // The public timeout is unsigned nanoseconds. Saturate values outside
+    // the clock's representable range instead of overflowing a signed delay.
+    if (timeout > static_cast<std::uint64_t>(
+            std::chrono::nanoseconds::max().count()))
+        return WaitClock::time_point::max();
+    const auto delay = std::chrono::duration_cast<WaitClock::duration>(
+        std::chrono::nanoseconds{static_cast<std::int64_t>(timeout)});
+    if (WaitClock::time_point::max() - delay < started)
+        return WaitClock::time_point::max();
+    return started + delay;
+}
 
 void refresh_timeline_locked(PmSemaphore semaphore) noexcept {
     while (!semaphore->signals.empty()) {
@@ -32,16 +47,14 @@ PmResult timeline_status(PmSemaphore semaphore, std::uint64_t value) noexcept {
 
 PmResult wait_timeline(PmSemaphore semaphore, std::uint64_t value,
                        std::uint64_t timeout) noexcept {
-    const auto started = std::chrono::steady_clock::now();
+    const auto deadline = completion_deadline(timeout);
+    auto &submissions = *semaphore->device->queue.submissions;
     for (;;) {
+        const auto observed = submissions.completion_epoch();
         const PmResult result = timeline_status(semaphore, value);
         if (result != PM_NOT_READY) return result;
-        if (timeout != PM_TIMEOUT_INFINITE) {
-            const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - started).count();
-            if (static_cast<std::uint64_t>(elapsed) >= timeout) return PM_TIMEOUT;
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
+        if (WaitClock::now() >= deadline) return PM_TIMEOUT;
+        (void)submissions.wait_for_completion(observed, deadline);
     }
 }
 
@@ -332,8 +345,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmWaitForFences(
     PmBool32 wait_all, std::uint64_t timeout) {
     if (device == nullptr || count == 0U || fences == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
-    const auto started = std::chrono::steady_clock::now();
+    const auto deadline = completion_deadline(timeout);
+    auto &submissions = *device->queue.submissions;
     for (;;) {
+        const auto observed = submissions.completion_epoch();
         std::uint32_t ready = 0U;
         for (std::uint32_t index = 0U; index < count; ++index) {
             if (fences[index] == nullptr || fences[index]->device != device)
@@ -345,12 +360,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmWaitForFences(
         if ((wait_all == PM_TRUE && ready == count) ||
             (wait_all == PM_FALSE && ready != 0U))
             return PM_SUCCESS;
-        if (timeout == 0U) return PM_TIMEOUT;
-        if (timeout != PM_TIMEOUT_INFINITE) {
-            const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - started).count();
-            if (static_cast<std::uint64_t>(elapsed) >= timeout) return PM_TIMEOUT;
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
+        if (WaitClock::now() >= deadline) return PM_TIMEOUT;
+        (void)submissions.wait_for_completion(observed, deadline);
     }
 }

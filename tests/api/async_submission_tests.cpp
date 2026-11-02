@@ -320,6 +320,12 @@ int main() {
     wait.value = 2U;
     submit.waitCount = 1U;
     submit.pWaits = &wait;
+    PmSemaphore failed_timeline{};
+    CHECK(pmCreateSemaphore(device, &semaphore_info, &failed_timeline) == PM_SUCCESS);
+    const PmSemaphoreSubmitInfo failed_signal{
+        failed_timeline, 1U, PM_STAGE_ALL_COMMANDS_BIT};
+    submit.signalCount = 1U;
+    submit.pSignals = &failed_signal;
     CHECK(pmQueueSubmit(queue, &submit, fences[3]) == PM_SUCCESS);
     // Both query writes are accepted before either executes. Failure in slot
     // zero must not poison the successful frame recorded into slot one.
@@ -331,10 +337,17 @@ int main() {
     CHECK(pmCmdEndStatisticsQuery(commands[4], query, 1U) == PM_SUCCESS);
     CHECK(pmEndCommandBuffer(commands[4]) == PM_SUCCESS);
     submit.pCommandBuffers = &commands[4];
+    submit.signalCount = 0U;
+    submit.pSignals = nullptr;
     CHECK(pmQueueSubmit(queue, &submit, fences[4]) == PM_SUCCESS);
     signal.value = 2U;
     CHECK(pmQueueSubmit(queue, &producer, nullptr) == PM_SUCCESS);
+    CHECK(pmWaitSemaphore(device, failed_timeline, 1U, PM_TIMEOUT_INFINITE) ==
+          PM_ERROR_INVALID_ARGUMENT);
     CHECK(pmWaitForFences(device, 1U, &fences[3], PM_TRUE, PM_TIMEOUT_INFINITE) == PM_ERROR_INVALID_ARGUMENT);
+    const PmFence ready_and_failed[2]{fences[0], fences[3]};
+    CHECK(pmWaitForFences(device, 2U, ready_and_failed, PM_FALSE, 0U) ==
+          PM_ERROR_INVALID_ARGUMENT);
     CHECK(pmWaitForFences(device, 1U, &fences[4], PM_TRUE, PM_TIMEOUT_INFINITE) == PM_SUCCESS);
     CHECK(pmGetSimulationStatus(device, simulation, &execution) == PM_SUCCESS);
     CHECK(execution == PM_SUCCESS);
@@ -371,6 +384,7 @@ int main() {
     CHECK(pmResetFences(device, 1U, &fences[3]) == PM_SUCCESS);
     pmDestroyQueryPool(device, query);
     for (auto fence : fences) pmDestroyFence(device, fence);
+    pmDestroySemaphore(device, failed_timeline);
     pmDestroySemaphore(device, timeline);
     pmDestroyCommandPool(device, pool);
     pmDestroyPhysicsPipeline(device, pipeline);
