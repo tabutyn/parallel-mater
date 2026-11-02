@@ -1,7 +1,7 @@
 {
   "id": "F8-77",
   "title": "Replace Windows public completion polling sleeps",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-76"
   ],
@@ -21,6 +21,14 @@
     "Publish exact source/tree, device/compiler, binary/manifest hashes, commands and raw samples; classify every protected closure change for F8-74. Candidate v9 remains immutable and no final F8-26 qualification is claimed."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "42db680c-e3ca-42a5-b971-1bfeac890373",
+    "owner": "codex-windows-completion-wait",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-77/windows-gtx1080",
+    "claimed_at": "2026-11-02T19:18:46Z",
+    "heartbeat_at": "2026-11-02T19:18:46Z",
+    "expires_at": "2026-11-03T19:18:46Z"
+  },
   "history": []
 }
