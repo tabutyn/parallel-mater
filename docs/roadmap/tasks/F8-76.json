@@ -1,7 +1,7 @@
 {
   "id": "F8-76",
   "title": "Repair Windows CUDA managed metadata access",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-70",
     "F8-75"
@@ -13,16 +13,24 @@
   "requires": [
     "Physical Windows GTX 1080 CUDA device without concurrent managed access, merged F8-75 fixture repair, and exact F8-26 candidate-v9 failure archive"
   ],
-  "scope": "Diagnose and repair production CPU accesses to CUDA managed metadata during in-flight GPU work exposed by docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json. Reproduce parallel-mater-command-gallery-tests --backend cuda --scene Pegs.glb --frames 1 and the relocated public runner --case soft-body-fluid; both fail with 0xc0000006/0xc0000022 in candidate v9. The paint boundary currently reads PaintFieldResource metadata after asynchronous native clear operations; this is an investigation lead, not a license to patch only the first crash. Locate both exact host access sites and preserve resource lifetime, atomic failure recovery and the sole fixed-tick contract through deliberate host metadata snapshots or equivalent correct ownership. No CUDA_LAUNCH_BLOCKING workaround, backend physics fork, global/per-kernel synchronization blanket, weakened capability, smaller workload or increased budget is allowed.",
+  "scope": "Diagnose and repair production CPU accesses to CUDA managed metadata during in-flight GPU work exposed by docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json. Reproduce parallel-mater-command-gallery-tests --backend cuda --scene Pegs.glb --frames 1 and the relocated public runner --case soft-body-fluid; both fail with 0xc0000006/0xc0000022 in candidate v9. The paint boundary currently reads PaintFieldResource metadata after asynchronous native clear operations; this is an investigation lead, not a license to patch only the first crash. Locate both exact host access sites and preserve resource lifetime, atomic failure recovery and the sole fixed-tick contract through deliberate host metadata snapshots or equivalent correct ownership. No CUDA_LAUNCH_BLOCKING workaround, backend physics fork, global/per-kernel synchronization blanket, weakened capability, smaller workload or increased budget is allowed. The user-approved split after release PR #644 separates managed ownership repair from public completion waiting (F8-77) and full Windows performance acceptance (F8-78). Keep every frozen quality/work requirement here; retain and classify the full capture even when timing prevents the five negative controls from establishing success. F8-78 retains the original unchanged sustained-performance and negative-control gates, and F8-74 depends on both follow-ups.",
   "acceptance": [
     "Retain exact before/after normal-execution reproductions for PEG PAINT and installed soft-body-fluid, identify the host managed-memory accesses and explain their Windows ownership/synchronization contract.",
     "Normal public creation, first tick, repeated ticks, reset, resource replacement and failure recovery pass for painted fluid scenes and soft-body/fluid coupling with plain and validation-enabled execution. Add focused regressions that fail before the repair.",
-    "After merged F8-75, a clean Windows Release build and all 130 registered tests pass with no required skip. The relocated SDK, complete 30 public cases, 12 scenarios, five negative controls and five desktop workloads pass in both modes at frozen counts, quality limits and performance budgets.",
+    "After merged F8-75, a clean Windows Release build retains all original 130 registered tests and passes them plus every added ownership regression with no required skip. The relocated SDK, all 30 public cases, all 12 scenarios and every frozen physical-quality/work/recovery check pass in plain and validation modes. Retain the complete unmodified five-workload capture in both modes at frozen counts, 600 warmup and 7200 measured ticks with no failed execution tick; retain all stalls, exact timing failures and all five negative-control statuses. Successful sustained-performance and negative-control acceptance remain mandatory in F8-78 before F8-74 refreeze; this ownership repair does not claim those gates passed.",
     "Verify one 1/60-second advance, one spatial publication, existing dispatch/iteration/submission/readback/synchronization budgets and atomic recovery. Shared runtime changes retain cross-backend semantics and pass affected portable/reference checks.",
     "Publish exact source/tree, binary, manifest, device, compiler, memory attributes and raw before/after hashes. Classify every protected closure change for F8-74; do not mutate candidate v9 or relabel repaired-source observations as final qualification."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "798407b0-36fb-49c4-8ed9-41b214a7dfe8",
+    "owner": "codex-windows-managed-runtime",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-76/windows-gtx1080",
+    "claimed_at": "2026-11-02T17:38:40Z",
+    "heartbeat_at": "2026-11-02T17:38:40Z",
+    "expires_at": "2026-11-03T17:38:40Z"
+  },
   "history": [
     {
       "lease": {

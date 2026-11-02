@@ -1,0 +1,26 @@
+{
+  "id": "F8-77",
+  "title": "Replace Windows public completion polling sleeps",
+  "status": "open",
+  "dependencies": [
+    "F8-76"
+  ],
+  "locks": [
+    "f8-public-completion-wait",
+    "public-command-synchronization"
+  ],
+  "requires": [
+    "Merged F8-76 ownership repair, physical Windows GTX 1080, and retained F8-76 complete capture plus isolated completion-wait diagnostic"
+  ],
+  "scope": "Replace timer-sized polling sleeps on the public fence/timeline completion paths with deliberate completion notification where applicable. The installed workload currently reaches pmWaitForFences through test::Context::submit; a public-consumer diagnostic lowers six-family p95 from 32.0458 ms to 19.9639 ms by bypassing the sleep, while GPU p95 remains 19.881984 ms. This is a latency lead, not qualification. Preserve finite/infinite timeout, zero-time poll, wait-any/wait-all, timeline ordering, error propagation, handle validation, submission/resource lifetime and validation semantics across backends. Use the existing submission-completion ownership model or equivalent correct notification; no busy-spin workaround, global timer/power setting, weakened synchronization, backend physics fork, measurement-boundary change or fixed-tick schedule change.",
+  "acceptance": [
+    "Retain source/binary-bound normal Windows before/after completion-wait observations. Separate host critical-path latency from GPU time; the shorter F8-76 consumer diagnostic remains explicitly non-qualification history.",
+    "Focused deterministic synchronization regressions cover already-ready and pending completion, zero/finite/infinite timeout, single/multiple fences, wait-any/wait-all, timeline ordering, validation errors and failed submissions. Prove notifications cannot be lost and referenced resources/handles remain valid through completion.",
+    "Affected portable/reference, public API and validation tests pass without weakening existing ordering, timeout or failure assertions. No production busy polling, global timer/power policy change or premature completion is introduced.",
+    "Retain normal physical Windows installed-public workload timing at frozen counts and measurement boundaries, including all stalls and required waits. Run the frozen rigid-wall workload with 600 warmup and 7200 measured ticks in both modes; record actual performance rather than inferring a full-device pass from the wait change. F8-78 still owns successful acceptance of all five workloads and five negative controls.",
+    "Publish exact source/tree, device/compiler, binary/manifest hashes, commands and raw samples; classify every protected closure change for F8-74. Candidate v9 remains immutable and no final F8-26 qualification is claimed."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

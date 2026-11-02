@@ -5,23 +5,26 @@
   "dependencies": [
     "F8-73",
     "F8-75",
-    "F8-76"
+    "F8-76",
+    "F8-77",
+    "F8-78"
   ],
   "locks": [
     "f8-candidate-freeze"
   ],
   "requires": [
     "Green protected CI and complete exact-source F8-73 macOS Metal repair evidence",
-    "Complete exact-source F8-75/F8-76 Windows CUDA repair evidence with normal asynchronous execution"
+    "Complete exact-source F8-75/F8-76 Windows CUDA repair evidence with normal asynchronous execution",
+    "Accepted F8-77 public completion waiting and complete F8-78 Windows frozen performance/negative-control evidence"
   ],
-  "scope": "Freeze a new immutable sole-path candidate only after F8-73 repairs and physically proves the macOS Metal rope binding, shared Gallery reset semantics, installed-public suite and canonical installed Gallery. Record one exact source commit/tree, manifest hash, complete protected closure, binaries/deployments, runtime variants, toolchains and green exact-source CI. Preserve candidate v9 and its F8-28 failure plus every passing or failing candidate-v9 device observation as historical provenance; never union observations across candidates. Route every unfinished physical qualification row to the replacement and add bounded replacement-candidate requalification leaves for already completed v9 rows before they can contribute to the final exit. The same freeze also waits for F8-75 and F8-76 to repair the Windows CUDA fluid fixture and production managed-memory access failures recorded in docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json. Include both the Metal and Windows repairs in one exact source before qualification routing; preserve the F8-26 candidate-v9 failures and diagnostic-only forced-synchronization runs as immutable history.",
+  "scope": "Freeze a new immutable sole-path candidate only after F8-73 repairs and physically proves the macOS Metal rope binding, shared Gallery reset semantics, installed-public suite and canonical installed Gallery. Record one exact source commit/tree, manifest hash, complete protected closure, binaries/deployments, runtime variants, toolchains and green exact-source CI. Preserve candidate v9 and its F8-28 failure plus every passing or failing candidate-v9 device observation as historical provenance; never union observations across candidates. Route every unfinished physical qualification row to the replacement and add bounded replacement-candidate requalification leaves for already completed v9 rows before they can contribute to the final exit. The same freeze also waits for F8-75 and F8-76 to repair the Windows CUDA fluid fixture and production managed-memory access failures recorded in docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json. Include both the Metal and Windows repairs in one exact source before qualification routing; preserve the F8-26 candidate-v9 failures and diagnostic-only forced-synchronization runs as immutable history. The user-approved Windows split also requires F8-77 completion waiting and F8-78 successful full Windows performance/negative-control acceptance. F8-76 ownership completion alone cannot unblock this freeze; include all accepted repairs and performance work in the same exact protected source.",
   "acceptance": [
     "A new immutable candidate manifest records the exact repaired source/tree, public API/ABI, shared Slang kernels, adapter binding, runtime, schedule/telemetry, public oracle, work budgets and shared Gallery closure with all 49 capabilities, 30 public cases, 12 scenarios and 37 measurements.",
     "Independent generation/checking agrees on every protected closure. Exact-source protected CI and complete F8-73 physical macOS Metal registered, installed-public, validation, Gallery lifecycle and sustained workload evidence pass from named binaries.",
     "Candidate v9 manifest and F8-28 failure evidence remain byte-immutable. No partial v9 pass, earlier candidate pass or repaired-source observation is relabeled as replacement-candidate qualification.",
     "A coordination-only change binds F8-27 through F8-30 and every other unfinished row to the replacement candidate, and adds replacement leaves for completed candidate-v9 CPU, CUDA and Vulkan rows plus the in-flight F8-26 result as required. No row becomes ready against an invalid candidate.",
     "Every device can reproduce the replacement capture from documented installed-public commands without changing physics, capabilities, cases, schedules, budgets, tolerances or required timeouts. Any later protected change creates another candidate rather than mutating this freeze.",
-    "Exact-source F8-75/F8-76 Windows evidence passes the unchanged full registered suite, installed SDK/Gallery requirements and complete installed-public scenario/workload capture without CUDA_LAUNCH_BLOCKING. Preserve the F8-26 failure report/archive and bind its unfinished row to the new candidate before it becomes ready."
+    "Exact-source F8-75/F8-76/F8-77/F8-78 Windows evidence passes the full registered suite, installed SDK/Gallery requirements and complete installed-public scenario/workload capture without CUDA_LAUNCH_BLOCKING. All five desktop workloads and all five negative controls pass in plain and validation modes at unchanged counts, 600 warmup and 7200 measured ticks, 10 ms physics p95, 16.666666666666668 ms frame p95 and at least 0.99 simulated/wall ratio. Do not treat the accepted ownership repair or a failed performance baseline as successful performance/negative-control evidence. Preserve the F8-26 failure report/archive and bind its unfinished row to the new candidate before it becomes ready."
   ],
   "evidence": [],
   "lease": null,
