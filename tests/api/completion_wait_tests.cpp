@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <future>
 #include <latch>
 #include <vector>
@@ -16,16 +17,28 @@
     std::abort(); \
 } } while (false)
 
-int main() {
+int main(int argc, char **argv) {
+    const bool allow_no_device = argc == 2 &&
+        std::strcmp(argv[1], "--allow-no-device") == 0;
+    CHECK(argc == 1 || allow_no_device);
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.enableValidation = std::getenv("PM_TEST_VALIDATION") ? PM_TRUE : PM_FALSE;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
-    std::uint32_t count = 1U;
+    std::uint32_t count{};
+    CHECK(pmEnumeratePhysicalDevices(instance, &count, nullptr) == PM_SUCCESS);
+    if (count == 0U && allow_no_device) {
+        pmDestroyInstance(instance);
+        std::puts("SKIP: requested native GPU is unavailable");
+        return 77;
+    }
+    CHECK(count != 0U);
+    count = 1U;
     PmPhysicalDevice physical{};
-    CHECK(pmEnumeratePhysicalDevices(instance, &count, &physical) == PM_SUCCESS && count == 1U);
+    const auto enumerated = pmEnumeratePhysicalDevices(instance, &count, &physical);
+    CHECK((enumerated == PM_SUCCESS || enumerated == PM_INCOMPLETE) && count == 1U);
     PmPhysicalDeviceFeatures features{};
     pmGetPhysicalDeviceFeatures(physical, &features);
     CHECK(features.timelineSemaphores == PM_TRUE);

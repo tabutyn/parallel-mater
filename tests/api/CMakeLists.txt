@@ -21,12 +21,23 @@ foreach(backend cpu cuda vulkan d3d12 metal host)
     if(TARGET ${completion_driver} AND TARGET parallel-mater-layer-validation)
         add_dependencies(parallel-mater-completion-wait-tests
             ${completion_driver} parallel-mater-layer-validation)
+        set(completion_arguments)
+        if(backend STREQUAL "metal" OR backend STREQUAL "vulkan" OR
+           backend STREQUAL "d3d12")
+            # Hosted compilation runners may expose no native GPU. Required
+            # CUDA and portable CPU/host cases remain strict.
+            list(APPEND completion_arguments --allow-no-device)
+        endif()
         foreach(mode plain validation)
             set(completion_test parallel-mater-${backend}-completion-wait-${mode})
-            add_test(NAME ${completion_test} COMMAND parallel-mater-completion-wait-tests)
+            add_test(NAME ${completion_test}
+                COMMAND parallel-mater-completion-wait-tests ${completion_arguments})
             set_tests_properties(${completion_test} PROPERTIES TIMEOUT 30
                 LABELS "api;synchronization;threading;f8;${backend}"
                 ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${completion_manifest}.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+            if(completion_arguments)
+                set_tests_properties(${completion_test} PROPERTIES SKIP_RETURN_CODE 77)
+            endif()
             if(mode STREQUAL "validation")
                 set_tests_properties(${completion_test} PROPERTIES
                     ENVIRONMENT_MODIFICATION "PM_TEST_VALIDATION=set:1")
