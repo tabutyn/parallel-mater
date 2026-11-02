@@ -1,5 +1,11 @@
 # F8 is the simulation architecture
 
+Current development direction, 2026-11-02: follow
+[Improve physics one system at a time](PHYSICS-QUALITY-DEVELOPMENT.md).
+The one-step, one-spatial-update, and existing solver-work limits below remain
+unchanged. Full candidate timing/device gates apply to broad qualification;
+they do not block scoped system improvements or labeled development previews.
+
 Maintainer direction, 2026-10-25: F8 replaces the production simulation
 architecture. It is not an optional performance mode, a second solver product,
 or a per-platform feature switch. Every supported simulation uses the same

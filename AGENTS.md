@@ -2,6 +2,11 @@
 
 For work selected from `docs/ROADMAP.md`, read `docs/roadmap/WORKFLOW.md` first.
 Task cards in `docs/roadmap/tasks/` are canonical; the roadmap index is generated.
+For physics work, also read [the current development policy](docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md).
+Prioritize one visible system improvement at a time. Keep the one-step,
+one-spatial-update and solver-work limits. Full mixed-workload timing and
+all-device qualification are not prerequisites for scoped development merges
+or labeled previews; affected correctness tests and required CI still apply.
 
 - Fetch current main and choose one ready leaf task matching this machine.
 - Push a claim-only PR updating that card and the roadmap. Do not implement the
