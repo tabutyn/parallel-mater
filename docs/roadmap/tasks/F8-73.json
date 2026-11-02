@@ -1,7 +1,7 @@
 {
   "id": "F8-73",
   "title": "Repair candidate-v9 macOS Metal failures",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-70"
   ],
@@ -21,15 +21,7 @@
     "Mechanically compare all F8-70 protected closures. The expected adapter-binding and shared-Gallery changes require F8-74 to freeze a new immutable candidate and reroute every affected physical row before any final qualification is reclaimed."
   ],
   "evidence": [],
-  "lease": {
-    "token": "ae9bbf3b-2a53-4b16-90aa-3ea1891beb94",
-    "owner": "codex-f8-macos-metal-repair",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-73/Thomass-MacBook-Air",
-    "claimed_at": "2026-11-02T20:15:33Z",
-    "heartbeat_at": "2026-11-02T20:15:33Z",
-    "expires_at": "2026-11-03T20:15:33Z"
-  },
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -44,6 +36,21 @@
       "outcome": "reclaimed",
       "at": "2026-11-02T20:15:33Z",
       "reason": "Resuming retained PR 639 performance repair at user request after expired lease; preserve existing scope and work branch",
+      "evidence": []
+    },
+    {
+      "lease": {
+        "token": "ae9bbf3b-2a53-4b16-90aa-3ea1891beb94",
+        "owner": "codex-f8-macos-metal-repair",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-73/Thomass-MacBook-Air",
+        "claimed_at": "2026-11-02T20:15:33Z",
+        "heartbeat_at": "2026-11-02T20:15:33Z",
+        "expires_at": "2026-11-03T20:15:33Z"
+      },
+      "outcome": "released",
+      "at": "2026-11-02T23:50:02Z",
+      "reason": "Maintainer requests loosening aggregate merge/release gates while retaining solver limits; release only to replan this repair, preserving PR 639 and all passing/failing evidence.",
       "evidence": []
     }
   ]
