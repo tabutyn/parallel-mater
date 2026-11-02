@@ -181,8 +181,9 @@ Field record_layout(MTLStructType *record, bool expand_pointers) {
 
 class MetalSubmission final : public Submission {
 public:
-    MetalSubmission(id<MTLCommandBuffer> command, QueueIdentity identity)
-        : command_(command), identity_(identity) {}
+    MetalSubmission(id<MTLCommandBuffer> command, QueueIdentity identity,
+                    id<MTLComputePipelineState> transfer_pipeline)
+        : command_(command), identity_(identity), transfer_pipeline_(transfer_pipeline) {}
     bool ready() const override {
         check_error();
         return command_.status == MTLCommandBufferStatusCompleted;
@@ -210,12 +211,15 @@ private:
     }
     id<MTLCommandBuffer> command_;
     QueueIdentity identity_;
+    // Unretained command buffers require utility pipelines to outlive GPU work.
+    [[maybe_unused]] id<MTLComputePipelineState> transfer_pipeline_;
 };
 
 class MetalCommandList final : public CommandEncoder {
 public:
-    MetalCommandList(id<MTLDevice> device, id<MTLCommandQueue> queue)
-        : device_(device), queue_(queue) {
+    MetalCommandList(id<MTLDevice> device, id<MTLCommandQueue> queue,
+                     id<MTLComputePipelineState> transfer_pipeline)
+        : device_(device), queue_(queue), transfer_pipeline_(transfer_pipeline) {
         // A caller may run thousands of physics submissions inside one outer
         // autorelease pool. Do not retain every completed command until then.
         @autoreleasepool {
@@ -259,6 +263,7 @@ public:
     void barrier(std::span<const ResourceDependency> dependencies) override {
         @autoreleasepool {
             ensure_open();
+            bool requires_transfer_flush = false;
             for (const auto &dependency : dependencies) {
                 if (!aliases(dependency.prior, dependency.next) ||
                     !overlaps(dependency.prior, dependency.next) ||
@@ -268,17 +273,19 @@ public:
                     throw std::invalid_argument("invalid Metal resource dependency");
                 auto prior = buffer(dependency.prior.buffer);
                 auto next = buffer(dependency.next.buffer);
+                requires_transfer_flush |= std::find(pending_resources_.begin(),
+                    pending_resources_.end(), prior) != pending_resources_.end();
                 require(prior == next, "inconsistent Metal resource dependency");
                 range(dependency.prior.buffer, dependency.prior.offset,
                       dependency.prior.size);
                 range(dependency.next.buffer, dependency.next.offset,
                       dependency.next.size);
             }
-            // Serial compute encoders complete dispatches in encoding order;
-            // tracked resources make those writes visible to the next dispatch.
-            // Compute/blit transitions close the active encoder and retain the
-            // same ordering. The common tracker still validates the exact
-            // conflicting ranges without adding a duplicate native barrier.
+            if (requires_transfer_flush) flush_transfers();
+            // Serial compute encoders order physics and byte-transfer kernels;
+            // tracked resources make writes visible to the next operation.
+            // The common tracker still validates exact conflicting ranges
+            // without adding a duplicate native barrier.
         }
     }
     void dispatch(const Arguments &arguments, Extent groups) override {
@@ -292,6 +299,7 @@ public:
             // command list usable and cannot strand an active native encoder.
             const auto &bindings = arguments.bindings();
             for (const auto &binding : bindings) (void)buffer(binding.range.buffer);
+            flush_transfers();
             const std::uint32_t dimensions[4]{groups.x, groups.y, groups.z, kernel->threads.x};
             id<MTLComputeCommandEncoder> encoder = compute_encoder();
             [encoder setComputePipelineState:kernel->pipeline];
@@ -317,20 +325,17 @@ public:
             if (dst == src && destination_offset < source_offset + size &&
                 source_offset < destination_offset + size)
                 throw std::invalid_argument("overlapping GPU copy ranges");
-            id<MTLBlitCommandEncoder> encoder = blit_encoder();
-            [encoder copyFromBuffer:src sourceOffset:source_offset toBuffer:dst
-                destinationOffset:destination_offset size:size];
+            queue_transfer(destination, destination_offset, source, source_offset, size, 0);
         }
     }
     void fill(const BufferPtr &destination, std::size_t offset,
               std::size_t size, std::uint8_t value) override {
         @autoreleasepool {
             ensure_open();
-            auto dst = buffer(destination);
+            (void)buffer(destination);
             range(destination, offset, size);
             if (size == 0) return;
-            id<MTLBlitCommandEncoder> encoder = blit_encoder();
-            [encoder fillBuffer:dst range:NSMakeRange(offset, size) value:value];
+            queue_transfer(destination, offset, {}, 0, size, value);
         }
     }
     BufferPtr upload(const BufferPtr &destination, std::size_t offset,
@@ -351,16 +356,61 @@ public:
     SubmissionPtr submit() override {
         @autoreleasepool {
             ensure_open();
+            flush_transfers();
             finish_encoders();
-            auto result = std::make_shared<MetalSubmission>(command_, queue_identity());
+            auto result = std::make_shared<MetalSubmission>(command_, queue_identity(),
+                transfer_pipeline_);
             [command_ commit];
             submitted_ = true;
             return result;
         }
     }
 private:
+    // Independent transfers share a launch. Flush before dependent accesses,
+    // physics dispatches, submission, or the 4 KiB argument-buffer limit.
+    struct Transfer {
+        std::uint64_t destination, source, size;
+        std::uint32_t flags, first_group;
+    };
+    static_assert(sizeof(Transfer) == 32);
+    void queue_transfer(const BufferPtr &destination, std::size_t destination_offset,
+                        const BufferPtr &source, std::size_t source_offset,
+                        std::size_t size, std::uint8_t value) {
+        const auto groups = (size + 2047U) / 2048U;
+        require(groups <= UINT32_MAX, "Metal transfer dispatch too large");
+        if (transfers_.size() == 128 || groups > UINT32_MAX - transfer_groups_)
+            flush_transfers();
+        auto encoder = compute_encoder();
+        auto dst = buffer(destination);
+        use_resource(encoder, dst, MTLResourceUsageWrite);
+        pending_resources_.push_back(dst);
+        const auto destination_address = destination->device_address() + destination_offset;
+        std::uint64_t source_address = 0;
+        if (source) {
+            auto src = buffer(source);
+            use_resource(encoder, src, MTLResourceUsageRead);
+            pending_resources_.push_back(src);
+            source_address = source->device_address() + source_offset;
+        }
+        const std::uint32_t flags = value | (source ? 256U : 0U) |
+            (((destination_address | source_address) & 15U) == 0 ? 512U : 0U);
+        transfers_.push_back({destination_address, source_address, size, flags, transfer_groups_});
+        transfer_groups_ += static_cast<std::uint32_t>(groups);
+    }
+    void flush_transfers() {
+        if (transfers_.empty()) return;
+        auto encoder = compute_encoder();
+        const std::uint32_t count = static_cast<std::uint32_t>(transfers_.size());
+        [encoder setComputePipelineState:transfer_pipeline_];
+        [encoder setBytes:transfers_.data() length:transfers_.size() * sizeof(Transfer) atIndex:0];
+        [encoder setBytes:&count length:sizeof(count) atIndex:1];
+        [encoder dispatchThreadgroups:MTLSizeMake(transfer_groups_, 1, 1)
+            threadsPerThreadgroup:MTLSizeMake(128, 1, 1)];
+        transfers_.clear();
+        pending_resources_.clear();
+        transfer_groups_ = 0;
+    }
     id<MTLComputeCommandEncoder> compute_encoder() {
-        finish_blit_encoder();
         if (compute_encoder_ == nil) {
             compute_encoder_ = [command_
                 computeCommandEncoderWithDispatchType:MTLDispatchTypeSerial];
@@ -370,29 +420,14 @@ private:
         }
         return compute_encoder_;
     }
-    id<MTLBlitCommandEncoder> blit_encoder() {
-        finish_compute_encoder();
-        if (blit_encoder_ == nil) {
-            blit_encoder_ = [command_ blitCommandEncoder];
-            require(blit_encoder_ != nil, "Metal blit encoder allocation failed");
-            blit_encoder_.label = @"ParallelMater transfer batch";
-        }
-        return blit_encoder_;
-    }
     void finish_compute_encoder() noexcept {
         if (compute_encoder_ == nil) return;
         [compute_encoder_ endEncoding];
         compute_encoder_ = nil;
         compute_resources_.clear();
     }
-    void finish_blit_encoder() noexcept {
-        if (blit_encoder_ == nil) return;
-        [blit_encoder_ endEncoding];
-        blit_encoder_ = nil;
-    }
     void finish_encoders() noexcept {
         finish_compute_encoder();
-        finish_blit_encoder();
     }
     void use_resource(id<MTLComputeCommandEncoder> encoder,
                       id<MTLBuffer> resource, MTLResourceUsage next) {
@@ -425,10 +460,13 @@ private:
     }
     id<MTLDevice> device_;
     id<MTLCommandQueue> queue_;
+    id<MTLComputePipelineState> transfer_pipeline_;
     id<MTLCommandBuffer> command_;
     id<MTLComputeCommandEncoder> compute_encoder_{};
-    id<MTLBlitCommandEncoder> blit_encoder_{};
     std::unordered_map<void *, MTLResourceUsage> compute_resources_;
+    std::vector<Transfer> transfers_;
+    std::vector<id<MTLBuffer>> pending_resources_;
+    std::uint32_t transfer_groups_{};
     bool submitted_{};
 };
 
@@ -436,6 +474,52 @@ class MetalDevice final : public Device {
 public:
     explicit MetalDevice(id<MTLDevice> device) : device_(device), queue_([device newCommandQueue]) {
         require(queue_ != nil, "Metal command queue allocation failed");
+        // Adapter memory operations contain no physics. Keep copies and fills
+        // in the serial compute encoder to avoid a compute/blit transition for
+        // every small transfer. Vector stores retain exact byte semantics,
+        // including unaligned ranges and tails; no floating-point work occurs.
+        NSString *source = @R"(
+            #include <metal_stdlib>
+            using namespace metal;
+            struct Transfer {
+                device uchar *destination;
+                device const uchar *source;
+                ulong size;
+                uint flags, first_group;
+            };
+            kernel void pm_transfer_bytes(constant Transfer *transfers [[buffer(0)]],
+                constant uint &count [[buffer(1)]], uint group [[threadgroup_position_in_grid]],
+                uint lane [[thread_position_in_threadgroup]]) {
+                uint operation = 0;
+                for (uint next = 1; next < count; ++next) {
+                    if (group < transfers[next].first_group) break;
+                    operation = next;
+                }
+                const Transfer value = transfers[operation];
+                const ulong first = ulong(group - value.first_group) * 2048 + ulong(lane) * 16;
+                if (first >= value.size) return;
+                const bool copy = (value.flags & 256) != 0;
+                if ((value.flags & 512) != 0 && value.size - first >= 16) {
+                    const uint4 bytes = copy
+                        ? reinterpret_cast<device const uint4 *>(value.source + first)[0]
+                        : uint4((value.flags & 255) * 0x01010101u);
+                    reinterpret_cast<device uint4 *>(value.destination + first)[0] = bytes;
+                } else {
+                    for (ulong byte = first; byte < min(first + 16, value.size); ++byte)
+                        value.destination[byte] = copy ? value.source[byte] : uchar(value.flags);
+                }
+            }
+        )";
+        NSError *error = nil;
+        auto library = [device_ newLibraryWithSource:source options:nil error:&error];
+        require(library != nil, "Metal byte-transfer library: " + error_text(error));
+        auto function = [library newFunctionWithName:@"pm_transfer_bytes"];
+        MTLComputePipelineDescriptor *descriptor = [MTLComputePipelineDescriptor new];
+        descriptor.computeFunction = function;
+        descriptor.maxTotalThreadsPerThreadgroup = 128;
+        transfer_pipeline_ = [device_ newComputePipelineStateWithDescriptor:descriptor
+            options:MTLPipelineOptionNone reflection:nil error:&error];
+        require(transfer_pipeline_ != nil, "Metal byte-transfer pipeline: " + error_text(error));
     }
     std::string name() const override { return device_.name.UTF8String; }
     BufferPtr allocate(std::size_t size, bool host_visible) override {
@@ -540,7 +624,7 @@ public:
     std::unique_ptr<CommandList> commands(std::span<const SubmissionPtr> prior = {}) override {
         @autoreleasepool {
             return submissions_.commands(
-                std::make_unique<MetalCommandList>(device_, queue_), prior);
+                std::make_unique<MetalCommandList>(device_, queue_, transfer_pipeline_), prior);
         }
     }
     NativeObject native_device() const override {
@@ -554,6 +638,7 @@ public:
 private:
     id<MTLDevice> device_;
     id<MTLCommandQueue> queue_;
+    id<MTLComputePipelineState> transfer_pipeline_;
     SubmissionQueue submissions_;
 };
 } // namespace

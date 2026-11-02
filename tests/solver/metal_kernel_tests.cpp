@@ -200,6 +200,44 @@ template<class Function> void rejects(Function &&function, const char *message) 
     throw std::runtime_error(message);
 }
 
+void check_transfer_boundaries(Gpu &gpu) {
+    // Exercise both vector-sized and partial-byte transfers with untouched
+    // guards. A byte reference checks the adapter, independently of shaders.
+    for (const std::size_t offset : {0U, 1U, 4U, 15U, 16U}) {
+        for (const std::size_t size : {0U, 1U, 3U, 15U, 16U, 17U, 127U, 128U,
+                                      129U, 4095U, 4096U, 4097U}) {
+            const auto capacity = size + 64;
+            std::vector<std::uint8_t> original(capacity), expected(capacity, 0x3d);
+            for (std::size_t index = 0; index != capacity; ++index)
+                original[index] = static_cast<std::uint8_t>(index * 37U + 11U);
+            const auto source_offset = (offset + 3U) % 16U;
+            auto source = gpu.device->allocate(capacity, false);
+            auto destination = gpu.device->allocate(capacity, false);
+            auto readback = gpu.buffer(capacity);
+            auto commands = gpu.device->commands();
+            commands->upload(source, 0, std::as_bytes(std::span(original)));
+            commands->fill(destination, 0, capacity, 0x3d);
+            commands->copy(destination, offset, source, source_offset, size);
+            std::copy_n(original.begin() + source_offset, size, expected.begin() + offset);
+            commands->fill(destination, offset + size / 3U, size / 2U, 0xab);
+            std::fill_n(expected.begin() + offset + size / 3U, size / 2U, 0xab);
+            // Legal disjoint copy within one allocation must preserve guards.
+            commands->copy(destination, capacity - 8, destination, 0, 4);
+            std::copy_n(expected.begin(), 4, expected.end() - 8);
+            commands->copy(readback, 0, destination, 0, capacity);
+            auto completion = commands->submit();
+            source.reset();
+            destination.reset();
+            commands.reset();
+            completion->wait();
+            require(std::memcmp(readback->host_address(), expected.data(), capacity) == 0,
+                "byte transfer/guard mismatch: offset=" + std::to_string(offset) +
+                " size=" + std::to_string(size));
+        }
+    }
+    std::cout << "Metal byte transfers: 60 alignment/tail/guard/lifetime fixtures passed\n";
+}
+
 void check_transfers_and_records(Gpu &gpu) {
     auto memory = gpu.device->allocate(64, false);
     require(memory->host_address() == nullptr, "device-only storage unexpectedly host-visible");
@@ -294,6 +332,49 @@ void check_transfers_and_records(Gpu &gpu) {
     fence->wait();
     for (unsigned i = 0; i < 64; ++i) require(bytes[i] == 17, "dropped-token resource lifetime failure");
     std::cout << "Async uploads/copies, private memory, resource lifetimes and nested pointer records passed\n";
+}
+
+void check_transfer_batches(Gpu &gpu) {
+    // Cross the native argument-buffer capacity with independent transfers,
+    // then overwrite their sources. Pending reads must finish before writes.
+    constexpr std::size_t count = 129;
+    std::vector<BufferPtr> private_buffers, snapshots;
+    auto cleared = gpu.buffer(count * 4);
+    auto adjacent_bytes = gpu.buffer(257);
+    auto commands = gpu.device->commands();
+    for (std::size_t byte = 0; byte != adjacent_bytes->size(); ++byte)
+        commands->fill(adjacent_bytes, byte, 1,
+            static_cast<std::uint8_t>(byte % 251 + 1));
+    for (std::size_t index = 0; index != count; ++index) {
+        const auto size = (index % 5) * 2048 + 17;
+        private_buffers.push_back(gpu.device->allocate(size, false));
+        snapshots.push_back(gpu.buffer(size));
+        commands->fill(private_buffers.back(), 0, size,
+            static_cast<std::uint8_t>(index + 1));
+    }
+    for (std::size_t index = 0; index != count; ++index)
+        commands->copy(snapshots[index], 0, private_buffers[index], 0,
+            private_buffers[index]->size());
+    for (const auto &buffer : private_buffers)
+        commands->fill(buffer, 0, buffer->size(), 0);
+    for (std::size_t index = 0; index != count; ++index)
+        commands->copy(cleared, index * 4, private_buffers[index], 0, 4);
+    auto completion = commands->submit();
+    private_buffers.clear();
+    commands.reset();
+    completion->wait();
+    for (std::size_t index = 0; index != count; ++index) {
+        const auto *bytes = static_cast<const std::uint8_t *>(snapshots[index]->host_address());
+        for (std::size_t byte = 0; byte != snapshots[index]->size(); ++byte)
+            require(bytes[byte] == index + 1, "transfer batch violated read-before-write dependency");
+    }
+    const auto *bytes = static_cast<const std::uint8_t *>(cleared->host_address());
+    for (std::size_t byte = 0; byte != cleared->size(); ++byte)
+        require(bytes[byte] == 0, "transfer batch lost trailing writes");
+    bytes = static_cast<const std::uint8_t *>(adjacent_bytes->host_address());
+    for (std::size_t byte = 0; byte != adjacent_bytes->size(); ++byte)
+        require(bytes[byte] == byte % 251 + 1, "adjacent byte fills corrupted a shared word");
+    std::cout << "Metal transfer batches: 129 resources, capacity split, read/write dependencies passed\n";
 }
 
 void check_device_teardown() {
@@ -515,88 +596,90 @@ void check_soft_body_ordered_shape(Gpu &gpu) {
     // its translated rest shape. Cover subgroup/tile boundaries and pinned
     // nodes with a mass ratio; no GPU reduction is used by this oracle.
     struct ShapeMatrixHost { Vec3 columns[3]; };
-    for (const std::uint32_t count : {31U, 32U, 33U, 127U, 128U, 129U, 512U, 513U}) {
-        std::vector<Vec3> rest(count), initial(count), expected(count);
-        std::vector<float> inverse_masses(count), lengths(count, 4.0f);
-        double mass_sum = 0.0, center[3]{};
-        for (std::uint32_t node = 0; node < count; ++node) {
-            rest[node] = {float(node % 7U) / 32.0f,
-                float((node / 7U) % 5U) / 32.0f, float(node % 11U) / 32.0f};
-            inverse_masses[node] = node % 13U == 0U ? 0.0f : (node % 3U ? 1.0f : 0.5f);
-            if (inverse_masses[node] == 0.0f) continue;
-            const double mass = 1.0 / inverse_masses[node];
-            mass_sum += mass;
-            center[0] += mass * rest[node].x;
-            center[1] += mass * rest[node].y;
-            center[2] += mass * rest[node].z;
-        }
-        for (auto &value : center) value /= mass_sum;
-        double augmented[3][6]{};
-        for (std::uint32_t node = 0; node < count; ++node) {
-            if (inverse_masses[node] == 0.0f) continue;
-            const double q[3]{rest[node].x - center[0],
-                rest[node].y - center[1], rest[node].z - center[2]};
-            for (unsigned row = 0; row != 3; ++row)
-                for (unsigned column = 0; column != 3; ++column)
-                    augmented[row][column] += q[row] * q[column] / inverse_masses[node];
-        }
-        for (unsigned row = 0; row != 3; ++row) augmented[row][row + 3] = 1.0;
-        for (unsigned pivot = 0; pivot != 3; ++pivot) {
-            const double divisor = augmented[pivot][pivot];
-            require(std::abs(divisor) > 1.0e-9, "singular ordered-shape fixture");
-            for (auto &value : augmented[pivot]) value /= divisor;
-            for (unsigned row = 0; row != 3; ++row) {
-                if (row == pivot) continue;
-                const double factor = augmented[row][pivot];
-                for (unsigned column = 0; column != 6; ++column)
-                    augmented[row][column] -= factor * augmented[pivot][column];
+    for (const bool pinned : {false, true}) {
+        for (const std::uint32_t count : {31U, 32U, 33U, 127U, 128U, 129U, 512U, 513U}) {
+            std::vector<Vec3> rest(count), initial(count), expected(count);
+            std::vector<float> inverse_masses(count), lengths(count, 4.0f);
+            double mass_sum = 0.0, center[3]{};
+            for (std::uint32_t node = 0; node < count; ++node) {
+                rest[node] = {float(node % 7U) / 32.0f,
+                    float((node / 7U) % 5U) / 32.0f, float(node % 11U) / 32.0f};
+                inverse_masses[node] = pinned && node % 13U == 0U ? 0.0f : (node % 3U ? 1.0f : 0.5f);
+                if (inverse_masses[node] == 0.0f) continue;
+                const double mass = 1.0 / inverse_masses[node];
+                mass_sum += mass;
+                center[0] += mass * rest[node].x;
+                center[1] += mass * rest[node].y;
+                center[2] += mass * rest[node].z;
+            }
+            for (auto &value : center) value /= mass_sum;
+            double augmented[3][6]{};
+            for (std::uint32_t node = 0; node < count; ++node) {
+                if (inverse_masses[node] == 0.0f) continue;
+                const double q[3]{rest[node].x - center[0],
+                    rest[node].y - center[1], rest[node].z - center[2]};
+                for (unsigned row = 0; row != 3; ++row)
+                    for (unsigned column = 0; column != 3; ++column)
+                        augmented[row][column] += q[row] * q[column] / inverse_masses[node];
+            }
+            for (unsigned row = 0; row != 3; ++row) augmented[row][row + 3] = 1.0;
+            for (unsigned pivot = 0; pivot != 3; ++pivot) {
+                const double divisor = augmented[pivot][pivot];
+                require(std::abs(divisor) > 1.0e-9, "singular ordered-shape fixture");
+                for (auto &value : augmented[pivot]) value /= divisor;
+                for (unsigned row = 0; row != 3; ++row) {
+                    if (row == pivot) continue;
+                    const double factor = augmented[row][pivot];
+                    for (unsigned column = 0; column != 6; ++column)
+                        augmented[row][column] -= factor * augmented[pivot][column];
+                }
+            }
+            ShapeMatrixHost inverse{};
+            for (unsigned column = 0; column != 3; ++column)
+                inverse.columns[column] = {float(augmented[0][column + 3]),
+                    float(augmented[1][column + 3]), float(augmented[2][column + 3])};
+            constexpr float stiffness = 0.25f, expansion = 1.125f;
+            for (std::uint32_t node = 0; node < count; ++node) {
+                initial[node] = {3.0f + expansion * rest[node].x,
+                    5.0f + expansion * rest[node].y, 7.0f + expansion * rest[node].z};
+                expected[node] = initial[node];
+                if (inverse_masses[node] <= 0.0f) continue;
+                expected[node].x += float(stiffness * (1.0f - expansion) * (rest[node].x - center[0]));
+                expected[node].y += float(stiffness * (1.0f - expansion) * (rest[node].y - center[1]));
+                expected[node].z += float(stiffness * (1.0f - expansion) * (rest[node].z - center[2]));
+            }
+            const Quaternion identity{0.0f, 0.0f, 0.0f, 1.0f};
+            auto positions = gpu.buffer(initial);
+            auto corrections = gpu.buffer(count * sizeof(Vec3));
+            auto used = gpu.buffer(count * sizeof(float));
+            auto orientation = gpu.buffer(sizeof(identity), &identity);
+            auto status = gpu.buffer(sizeof(std::uint32_t));
+            Arguments args(gpu.kernels.at("soft_body_realtime_project_shape"));
+            args.buffer("positions", positions); args.buffer("corrections", corrections);
+            args.buffer("rest_positions", gpu.buffer(rest));
+            args.buffer("inverse_masses", gpu.buffer(inverse_masses));
+            args.buffer("characteristic_lengths", gpu.buffer(lengths));
+            args.buffer("correction_used", used);
+            args.set("count", count); args.set("capacity", count);
+            args.set("movable_mass", float(mass_sum));
+            args.set("rest_center", Vec3{float(center[0]), float(center[1]), float(center[2])});
+            args.set("inverse_rest", inverse); args.buffer("stored_orientation", orientation);
+            args.set("stiffness", stiffness); args.set("dt", 1.0f / 60.0f);
+            args.set("profile_version", 1U); args.buffer("status", status);
+            gpu.run(args, 1U);
+            require(*static_cast<const std::uint32_t *>(status->host_address()) == 0U,
+                "ordered shape reported an invalid state");
+            const auto *actual = static_cast<const Vec3 *>(positions->host_address());
+            for (std::uint32_t node = 0; node < count; ++node) {
+                const auto values = std::bit_cast<std::array<float, 3>>(actual[node]);
+                const auto reference = std::bit_cast<std::array<float, 3>>(expected[node]);
+                for (unsigned axis = 0; axis != 3; ++axis)
+                    require(std::isfinite(values[axis]) && std::abs(values[axis] - reference[axis]) < 2.0e-5f,
+                        "ordered shape disagrees with analytic contraction: nodes=" + std::to_string(count));
             }
         }
-        ShapeMatrixHost inverse{};
-        for (unsigned column = 0; column != 3; ++column)
-            inverse.columns[column] = {float(augmented[0][column + 3]),
-                float(augmented[1][column + 3]), float(augmented[2][column + 3])};
-        constexpr float stiffness = 0.25f, expansion = 1.125f;
-        for (std::uint32_t node = 0; node < count; ++node) {
-            initial[node] = {3.0f + expansion * rest[node].x,
-                5.0f + expansion * rest[node].y, 7.0f + expansion * rest[node].z};
-            expected[node] = initial[node];
-            if (inverse_masses[node] <= 0.0f) continue;
-            expected[node].x += float(stiffness * (1.0f - expansion) * (rest[node].x - center[0]));
-            expected[node].y += float(stiffness * (1.0f - expansion) * (rest[node].y - center[1]));
-            expected[node].z += float(stiffness * (1.0f - expansion) * (rest[node].z - center[2]));
-        }
-        const Quaternion identity{0.0f, 0.0f, 0.0f, 1.0f};
-        auto positions = gpu.buffer(initial);
-        auto corrections = gpu.buffer(count * sizeof(Vec3));
-        auto used = gpu.buffer(count * sizeof(float));
-        auto orientation = gpu.buffer(sizeof(identity), &identity);
-        auto status = gpu.buffer(sizeof(std::uint32_t));
-        Arguments args(gpu.kernels.at("soft_body_realtime_project_shape"));
-        args.buffer("positions", positions); args.buffer("corrections", corrections);
-        args.buffer("rest_positions", gpu.buffer(rest));
-        args.buffer("inverse_masses", gpu.buffer(inverse_masses));
-        args.buffer("characteristic_lengths", gpu.buffer(lengths));
-        args.buffer("correction_used", used);
-        args.set("count", count); args.set("capacity", count);
-        args.set("movable_mass", float(mass_sum));
-        args.set("rest_center", Vec3{float(center[0]), float(center[1]), float(center[2])});
-        args.set("inverse_rest", inverse); args.buffer("stored_orientation", orientation);
-        args.set("stiffness", stiffness); args.set("dt", 1.0f / 60.0f);
-        args.set("profile_version", 1U); args.buffer("status", status);
-        gpu.run(args, 1U);
-        require(*static_cast<const std::uint32_t *>(status->host_address()) == 0U,
-            "ordered shape reported an invalid state");
-        const auto *actual = static_cast<const Vec3 *>(positions->host_address());
-        for (std::uint32_t node = 0; node < count; ++node) {
-            const auto values = std::bit_cast<std::array<float, 3>>(actual[node]);
-            const auto reference = std::bit_cast<std::array<float, 3>>(expected[node]);
-            for (unsigned axis = 0; axis != 3; ++axis)
-                require(std::isfinite(values[axis]) && std::abs(values[axis] - reference[axis]) < 2.0e-5f,
-                    "ordered shape disagrees with analytic contraction: nodes=" + std::to_string(count));
-        }
     }
-    std::cout << "Soft-body ordered shape: 8 partial/pinned/mass-weighted fixtures passed\n";
+    std::cout << "Soft-body ordered shape: 16 partial/free/pinned/mass-weighted fixtures passed\n";
 }
 
 void check_rope_ordered_constraints(Gpu &gpu) {
@@ -1420,6 +1503,8 @@ int main(int argc, char **argv) {
         check_device_operations(gpu);
         check_radix_prefix(gpu);
         check_transfers_and_records(gpu);
+        check_transfer_boundaries(gpu);
+        check_transfer_batches(gpu);
         check_device_teardown();
         check_rigid_integration(gpu);
         check_soft_body_simd(gpu);
