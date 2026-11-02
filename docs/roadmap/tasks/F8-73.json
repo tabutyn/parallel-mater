@@ -1,7 +1,7 @@
 {
   "id": "F8-73",
   "title": "Repair candidate-v9 macOS Metal failures",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-70"
   ],
@@ -20,16 +20,13 @@
     "Attach exact source/tree, device, toolchain, binary, deployment, manifest, generated Metal/reflection and raw before/after artifact hashes. Preserve the F8-28 candidate-v9 failure as immutable history and do not union its partial passes with repaired-source evidence.",
     "Mechanically compare all F8-70 protected closures. The expected adapter-binding and shared-Gallery changes require F8-74 to freeze a new immutable candidate and reroute every affected physical row before any final qualification is reclaimed."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "ae9bbf3b-2a53-4b16-90aa-3ea1891beb94",
-    "owner": "codex-f8-macos-metal-repair",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-73/Thomass-MacBook-Air",
-    "claimed_at": "2026-11-02T20:15:33Z",
-    "heartbeat_at": "2026-11-02T20:15:33Z",
-    "expires_at": "2026-11-03T20:15:33Z"
-  },
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-73-METAL-ACCEPTANCE.json and F8-73-METAL-ACCEPTANCE-20261102.tar.zst bind clean installed ffdafab7 on Apple M4, 30 public cases per mode, 12 physical scenarios, all five sustained workloads and all five negative controls per mode; six-family physics p95 9.426833/9.441667 ms.",
+    "PASS: complete macos-metal-preview Release build and CTest: 136 executed passes, 15 expected unsupported CPU skips, zero failures; focused native byte-boundary/batch/lifetime checks and all 70 ordered snapshots preserve exact bytes; CUDA/Vulkan mirrors compile.",
+    "PASS: docs/roadmap/evidence/F8-73-METAL-REPAIR-PROGRESS.json preserves the exact historical binding/reset failures and repairs; F8-73-METAL-ACCEPTANCE.json mechanically compares every F8-70 protected closure. Candidate-v9 remains failed history; F8-74 must refreeze and reroute affected rows.",
+    "PASS: docs/roadmap/evidence/F8-73-VERIFY-WORKLOAD-MODES.py independently reevaluates both modes using unchanged suite rules and negative controls; it rejects the aggregate-green/plain-failed diagnostic and accepts both modes in the single final capture."
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -45,6 +42,26 @@
       "at": "2026-11-02T20:15:33Z",
       "reason": "Resuming retained PR 639 performance repair at user request after expired lease; preserve existing scope and work branch",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "ae9bbf3b-2a53-4b16-90aa-3ea1891beb94",
+        "owner": "codex-f8-macos-metal-repair",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-73/Thomass-MacBook-Air",
+        "claimed_at": "2026-11-02T20:15:33Z",
+        "heartbeat_at": "2026-11-02T20:15:33Z",
+        "expires_at": "2026-11-03T20:15:33Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-02T21:37:43Z",
+      "reason": "Repaired Metal binding and Gallery reset; optimized native scheduling and exact byte transfers; complete physical Mac acceptance passes independently in plain and validation modes.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-73-METAL-ACCEPTANCE.json and F8-73-METAL-ACCEPTANCE-20261102.tar.zst bind clean installed ffdafab7 on Apple M4, 30 public cases per mode, 12 physical scenarios, all five sustained workloads and all five negative controls per mode; six-family physics p95 9.426833/9.441667 ms.",
+        "PASS: complete macos-metal-preview Release build and CTest: 136 executed passes, 15 expected unsupported CPU skips, zero failures; focused native byte-boundary/batch/lifetime checks and all 70 ordered snapshots preserve exact bytes; CUDA/Vulkan mirrors compile.",
+        "PASS: docs/roadmap/evidence/F8-73-METAL-REPAIR-PROGRESS.json preserves the exact historical binding/reset failures and repairs; F8-73-METAL-ACCEPTANCE.json mechanically compares every F8-70 protected closure. Candidate-v9 remains failed history; F8-74 must refreeze and reroute affected rows.",
+        "PASS: docs/roadmap/evidence/F8-73-VERIFY-WORKLOAD-MODES.py independently reevaluates both modes using unchanged suite rules and negative controls; it rejects the aggregate-green/plain-failed diagnostic and accepts both modes in the single final capture."
+      ]
     }
   ]
 }
