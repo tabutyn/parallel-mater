@@ -1,7 +1,7 @@
 {
   "id": "F8-76",
   "title": "Repair Windows CUDA managed metadata access",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-70",
     "F8-75"
@@ -22,7 +22,15 @@
     "Publish exact source/tree, binary, manifest, device, compiler, memory attributes and raw before/after hashes. Classify every protected closure change for F8-74; do not mutate candidate v9 or relabel repaired-source observations as final qualification."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "798407b0-36fb-49c4-8ed9-41b214a7dfe8",
+    "owner": "codex-windows-managed-runtime",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-76/windows-gtx1080",
+    "claimed_at": "2026-11-02T17:38:40Z",
+    "heartbeat_at": "2026-11-02T17:38:40Z",
+    "expires_at": "2026-11-03T17:38:40Z"
+  },
   "history": [
     {
       "lease": {
