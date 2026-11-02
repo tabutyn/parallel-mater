@@ -1,0 +1,167 @@
+{
+  "archive": {
+    "bytes": 79082,
+    "path": "docs/roadmap/evidence/F8-73-METAL-DISPLAY-OFF-20261102.tar.zst",
+    "sha256": "ed54a41445b410daa897ef0d26f5319be26d32ec7eba4683f5df7db5c50f69ec"
+  },
+  "command": [
+    "/private/tmp/parallel-mater-f873/build-macos-metal-preview/parallel-mater-conformance",
+    "--workload",
+    "six-family-mixed",
+    "--warmup-ticks",
+    "600",
+    "--measured-ticks",
+    "7200",
+    "--root",
+    "/private/tmp/parallel-mater-f873",
+    "--output",
+    "/private/tmp/f873-b56e6eee-display-off-20261102/raw"
+  ],
+  "display_restored": true,
+  "display_samples": [
+    {
+      "displays": [
+        {
+          "asleep": false,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:37:35.976704+00:00"
+    },
+    {
+      "displays": [
+        {
+          "asleep": true,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:37:39.010704+00:00"
+    },
+    {
+      "displays": [
+        {
+          "asleep": true,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:37:59.023845+00:00"
+    },
+    {
+      "displays": [
+        {
+          "asleep": true,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:38:19.029105+00:00"
+    },
+    {
+      "displays": [
+        {
+          "asleep": true,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:38:39.031061+00:00"
+    },
+    {
+      "displays": [
+        {
+          "asleep": true,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:38:59.040235+00:00"
+    },
+    {
+      "displays": [
+        {
+          "asleep": true,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:39:04.908888+00:00"
+    },
+    {
+      "displays": [
+        {
+          "asleep": false,
+          "id": 1
+        }
+      ],
+      "result": 0,
+      "utc": "2026-11-02T16:39:08.062255+00:00"
+    }
+  ],
+  "failed_ticks": 0,
+  "installed_build": {
+    "backend": "metal",
+    "build_number": 2116,
+    "dirty": false,
+    "execution_contract": "fixed-tick-60hz-v1",
+    "logo_sha256": "1741f9d7759b2af13255f92a97dbb27a9e50854db634bf1cf3823b455a9e90d3",
+    "release_channel": "development-preview",
+    "revision": "b56e6eeec68aaee73623f01752b401b8791e6e5f",
+    "schema_version": 2
+  },
+  "interpretation": "The display remained asleep at every sampled point during the workload and was restored afterward. Display-off operation did not resolve the six-family p95 failure. This does not identify the remaining GPU execution, scheduling or power-management cause.",
+  "limits_unchanged": true,
+  "measured_ticks": 7200,
+  "physics_p95_limit_ms": 10.0,
+  "physics_p95_passed": false,
+  "qualification_boundary": "Single-workload plain-mode diagnostic. Do not combine this with partial passes from other captures or mark F8-73 complete.",
+  "qualification_claim": false,
+  "raw_files": {
+    "display-state.json": {
+      "bytes": 2252,
+      "sha256": "dbb8332a57b220352bdc53a603fba05da2d3fdab13e1a832ef9fdadcfc691be2"
+    },
+    "execution.log": {
+      "bytes": 63,
+      "sha256": "11aed63ff8502fa39f40964eac976c098ac379d827560fded3f0e75fced543fd"
+    },
+    "raw/six-family-mixed.json": {
+      "bytes": 497896,
+      "sha256": "975972ae732d015b412a7a2ba226f03750d3cabf8a79783ee28658aca26e5455"
+    }
+  },
+  "schema": "parallel-mater-f8-73-display-diagnostic/v1",
+  "simulated_to_wall_time_ratio": 1.5180631503835393,
+  "source_revision": "b56e6eeec68aaee73623f01752b401b8791e6e5f",
+  "task": "F8-73",
+  "timings": {
+    "cpu_ms": {
+      "maximum": 0.015208,
+      "p50": 0.002458,
+      "p95": 0.003333,
+      "p99": 0.004291
+    },
+    "frame_ms": {
+      "maximum": 20.891583,
+      "p50": 9.734583,
+      "p95": 17.497291,
+      "p99": 19.146167
+    },
+    "gpu_ms": {
+      "maximum": 20.831232,
+      "p50": 9.689088,
+      "p95": 17.44896,
+      "p99": 19.075072
+    },
+    "physics_ms": {
+      "maximum": 20.891583,
+      "p50": 9.734583,
+      "p95": 17.497291,
+      "p99": 19.146167
+    }
+  },
+  "wall_seconds": 85.89771670801565,
+  "warmup_ticks": 600
+}
