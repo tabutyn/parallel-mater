@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -577,6 +578,7 @@ int main(int argc, char **argv) {
     using namespace parallel_mater::gallery;
 
     const std::filesystem::path asset_root{PARALLEL_MATER_GALLERY_ASSET_DIR};
+    const bool validation = std::getenv("PM_TEST_VALIDATION") != nullptr;
     std::optional<PmNativeBackend> backend;
     std::optional<PmNativeBackend> reference_backend;
     std::uint32_t requested_frames = 0U;
@@ -652,7 +654,8 @@ int main(int argc, char **argv) {
         CommandScene reference;
         CommandSceneInstance reference_instance;
         CommandSceneFrame reference_frame;
-        if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) {
+        if (!CommandScene::create(scene, 2U, simulation, instance, error, backend,
+                                  nullptr, validation)) {
             if (index == 0U && error.find("physical device") != std::string::npos) {
                 std::cout << "SKIP: no Parallel Mater device\n";
                 return 77;
@@ -661,7 +664,8 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (reference_backend && !CommandScene::create(scene, 2U, reference,
-                reference_instance, error, reference_backend)) {
+                reference_instance, error, reference_backend, nullptr,
+                validation)) {
             std::cerr << entry.name << ": reference create failed: " << error << '\n';
             return 1;
         }

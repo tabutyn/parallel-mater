@@ -1,0 +1,167 @@
+{
+  "schema": "parallel-mater-completion-diagnostic/v1",
+  "task": "F8-76",
+  "purpose": "Separate existing public fence-polling latency from device execution cost; not qualification evidence.",
+  "runtime_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+  "runtime_driver_sha256": "456509e1ae3f12742f3bcd264528ca878fcb53ab0e04d77f0b5f0fec98deb1f2",
+  "consumer_source": {
+    "purpose": "Isolated public-consumer diagnostic, not qualification; same unchanged driver and workload/counts; 600 warmup, 1200 measured ticks.",
+    "runtime_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+    "consumer_only_change": "Optional public fence-status/yield loop in a copied test_context.hpp instead of pmWaitForFences; canonical source and captured SDK remain untouched.",
+    "source_files": {
+      "test_context.hpp": "de65e0789ebf19bd5f7f4a7beab1bc6112bd7441842a5e846771dbf445f32557",
+      "realtime_workload.cpp": "7985c6874c832dbeb3289fd44af2b46beafbdfc800c92a6321a057e56632ae2d",
+      "main.cpp": "1a39519f305856e905ec4337c13552c61cb9d5df02a22b935cebd08af6b4972e"
+    },
+    "canonical_workload_sha256": "7985c6874c832dbeb3289fd44af2b46beafbdfc800c92a6321a057e56632ae2d"
+  },
+  "commands": [
+    {
+      "mode": "canonical",
+      "qualification": false,
+      "executable_sha256": "d45473dc02b02ae564fd1a1ae6b0327a7c32c50d6355c1d08e0967528c0db66b",
+      "exit_code": 0,
+      "seconds": 58.0436383,
+      "output": "D:/Repos/parallel-mater-f8-76-evidence-20261102/fence-diagnostic-canonical.json"
+    },
+    {
+      "mode": "yield",
+      "qualification": false,
+      "executable_sha256": "d45473dc02b02ae564fd1a1ae6b0327a7c32c50d6355c1d08e0967528c0db66b",
+      "exit_code": 0,
+      "seconds": 36.1606846,
+      "output": "D:/Repos/parallel-mater-f8-76-evidence-20261102/fence-diagnostic-yield.json"
+    }
+  ],
+  "observations": {
+    "canonical": {
+      "counts": {
+        "cloth_systems": 1,
+        "cloth_vertices_capacity": 1024,
+        "cloth_vertices_live": 1024,
+        "contact_capacity": 32768,
+        "couplings_capacity": 16,
+        "couplings_live": 16,
+        "fluid_particles_capacity": 4096,
+        "fluid_particles_live": 4096,
+        "fluid_systems": 2,
+        "rigid_bodies_capacity": 32,
+        "rigid_bodies_live": 32,
+        "rope_nodes_capacity": 512,
+        "rope_nodes_live": 512,
+        "rope_systems": 1,
+        "smoke_particles_capacity": 2048,
+        "smoke_particles_live": 2048,
+        "smoke_systems": 1,
+        "soft_body_systems": 1,
+        "soft_nodes_capacity": 512,
+        "soft_nodes_live": 512
+      },
+      "driver_private_state_used": false,
+      "failed_ticks": 0,
+      "id": "six-family-mixed",
+      "measured_ticks": 1200,
+      "schema": "parallel-mater-realtime-workload-capture/v1",
+      "simulated_to_wall_time_ratio": 0.5315451869752719,
+      "source": "installed-public-api",
+      "timings": {
+        "cpu_ms": {
+          "maximum": 0.2266,
+          "p50": 0.0131,
+          "p95": 0.0188,
+          "p99": 0.0251
+        },
+        "frame_ms": {
+          "maximum": 35.131,
+          "p50": 31.1264,
+          "p95": 32.0458,
+          "p99": 32.1455
+        },
+        "gpu_ms": {
+          "maximum": 22.60992,
+          "p50": 18.608128,
+          "p95": 19.56864,
+          "p99": 20.537344
+        },
+        "physics_ms": {
+          "maximum": 35.131,
+          "p50": 31.1264,
+          "p95": 32.0458,
+          "p99": 32.1455
+        }
+      },
+      "warmup_ticks": 600
+    },
+    "yield": {
+      "counts": {
+        "cloth_systems": 1,
+        "cloth_vertices_capacity": 1024,
+        "cloth_vertices_live": 1024,
+        "contact_capacity": 32768,
+        "couplings_capacity": 16,
+        "couplings_live": 16,
+        "fluid_particles_capacity": 4096,
+        "fluid_particles_live": 4096,
+        "fluid_systems": 2,
+        "rigid_bodies_capacity": 32,
+        "rigid_bodies_live": 32,
+        "rope_nodes_capacity": 512,
+        "rope_nodes_live": 512,
+        "rope_systems": 1,
+        "smoke_particles_capacity": 2048,
+        "smoke_particles_live": 2048,
+        "smoke_systems": 1,
+        "soft_body_systems": 1,
+        "soft_nodes_capacity": 512,
+        "soft_nodes_live": 512
+      },
+      "driver_private_state_used": false,
+      "failed_ticks": 0,
+      "id": "six-family-mixed",
+      "measured_ticks": 1200,
+      "schema": "parallel-mater-realtime-workload-capture/v1",
+      "simulated_to_wall_time_ratio": 0.8854258349744922,
+      "source": "installed-public-api",
+      "timings": {
+        "cpu_ms": {
+          "maximum": 0.0369,
+          "p50": 0.0092,
+          "p95": 0.0127,
+          "p99": 0.0155
+        },
+        "frame_ms": {
+          "maximum": 22.9106,
+          "p50": 18.7645,
+          "p95": 19.9639,
+          "p99": 20.9287
+        },
+        "gpu_ms": {
+          "maximum": 22.843392,
+          "p50": 18.696192,
+          "p95": 19.881984,
+          "p99": 20.668416
+        },
+        "physics_ms": {
+          "maximum": 22.9106,
+          "p50": 18.7645,
+          "p95": 19.9639,
+          "p99": 20.9287
+        }
+      },
+      "warmup_ticks": 600
+    }
+  },
+  "finding": "Consumer yield-polling removes much of the timer-sized host delay, but GPU execution and the end-to-end path still exceed the frozen 10 ms physics p95 budget.",
+  "limits": [
+    "600 warmup / 1200 measured ticks; shorter than the required canonical 7200 sample capture.",
+    "One exploratory serial pair, canonical then yield; no controlled thermal/clock equivalence or full-run performance claim.",
+    "The diagnostic changes only a copied public consumer; production and canonical measurement source are untouched. Busy polling is not proposed as the production fix.",
+    "No power policy, workload count, physics equation or frozen limit changed."
+  ],
+  "artifact": {
+    "path": "docs/roadmap/evidence/F8-76-WINDOWS-COMPLETION-DIAGNOSTIC.zip",
+    "sha256": "ed60207f3415050873c63719989621ecc8578441d2acbc3d27240672ad11a659",
+    "bytes": 51608,
+    "member_count": 15
+  }
+}

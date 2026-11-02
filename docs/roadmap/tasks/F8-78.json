@@ -1,0 +1,28 @@
+{
+  "id": "F8-78",
+  "title": "Meet frozen Windows GTX 1080 performance gates",
+  "status": "open",
+  "dependencies": [
+    "F8-76",
+    "F8-77"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule",
+    "f8-windows-cuda-performance"
+  ],
+  "requires": [
+    "Physical Windows GTX 1080 with merged F8-76/F8-77, complete retained Windows capture, and coordination with the live F8-73 Metal work before overlapping shared edits"
+  ],
+  "scope": "Complete the original Windows performance and five-negative-control acceptance separated from F8-76 by the user-approved planning split. Profile native GPU execution, command encoding/submission, data movement and required completion waits on the repaired sole execution path, then remove proven overhead. The retained full capture has approximately 16 ms physics p95 for four workloads and 32 ms for six-family; the isolated consumer diagnostic still has approximately 20 ms six-family GPU p95. Coordinate shared source with F8-73 and integrate current accepted main before measuring. Preserve shared numerical semantics, one 1/60-second advance, one spatial publication and all dispatch/iteration/submission/readback/synchronization budgets. No backend physics fork, weaker capability/quality, smaller workload, discarded stall, raised budget, changed measurement boundary, forced launch blocking or global timer/power workaround is allowed.",
+  "acceptance": [
+    "Retain exact-source before/after profiling that attributes CPU, required waits and native GPU costs without substituting CPU time for GPU timing. Every normal performance sample, including stalls, remains reviewable.",
+    "A clean Windows Release build passes every original registered test and all ownership/completion regressions with no required skip. Affected portable/reference checks and relocated SDK checks pass; cross-backend numerical/physical semantics and failure recovery remain intact.",
+    "The complete installed-public capture passes in plain and validation modes: all 30 public cases, all 12 scenarios and frozen physical-quality/work/recovery checks, all five desktop workloads and all five canonical negative controls. A failing unmodified baseline cannot establish a negative-control pass.",
+    "Each of the five workloads uses exact frozen live/capacity counts, 600 warmup and 7200 measured ticks, zero failed ticks, physics p95 at most 10 ms, frame p95 at most 16.666666666666668 ms and simulated/wall ratio at least 0.99 in both modes. Retain all samples and every required wait; do not drop stalls or relax a limit to close the task.",
+    "Verify one 1/60-second advance, one spatial publication, atomic rejected-step recovery and all existing independent dispatch/iteration/submission/readback/synchronization budgets. Numerical fixtures, goldens, required timeouts and advertised capabilities remain unchanged.",
+    "Publish exact source/tree, compiler/device/memory attributes, installed driver/SDK/manifest hashes and raw evidence; classify every protected closure change. F8-74 refreeze waits for this successful evidence and F8-77 as well as the Metal/ownership repairs. Candidate v9 remains immutable failed history and final F8-26 still needs a fresh replacement-candidate lease."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1376,6 +1376,11 @@ struct SimulationRuntime::Impl {
         std::uint32_t generation{1U};
         std::uint32_t dense_index{k_invalid_dense};
         bool alive{};
+        TriangleMeshId mesh{};
+    };
+    struct MeshSlot {
+        std::uint32_t generation{1U};
+        bool alive{};
     };
 
     SimulationOptions options{};
@@ -1393,6 +1398,7 @@ struct SimulationRuntime::Impl {
     std::uint32_t rigid_solve_kernels_per_substep{1U};
     std::uint32_t soft_cloth_kernels_per_substep{};
     std::vector<Slot> slots{};
+    std::vector<MeshSlot> mesh_slots{};
     std::vector<simulation::OwnerSlot<FluidStorage>> fluids{};
     std::vector<simulation::OwnerSlot<FluidPairCouplingStorage>>
         fluid_pair_couplings{};
@@ -1416,6 +1422,9 @@ struct SimulationRuntime::Impl {
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
     PaintRuleResource *paint_rules{};
+    // Host metadata remains readable while device descriptors/pixels are in use.
+    std::vector<PaintFieldResource> paint_fields_host{};
+    std::vector<PaintRuleResource> paint_rules_host{};
     std::vector<std::uint32_t *> paint_rollback_pixels{};
     std::uint32_t paint_rule_count{};
     std::uint32_t *fluid_neighbor_overflow{};
@@ -1700,8 +1709,8 @@ struct SimulationRuntime::Impl {
         if (paint_fields != nullptr) {
             for (std::uint32_t index = 0;
                  index < options.paint_field_capacity; ++index) {
-                release_managed(paint_fields[index].uvs);
-                release_managed(paint_fields[index].pixels);
+                release_managed(paint_fields_host[index].uvs);
+                release_managed(paint_fields_host[index].pixels);
                 release_managed(paint_rollback_pixels[index]);
             }
         }
@@ -1899,7 +1908,7 @@ struct SimulationRuntime::Impl {
             return failure(StatusCode::invalid_handle,
                            "triangle mesh handle index is invalid");
         }
-        const TriangleMeshResource &mesh = meshes[id.index];
+        const auto &mesh = mesh_slots[id.index];
         if (!mesh.alive || mesh.generation != id.generation) {
             return failure(StatusCode::invalid_handle,
                            "triangle mesh handle is stale");
@@ -2140,6 +2149,7 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
     try {
         implementation = std::make_unique<Impl>();
         implementation->slots.resize(options.rigid_body_capacity);
+        implementation->mesh_slots.resize(options.triangle_mesh_capacity);
         implementation->fluids.resize(options.fluid_capacity);
         implementation->fluid_pair_couplings.resize(
             options.fluid_pair_coupling_capacity);
@@ -2173,6 +2183,8 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
         implementation->paint_rollback_pixels.resize(
             options.paint_field_capacity);
+        implementation->paint_fields_host.resize(options.paint_field_capacity);
+        implementation->paint_rules_host.resize(options.paint_rule_capacity);
         implementation->debug_frames.resize(
             options.physics_debug.frame_capacity);
         implementation->realtime_smoke_payload_refs_host.resize(

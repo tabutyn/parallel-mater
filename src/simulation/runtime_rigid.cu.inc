@@ -44,6 +44,7 @@ Status SimulationRuntime::add_rigid_body(RigidBodyOptions options,
     const std::uint32_t dense = impl_->rigid_body_count;
     slot.alive = true;
     slot.dense_index = dense;
+    slot.mesh = options.mesh;
     if (slot.generation == 0U) {
         slot.generation = 1U;
     }
@@ -94,14 +95,14 @@ Status SimulationRuntime::remove_rigid_body(RigidBodyId body) noexcept {
                            "rigid body is still referenced by smoke coupling");
     for (std::uint32_t index = 0;
          index < impl_->options.paint_field_capacity; ++index)
-        if (impl_->paint_fields[index].alive &&
-            impl_->paint_fields[index].options.body == body)
+        if (impl_->paint_fields_host[index].alive &&
+            impl_->paint_fields_host[index].options.body == body)
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by a paint field");
     for (std::uint32_t index = 0;
          index < impl_->options.paint_rule_capacity; ++index)
-        if (impl_->paint_rules[index].alive &&
-            impl_->paint_rules[index].options.rigid_source == body)
+        if (impl_->paint_rules_host[index].alive &&
+            impl_->paint_rules_host[index].options.rigid_source == body)
             return failure(StatusCode::invalid_argument,
                            "rigid body is still referenced by a paint rule");
     for(const auto &rope:impl_->ropes)
@@ -452,6 +453,35 @@ Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
     }
     box.orientation = normalized_quaternion(box.orientation);
 
+    // Public queries return host results. Snapshot all live counts at this
+    // readback boundary before launching either kind of query; managed counts
+    // cannot be dereferenced on the host between asynchronous query kernels.
+    std::vector<std::uint32_t> fluid_counts;
+    try {
+        fluid_counts.resize(impl_->fluids.size());
+    } catch (...) {
+        return failure(StatusCode::out_of_memory,
+                       "failed to stage hit-box particle counts");
+    }
+    PmResult snapshot_error = PM_SUCCESS;
+    bool snapshot_queued = false;
+    for (std::uint32_t slot = 0U; slot < impl_->fluids.size(); ++slot) {
+        const auto &owner = impl_->fluids[slot];
+        if (!owner || !owner->alive) continue;
+        snapshot_queued = true;
+        snapshot_error = copy_bytes(&fluid_counts[slot], owner->count,
+            sizeof(std::uint32_t), device::CopyDirection::device_to_host, stream);
+        if (snapshot_error != PM_SUCCESS) break;
+    }
+    if (snapshot_queued) {
+        // Drain even after a failed copy so earlier queued destinations stay
+        // alive until their transfers have completed.
+        const auto wait_error = wait_queue(stream);
+        if (snapshot_error == PM_SUCCESS) snapshot_error = wait_error;
+    }
+    if (snapshot_error != PM_SUCCESS)
+        return backend_failure(snapshot_error, "hit-box count snapshot failed");
+
     if (impl_->rigid_body_count != 0U) {
         const PmResult query_result = simulation::query_rigid_hit_box(
             queue,
@@ -462,11 +492,12 @@ Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
             return failure(StatusCode::backend_failure,
                            "rigid hit-box query launch failed");
     }
-    for (const auto &owner : impl_->fluids) {
-        if (!owner || !owner->alive || *owner->count == 0U) continue;
+    for (std::uint32_t slot = 0U; slot < impl_->fluids.size(); ++slot) {
+        const auto &owner = impl_->fluids[slot];
+        if (!owner || !owner->alive || fluid_counts[slot] == 0U) continue;
         const PmResult query_result = simulation::query_particle_hit_box(
             queue,
-            box, owner->positions, *owner->count, owner->hit_box_flags);
+            box, owner->positions, fluid_counts[slot], owner->hit_box_flags);
         if (query_result != PM_SUCCESS)
             return failure(StatusCode::backend_failure,
                            "particle hit-box query launch failed");
@@ -479,8 +510,7 @@ Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
     try {
         temporary.rigid_bodies.reserve(impl_->rigid_body_count);
         std::size_t particle_count = 0U;
-        for (const auto &owner : impl_->fluids)
-            if (owner && owner->alive) particle_count += *owner->count;
+        for (const auto count : fluid_counts) particle_count += count;
         temporary.particles.reserve(particle_count);
         for (std::uint32_t body = 0U; body < impl_->rigid_body_count; ++body)
             if (impl_->hit_box_rigid_flags[body] != 0U)
@@ -489,7 +519,7 @@ Status SimulationRuntime::query_hit_box(HitBox box, HitBoxResult &output,
             const auto &owner = impl_->fluids[slot];
             if (!owner || !owner->alive) continue;
             const FluidId fluid{slot, owner->generation};
-            for (std::uint32_t particle = 0U; particle < *owner->count;
+            for (std::uint32_t particle = 0U; particle < fluid_counts[slot];
                  ++particle)
                 if (owner->hit_box_flags[particle] != 0U)
                     temporary.particles.push_back(
