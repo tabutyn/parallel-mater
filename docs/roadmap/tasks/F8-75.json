@@ -1,7 +1,7 @@
 {
   "id": "F8-75",
   "title": "Repair the Windows CUDA fluid fixture memory ordering",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-70"
   ],
@@ -19,15 +19,31 @@
     "Provide exact source/tree, test binary, device/toolchain and before/after logs. Mechanically prove every candidate-v9 protected closure is unchanged; any required production change must remain in separately leased F8-76.",
     "This repair does not qualify F8-26. F8-74 still gates the new candidate after Metal and Windows production repair; all final Windows tests and captures require a fresh F8-26 lease."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e44a1793-17a4-4184-a09f-ee34e0955c99",
-    "owner": "codex-windows-fluid-fixture",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-75/windows-gtx1080",
-    "claimed_at": "2026-11-01T18:59:23Z",
-    "heartbeat_at": "2026-11-01T18:59:23Z",
-    "expires_at": "2026-11-02T18:59:23Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Windows 11 GTX 1080 driver 582.66, CUDA 12.9.86, MSVC 19.44.35228.0; normal baseline reproduced 0xc0000006/0xc0000022 with concurrentManagedAccess=0; unchanged 720-tick fixture and seven focused CUDA tests pass after repair at 172bdd576895451dc2dfce4a74c4c5b25774f302. docs/roadmap/evidence/F8-75-WINDOWS-CUDA-FLUID-FIXTURE.json SHA-256 93e9d5784a1cda13585c7b75574c5d4a0984face1c73ed7bfcc301ccf04c134c.",
+    "PASS: all candidate-v9 frozen hashes verified and every tracked protected closure identical before/after; assertions, tolerances, workloads and synchronization boundaries byte-identical outside run_tick. Exact sources, binary hashes, commands and logs: docs/roadmap/evidence/F8-75-WINDOWS-CUDA-FLUID-FIXTURE.zip SHA-256 082317fbcc243252309cbe7e4e325e644ddb25ef4d18adf87ecf0467b996fa5d.",
+    "LIMITATION: F8-76 production PEG PAINT/installed soft-body-fluid failures remain open. F8-74 refreeze and a fresh F8-26 lease are still required for Windows qualification."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "e44a1793-17a4-4184-a09f-ee34e0955c99",
+        "owner": "codex-windows-fluid-fixture",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-75/windows-gtx1080",
+        "claimed_at": "2026-11-01T18:59:23Z",
+        "heartbeat_at": "2026-11-01T18:59:23Z",
+        "expires_at": "2026-11-02T18:59:23Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-01T19:13:55Z",
+      "reason": "Snapshot the immutable fluid fixture launch count before asynchronous kernels; preserve all assertions and existing completion boundaries.",
+      "evidence": [
+        "PASS: Windows 11 GTX 1080 driver 582.66, CUDA 12.9.86, MSVC 19.44.35228.0; normal baseline reproduced 0xc0000006/0xc0000022 with concurrentManagedAccess=0; unchanged 720-tick fixture and seven focused CUDA tests pass after repair at 172bdd576895451dc2dfce4a74c4c5b25774f302. docs/roadmap/evidence/F8-75-WINDOWS-CUDA-FLUID-FIXTURE.json SHA-256 93e9d5784a1cda13585c7b75574c5d4a0984face1c73ed7bfcc301ccf04c134c.",
+        "PASS: all candidate-v9 frozen hashes verified and every tracked protected closure identical before/after; assertions, tolerances, workloads and synchronization boundaries byte-identical outside run_tick. Exact sources, binary hashes, commands and logs: docs/roadmap/evidence/F8-75-WINDOWS-CUDA-FLUID-FIXTURE.zip SHA-256 082317fbcc243252309cbe7e4e325e644ddb25ef4d18adf87ecf0467b996fa5d.",
+        "LIMITATION: F8-76 production PEG PAINT/installed soft-body-fluid failures remain open. F8-74 refreeze and a fresh F8-26 lease are still required for Windows qualification."
+      ]
+    }
+  ]
 }

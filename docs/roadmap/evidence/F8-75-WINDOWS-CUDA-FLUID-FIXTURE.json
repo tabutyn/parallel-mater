@@ -1,0 +1,607 @@
+{
+  "schema": "parallel-mater-test-fixture-repair/v1",
+  "task": "F8-75",
+  "status": "passed",
+  "captured_at": "2026-11-01T19:13:55.340491+00:00",
+  "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/640",
+  "lease_token": "e44a1793-17a4-4184-a09f-ee34e0955c99",
+  "scope": "Windows CUDA fluid test fixture memory ordering only; no production or qualification change.",
+  "before": {
+    "phase": "before",
+    "captured_at": "2026-11-01T19:09:02.726038+00:00",
+    "source_revision": "7d48576a80ccf33e9a4b6fe413513babae82625e",
+    "source_tree": "8201a156038610736c07c6b36fd67398ea3a86a0",
+    "status_porcelain": "",
+    "fixture": {
+      "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\tests\\solver\\fluid_realtime_cuda_tests.cu",
+      "bytes": 17874,
+      "sha256": "71b736bf65a59cd933c4771aab7cf2a835a571ab354e8960a1816dd74fd5349e"
+    },
+    "candidate_manifest": {
+      "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\conformance\\v1\\qualification\\realtime-candidate-v9.json",
+      "bytes": 31867,
+      "sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+    },
+    "protected_closures": [
+      {
+        "category": "api_abi",
+        "patterns": [
+          "include/parallel_mater/**/*",
+          "include/parallel_mater_scene/**/*",
+          "registry/pm.xml",
+          "src/loader/**/*",
+          "cmake/ParallelMaterLoader.cmake",
+          "cmake/ParallelMaterConfig.cmake.in",
+          "MIGRATION.md"
+        ],
+        "file_count": 18,
+        "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+        "observed_file_count": 18,
+        "observed_sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "kernel",
+        "patterns": [
+          "cmake/SlangKernelManifest.cmake",
+          "src/slang/**/*.slang"
+        ],
+        "file_count": 39,
+        "sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993",
+        "observed_file_count": 39,
+        "observed_sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "adapter_binding",
+        "patterns": [
+          "src/api/**/*",
+          "src/layers/**/*",
+          "src/driver/**/*",
+          "src/device/**/*",
+          "tools/generate_cpu_dispatch_stubs.py",
+          "tools/generate_dxil_dispatch.py",
+          "tools/generate_vulkan_dispatch.py",
+          "tests/solver/test_dxil_bindings.py"
+        ],
+        "file_count": 49,
+        "sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67",
+        "observed_file_count": 49,
+        "observed_sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "runtime",
+        "patterns": [
+          "src/simulation/**/*"
+        ],
+        "file_count": 127,
+        "sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7",
+        "observed_file_count": 127,
+        "observed_sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "schedule_telemetry",
+        "patterns": [
+          "src/simulation/realtime_schedule.hpp",
+          "src/simulation/runtime_schedule.cu.inc",
+          "src/simulation/production_realtime_backend.cu.inc",
+          "src/simulation/native_schedule_backend.cu.inc",
+          "src/simulation/realtime_telemetry.hpp",
+          "src/simulation/runtime_diagnostics.cu.inc"
+        ],
+        "file_count": 6,
+        "sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037",
+        "observed_file_count": 6,
+        "observed_sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "contract",
+        "patterns": [
+          "conformance/v1/qualification/realtime-profile-v1.json",
+          "conformance/v1/qualification/capability-obligations-v1.json",
+          "conformance/v1/qualification/kernel-device-obligations-v1.json",
+          "config/device-profiles.json",
+          "docs/INTERACTION-MODES.md",
+          "docs/DRIVER_SDK.md"
+        ],
+        "file_count": 6,
+        "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+        "observed_file_count": 6,
+        "observed_sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "public_oracle",
+        "patterns": [
+          "conformance/v1/**/*",
+          "tests/sdk/realtime_profile.c",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/solver/check_slang_architecture.py"
+        ],
+        "file_count": 541,
+        "sha256": "234ff210221d3fc30e5800d41cb9cc3b0509b9ce99273f02f06bae8122cd48cb",
+        "observed_file_count": 543,
+        "observed_sha256": "812787c635db8865507e7acf3f6b13b6d9120bae17af5943ec3b5de84efa485c",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": false,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "work_budget",
+        "patterns": [
+          "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+          "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+          "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+          "tests/solver/rigid_realtime_tests.cpp",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/gallery/metal_schedule_profile_tests.py",
+          "tests/gallery/test_mobile_metal_qualification.py"
+        ],
+        "file_count": 7,
+        "sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405",
+        "observed_file_count": 7,
+        "observed_sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      },
+      {
+        "category": "gallery",
+        "patterns": [
+          "examples/support/**/*",
+          "examples/gallery/**/*",
+          "examples/android/app/src/**/*",
+          "examples/ios/**/*",
+          "cmake/*Gallery*.cmake",
+          "cmake/BundleMacOSRuntime.cmake",
+          "cmake/DeployMacOSBundle.cmake",
+          "scripts/Build-*Gallery*",
+          "scripts/Deploy-*Gallery*",
+          "tests/gallery/**/*"
+        ],
+        "file_count": 160,
+        "sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80",
+        "observed_file_count": 160,
+        "observed_sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": null
+      }
+    ],
+    "all_frozen_closures_verified": true,
+    "all_protected_closures_unchanged_by_repair": null,
+    "closure_method": "Hash clean Git archives, excluding ignored build/Python cache files. Compare before/after tracked closures separately from immutable frozen source.",
+    "preexisting_freeze_metadata_delta": "M\tconformance/v1/qualification/active-realtime-candidate.json\nA\tconformance/v1/qualification/realtime-candidate-v8-rejection.json\nA\tconformance/v1/qualification/realtime-candidate-v9.json",
+    "cuda_memory_attributes": {
+      "managed_memory": {
+        "result": 0,
+        "value": 1
+      },
+      "concurrent_managed_access": {
+        "result": 0,
+        "value": 0
+      }
+    },
+    "binaries": [
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-fluid-realtime-cuda-tests.exe",
+        "bytes": 350208,
+        "sha256": "5624f4c0d18662f9aa243e98dfa3f39ececde159ad061c254568bb85bca94452"
+      }
+    ]
+  },
+  "after": {
+    "phase": "after",
+    "captured_at": "2026-11-01T19:12:01.484487+00:00",
+    "source_revision": "172bdd576895451dc2dfce4a74c4c5b25774f302",
+    "source_tree": "1bf8b6bac7f051743d4a8f949190415c4c729a61",
+    "status_porcelain": "",
+    "fixture": {
+      "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\tests\\solver\\fluid_realtime_cuda_tests.cu",
+      "bytes": 18083,
+      "sha256": "4c31c162ae533224fc30e917cc13d0493ee1f4cb0e533613cf63f16cde1e6883"
+    },
+    "candidate_manifest": {
+      "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\conformance\\v1\\qualification\\realtime-candidate-v9.json",
+      "bytes": 31867,
+      "sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+    },
+    "protected_closures": [
+      {
+        "category": "api_abi",
+        "patterns": [
+          "include/parallel_mater/**/*",
+          "include/parallel_mater_scene/**/*",
+          "registry/pm.xml",
+          "src/loader/**/*",
+          "cmake/ParallelMaterLoader.cmake",
+          "cmake/ParallelMaterConfig.cmake.in",
+          "MIGRATION.md"
+        ],
+        "file_count": 18,
+        "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+        "observed_file_count": 18,
+        "observed_sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "kernel",
+        "patterns": [
+          "cmake/SlangKernelManifest.cmake",
+          "src/slang/**/*.slang"
+        ],
+        "file_count": 39,
+        "sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993",
+        "observed_file_count": 39,
+        "observed_sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "adapter_binding",
+        "patterns": [
+          "src/api/**/*",
+          "src/layers/**/*",
+          "src/driver/**/*",
+          "src/device/**/*",
+          "tools/generate_cpu_dispatch_stubs.py",
+          "tools/generate_dxil_dispatch.py",
+          "tools/generate_vulkan_dispatch.py",
+          "tests/solver/test_dxil_bindings.py"
+        ],
+        "file_count": 49,
+        "sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67",
+        "observed_file_count": 49,
+        "observed_sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "runtime",
+        "patterns": [
+          "src/simulation/**/*"
+        ],
+        "file_count": 127,
+        "sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7",
+        "observed_file_count": 127,
+        "observed_sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "schedule_telemetry",
+        "patterns": [
+          "src/simulation/realtime_schedule.hpp",
+          "src/simulation/runtime_schedule.cu.inc",
+          "src/simulation/production_realtime_backend.cu.inc",
+          "src/simulation/native_schedule_backend.cu.inc",
+          "src/simulation/realtime_telemetry.hpp",
+          "src/simulation/runtime_diagnostics.cu.inc"
+        ],
+        "file_count": 6,
+        "sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037",
+        "observed_file_count": 6,
+        "observed_sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "contract",
+        "patterns": [
+          "conformance/v1/qualification/realtime-profile-v1.json",
+          "conformance/v1/qualification/capability-obligations-v1.json",
+          "conformance/v1/qualification/kernel-device-obligations-v1.json",
+          "config/device-profiles.json",
+          "docs/INTERACTION-MODES.md",
+          "docs/DRIVER_SDK.md"
+        ],
+        "file_count": 6,
+        "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+        "observed_file_count": 6,
+        "observed_sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "public_oracle",
+        "patterns": [
+          "conformance/v1/**/*",
+          "tests/sdk/realtime_profile.c",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/solver/check_slang_architecture.py"
+        ],
+        "file_count": 541,
+        "sha256": "234ff210221d3fc30e5800d41cb9cc3b0509b9ce99273f02f06bae8122cd48cb",
+        "observed_file_count": 543,
+        "observed_sha256": "812787c635db8865507e7acf3f6b13b6d9120bae17af5943ec3b5de84efa485c",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": false,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "work_budget",
+        "patterns": [
+          "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+          "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+          "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+          "tests/solver/rigid_realtime_tests.cpp",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/gallery/metal_schedule_profile_tests.py",
+          "tests/gallery/test_mobile_metal_qualification.py"
+        ],
+        "file_count": 7,
+        "sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405",
+        "observed_file_count": 7,
+        "observed_sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      },
+      {
+        "category": "gallery",
+        "patterns": [
+          "examples/support/**/*",
+          "examples/gallery/**/*",
+          "examples/android/app/src/**/*",
+          "examples/ios/**/*",
+          "cmake/*Gallery*.cmake",
+          "cmake/BundleMacOSRuntime.cmake",
+          "cmake/DeployMacOSBundle.cmake",
+          "scripts/Build-*Gallery*",
+          "scripts/Deploy-*Gallery*",
+          "tests/gallery/**/*"
+        ],
+        "file_count": 160,
+        "sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80",
+        "observed_file_count": 160,
+        "observed_sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80",
+        "frozen_identity_verified": true,
+        "matches_candidate_v9": true,
+        "unchanged_by_repair": true
+      }
+    ],
+    "all_frozen_closures_verified": true,
+    "all_protected_closures_unchanged_by_repair": true,
+    "closure_method": "Hash clean Git archives, excluding ignored build/Python cache files. Compare before/after tracked closures separately from immutable frozen source.",
+    "preexisting_freeze_metadata_delta": "M\tconformance/v1/qualification/active-realtime-candidate.json\nA\tconformance/v1/qualification/realtime-candidate-v8-rejection.json\nA\tconformance/v1/qualification/realtime-candidate-v9.json",
+    "cuda_memory_attributes": {
+      "managed_memory": {
+        "result": 0,
+        "value": 1
+      },
+      "concurrent_managed_access": {
+        "result": 0,
+        "value": 0
+      }
+    },
+    "binaries": [
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-deform-coupling-cuda-tests.exe",
+        "bytes": 86016,
+        "sha256": "0a7d86c538e96a390b8046980fb817dded1b11b94a48b44097432c1c3eba5bc8"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-deformable-spatial-cuda-tests.exe",
+        "bytes": 279552,
+        "sha256": "be78a893ac550e67ffeba4fd48f891a9cee8d2990391841654fc754b7ebf2a8c"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-fluid-realtime-cuda-tests.exe",
+        "bytes": 350208,
+        "sha256": "4a24c75b31018f8518678a3ca2dbaea57627ae2b3c2c2d209c7af76fcdb4f9b6"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-fluid-spatial-cuda-tests.exe",
+        "bytes": 350720,
+        "sha256": "1126faa9786ea5d849af11aef57af596b3b3ff97be85fe36f9958a0fc1fef20d"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-liquid-coupling-realtime-cuda-tests.exe",
+        "bytes": 91136,
+        "sha256": "af165b49a45343b6c391700fd2c0edd26e23d6d167203b1182e1dd50212923a1"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-rigid-coupling-realtime-cuda-tests.exe",
+        "bytes": 159744,
+        "sha256": "bc04f06fb9bc1db7184685d49ddfde1851c8795de5621c2e15374f542fbae024"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-spatial-build-cuda-tests.exe",
+        "bytes": 213504,
+        "sha256": "6349fee2a461b4bdc9e25acfdada92a4371dee6eaaee60edd77654a3fc107f07"
+      }
+    ]
+  },
+  "machine": {
+    "captured_at": "2026-11-01T19:05:19.2748949Z",
+    "os": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200",
+      "OSArchitecture": "64-bit"
+    },
+    "cpu": {
+      "Name": "AMD Ryzen 5 5500                               ",
+      "NumberOfCores": 6,
+      "NumberOfLogicalProcessors": 12
+    },
+    "gpu": "NVIDIA GeForce GTX 1080, 582.66, 8192 MiB",
+    "cmake": "cmake version 4.4.2",
+    "ninja": "1.12.1",
+    "cuda": [
+      "nvcc: NVIDIA (R) Cuda compiler driver",
+      "Copyright (c) 2005-2025 NVIDIA Corporation",
+      "Built on Tue_May_27_02:24:01_Pacific_Daylight_Time_2025",
+      "Cuda compilation tools, release 12.9, V12.9.86",
+      "Build cuda_12.9.r12.9/compiler.36037853_0"
+    ],
+    "slang": "2026.18",
+    "msvc": "14.44.35207",
+    "python": "Python 3.13.15"
+  },
+  "baseline_reproduction": {
+    "captured_at": "2026-11-01T19:09:06.151527+00:00",
+    "command": [
+      "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-fluid-realtime-cuda-tests.exe"
+    ],
+    "cuda_launch_blocking": null,
+    "debugger": false,
+    "exit_code": 3221225478,
+    "exit_hex": "0xc0000006",
+    "elapsed_seconds": 2.3180694000329822
+  },
+  "baseline_exceptions": [
+    {
+      "code": "0xc0000006",
+      "first_chance": true,
+      "address": "0x7ff614203621",
+      "thread_id": 9616,
+      "parameters": [
+        "0x0",
+        "0xc000d8000",
+        "0xc0000022"
+      ]
+    },
+    {
+      "code": "0xc0000006",
+      "first_chance": false,
+      "address": "0x7ff614203621",
+      "thread_id": 9616,
+      "parameters": [
+        "0x0",
+        "0xc000d8000",
+        "0xc0000022"
+      ]
+    }
+  ],
+  "repaired_normal_execution": {
+    "captured_at": "2026-11-01T19:12:22.063963+00:00",
+    "command": [
+      "D:\\Repos\\parallel-mater-f8-75-build-20261101\\tests\\solver\\parallel-mater-fluid-realtime-cuda-tests.exe"
+    ],
+    "cuda_launch_blocking": null,
+    "debugger": false,
+    "exit_code": 0,
+    "exit_hex": "0x0",
+    "elapsed_seconds": 7.5410105001647025
+  },
+  "fixture_metrics": {
+    "F8_FLUID_60HZ_COMPRESSION": {
+      "particles": 64,
+      "initial_p95": 0.385601163,
+      "final_p95": 0,
+      "final_maximum": 0,
+      "maximum_correction_m": 0.0250000022,
+      "advances": 1,
+      "sweeps": 6
+    },
+    "F8_FLUID_60HZ_WINDOW": {
+      "ticks": 720,
+      "particles": 65,
+      "outflows": 1,
+      "source_admissions": 2,
+      "viscosity_energy_ratio": 0.102338426,
+      "maximum_energy_ratio": 1,
+      "center_drift_support": 0.0239014942,
+      "leaked": 0,
+      "p50_ms": 1.424384,
+      "p95_ms": 1.77868795,
+      "p99_ms": 2.70233607,
+      "maximum_ms": 8.43161583
+    }
+  },
+  "focused_cuda_tests": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "tests": [
+      {
+        "name": "parallel-mater-spatial-build-cuda-tests",
+        "status": "passed",
+        "seconds": 4.46851
+      },
+      {
+        "name": "parallel-mater-rigid-coupling-realtime-cuda-tests",
+        "status": "passed",
+        "seconds": 2.47006
+      },
+      {
+        "name": "parallel-mater-liquid-coupling-realtime-cuda-tests",
+        "status": "passed",
+        "seconds": 3.04469
+      },
+      {
+        "name": "parallel-mater-deform-coupling-cuda-tests",
+        "status": "passed",
+        "seconds": 2.96385
+      },
+      {
+        "name": "parallel-mater-fluid-spatial-cuda-tests",
+        "status": "passed",
+        "seconds": 2.27988
+      },
+      {
+        "name": "parallel-mater-fluid-realtime-cuda-tests",
+        "status": "passed",
+        "seconds": 5.68014
+      },
+      {
+        "name": "parallel-mater-deformable-spatial-cuda-tests",
+        "status": "passed",
+        "seconds": 2.16582
+      }
+    ]
+  },
+  "source_audit": {
+    "changed_source_files": [
+      "tests/solver/fluid_realtime_cuda_tests.cu"
+    ],
+    "only_code_change": "Snapshot managed count once before the first kernel; reuse it in the three query-count launch arguments.",
+    "all_source_outside_run_tick_byte_identical": true,
+    "assertions_tolerances_workloads_and_completion_boundaries_unchanged": true,
+    "no_added_synchronization": true,
+    "no_managed_host_dereference_after_first_launch": true,
+    "review": "After predict, host expressions read only ordinary Fixture fields, immutable local launch arguments and host options; managed allocations are passed as pointers. All observations remain after existing cudaDeviceSynchronize or cudaEventSynchronize calls.",
+    "all_candidate_v9_frozen_hashes_verified": true,
+    "every_tracked_protected_closure_identical_before_after": true,
+    "preexisting_freeze_metadata_delta": "M\tconformance/v1/qualification/active-realtime-candidate.json\nA\tconformance/v1/qualification/realtime-candidate-v8-rejection.json\nA\tconformance/v1/qualification/realtime-candidate-v9.json",
+    "closure_caveat": "The public_oracle closure on both tested heads already includes the F8-70 activation-pointer update and v8-rejection/v9-freeze records added after the immutable candidate source. No repair changes these files. Hash clean Git archives so ignored Python caches cannot enter closure measurements."
+  },
+  "candidate_check": "PASS: realtime-single-step-v1-ba67db3 protected closure and routing are exact",
+  "limitations": [
+    "The two production failures (PEG PAINT and installed soft-body-fluid) remain open F8-76 work; this focused fixture repair does not skip, alter or resolve them.",
+    "F8-26 is not qualified. F8-74 must refreeze after Metal F8-73 and Windows F8-76 production repair; final Windows qualification needs a fresh F8-26 lease.",
+    "The 720-tick timings describe this physical fixture run only, not installed-public or end-to-end 60 Hz performance qualification."
+  ],
+  "artifacts": {
+    "archive": "docs/roadmap/evidence/F8-75-WINDOWS-CUDA-FLUID-FIXTURE.zip",
+    "sha256": "082317fbcc243252309cbe7e4e325e644ddb25ef4d18adf87ecf0467b996fa5d",
+    "bytes": 41247,
+    "files": 30,
+    "member_manifest": "SHA256SUMS.json",
+    "member_manifest_sha256": "fa07d8ed053d4740cdb4d448da9dfe3f35f9ece529c19cd3db626c470023b705"
+  }
+}
