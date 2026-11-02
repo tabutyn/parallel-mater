@@ -6,6 +6,48 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     find_package(ParallelMater CONFIG REQUIRED)
 endif()
 find_package(Threads REQUIRED)
+add_executable(parallel-mater-completion-wait-tests completion_wait_tests.cpp)
+target_compile_features(parallel-mater-completion-wait-tests PRIVATE cxx_std_20)
+target_link_libraries(parallel-mater-completion-wait-tests PRIVATE
+    ParallelMater::parallel_mater Threads::Threads)
+foreach(backend cpu cuda vulkan d3d12 metal host)
+    if(backend STREQUAL "host")
+        set(completion_driver parallel-mater-test-driver-slang-cpu-resources)
+        set(completion_manifest test-slang-cpu-resources)
+    else()
+        set(completion_driver parallel-mater-driver-slang-${backend})
+        set(completion_manifest slang-${backend})
+    endif()
+    if(TARGET ${completion_driver} AND TARGET parallel-mater-layer-validation)
+        add_dependencies(parallel-mater-completion-wait-tests
+            ${completion_driver} parallel-mater-layer-validation)
+        set(completion_arguments)
+        if(backend STREQUAL "metal" OR backend STREQUAL "vulkan" OR
+           backend STREQUAL "d3d12")
+            # Hosted compilation runners may expose no native GPU. Required
+            # CUDA and portable CPU/host cases remain strict.
+            list(APPEND completion_arguments --allow-no-device)
+        endif()
+        foreach(mode plain validation)
+            set(completion_test parallel-mater-${backend}-completion-wait-${mode})
+            add_test(NAME ${completion_test}
+                COMMAND parallel-mater-completion-wait-tests ${completion_arguments})
+            set_tests_properties(${completion_test} PROPERTIES TIMEOUT 30
+                LABELS "api;synchronization;threading;f8;${backend}"
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${completion_manifest}.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+            if(completion_arguments)
+                set_tests_properties(${completion_test} PROPERTIES SKIP_RETURN_CODE 77)
+            endif()
+            if(mode STREQUAL "validation")
+                set_tests_properties(${completion_test} PROPERTIES
+                    ENVIRONMENT_MODIFICATION "PM_TEST_VALIDATION=set:1")
+            else()
+                set_tests_properties(${completion_test} PROPERTIES
+                    ENVIRONMENT_MODIFICATION "PM_TEST_VALIDATION=unset:")
+            endif()
+        endforeach()
+    endif()
+endforeach()
 foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction-graph-lifecycle graph-validation geometry-lifecycle paint-lifecycle endpoint-lifecycle fluid-pair-graph-lifecycle soft-body-contact-contract cloth-contact-contract)
     string(REPLACE "-" "_" source_name "${suite}")
     set(suite_source ${source_name}_tests.cpp)
@@ -316,7 +358,7 @@ if(WIN32)
     # DLL. Windows has no build-tree RPATH; use the selected SDK's DLL directory
     # for tests instead of depending on a developer's global PATH or installation.
     get_property(api_lifecycle_tests DIRECTORY PROPERTY TESTS)
-    set_tests_properties(${api_lifecycle_tests} PROPERTIES
-        ENVIRONMENT_MODIFICATION
+    # Preserve per-test modes while adding the DLL lookup path.
+    set_property(TEST ${api_lifecycle_tests} APPEND PROPERTY ENVIRONMENT_MODIFICATION
         "PATH=path_list_prepend:$<TARGET_FILE_DIR:ParallelMater::parallel_mater>")
 endif()

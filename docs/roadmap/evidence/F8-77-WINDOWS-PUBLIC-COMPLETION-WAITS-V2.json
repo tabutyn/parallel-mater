@@ -1,0 +1,940 @@
+{
+  "schema": "parallel-mater-public-completion-repair/v1",
+  "task": "F8-77",
+  "status": "passed",
+  "captured_at": "2026-11-02T21:29:28.032688+00:00",
+  "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/647",
+  "lease_token": "42db680c-e3ca-42a5-b971-1bfeac890373",
+  "scope": "Public fence/timeline completion notification and timeout semantics; no fixed-tick or physics change.",
+  "before": {
+    "purpose": "Exact retained normal-execution before measurements; source fields distinguish compiled binaries from the later claim checkout.",
+    "compiled_source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+    "compiled_source_tree": "ff988c80e7ae52285197b6fd9fb23e0c55c93c0e",
+    "claim_base_revision": "172ed9192350a5d96155a9da41c92595e26214e7",
+    "changes_from_compiled_source_to_claim_base": [
+      "docs/ROADMAP.md",
+      "docs/roadmap/evidence/F8-76-WINDOWS-COMPLETION-DIAGNOSTIC.json",
+      "docs/roadmap/evidence/F8-76-WINDOWS-COMPLETION-DIAGNOSTIC.zip",
+      "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.json",
+      "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.md",
+      "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.zip",
+      "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-OWNERSHIP-ACCEPTANCE.json",
+      "docs/roadmap/evidence/F8-76-WINDOWS-FOLLOWUP-PROPOSAL.md",
+      "docs/roadmap/tasks/F8-74.json",
+      "docs/roadmap/tasks/F8-76.json",
+      "docs/roadmap/tasks/F8-77.json",
+      "docs/roadmap/tasks/F8-78.json"
+    ],
+    "all_changes_are_documentation_or_roadmap_metadata": true,
+    "authoritative_report": "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.json",
+    "authoritative_report_sha256": "16d8359c537477645e584a434aaa5e9974cac59bf88f2362840dc68b916ba755",
+    "archive": {
+      "archive": "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-METADATA-PROGRESS.zip",
+      "sha256": "6c7c472f0d7066b0e15a1787f46e2b5c9212c73740852dfbc911a3dd38e5d222",
+      "bytes": 11089323,
+      "files": 279,
+      "member_manifest": "SHA256SUMS-current.json",
+      "member_manifest_sha256": "92033a313a281aa92711dbe5036b6b94fc828246ebc1956e7fd96ef50f42a9f1",
+      "verification": "ZIP CRC and every member SHA-256/size verified after writing; raw executable/driver hashes retained without binary payloads."
+    },
+    "before_binary_identity": {
+      "captured_at": "2026-11-02T16:19:59.735630+00:00",
+      "phase": "after-current-release",
+      "source_revision": "68e7d8f3af24c47d8d4d1da374d7ef600b9f04e2",
+      "source_tree": "ff988c80e7ae52285197b6fd9fb23e0c55c93c0e",
+      "source_status": "",
+      "build": "D:\\Repos\\parallel-mater-f8-76-current-20261102",
+      "cuda_memory_attributes": {
+        "managed_memory": {
+          "result": 0,
+          "value": 1
+        },
+        "concurrent_managed_access": {
+          "result": 0,
+          "value": 0
+        }
+      },
+      "candidate_v9_manifest": {
+        "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\conformance\\v1\\qualification\\realtime-candidate-v9.json",
+        "bytes": 31867,
+        "sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+      },
+      "artifacts": [
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel_mater_driver_slang_cuda.dll",
+          "bytes": 8531968,
+          "sha256": "456509e1ae3f12742f3bcd264528ca878fcb53ab0e04d77f0b5f0fec98deb1f2"
+        },
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater.dll",
+          "bytes": 233984,
+          "sha256": "ec85b197377dad381c58a2bf38dfdb0a4dabe9eec2d7507b0dbbd77472032e24"
+        },
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\cudart64_12.dll",
+          "bytes": 580608,
+          "sha256": "cf68ac7d47c621988db3343b8a211188e6f94cccf30dec3b15dd52d69fdcf512"
+        },
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater-slang-cuda-realtime-tests.exe",
+          "bytes": 109056,
+          "sha256": "9a2eabc72d9caddb2ff89ecd2224ced51b425636d8a4b83943b06a4d8ac58457"
+        },
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater-command-gallery-tests.exe",
+          "bytes": 519168,
+          "sha256": "6ee15b0988a26d8d3e588ae51a2937abebd89165b04ebf07e881185e26d5d543"
+        },
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel-mater-conformance.exe",
+          "bytes": 2052096,
+          "sha256": "c9e1b377145290263c8e6d8d9f452fc80e57e6e1a6985232e0229ff1f0936974"
+        },
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\parallel_mater_layer_validation.dll",
+          "bytes": 131584,
+          "sha256": "ae19f86556f5e60c8acb41f300582e4f405b0b747fa558517133a82715e4a134"
+        },
+        {
+          "path": "D:\\Repos\\parallel-mater-f8-76-current-20261102\\CMakeCache.txt",
+          "bytes": 47122,
+          "sha256": "2ad467c5aa94417c62dd148414b49861b001151642109c09e80fddacc5605982"
+        }
+      ]
+    },
+    "machine_at_original_capture": {
+      "captured_at": "2026-11-02T14:45:18.6927394Z",
+      "os": {
+        "Caption": "Microsoft Windows 11 Pro",
+        "Version": "10.0.26200",
+        "BuildNumber": "26200",
+        "OSArchitecture": "64-bit"
+      },
+      "cpu": {
+        "Name": "AMD Ryzen 5 5500                               ",
+        "NumberOfCores": 6,
+        "NumberOfLogicalProcessors": 12
+      },
+      "gpu": "NVIDIA GeForce GTX 1080, 582.66, 8192 MiB",
+      "cmake": "cmake version 4.4.2",
+      "ninja": "1.12.1",
+      "cuda": [
+        "nvcc: NVIDIA (R) Cuda compiler driver",
+        "Copyright (c) 2005-2025 NVIDIA Corporation",
+        "Built on Tue_May_27_02:24:01_Pacific_Daylight_Time_2025",
+        "Cuda compilation tools, release 12.9, V12.9.86",
+        "Build cuda_12.9.r12.9/compiler.36037853_0"
+      ],
+      "slang": "2026.18",
+      "msvc_toolset": "14.44.35207",
+      "python": "Python 3.13.15"
+    },
+    "execution": "Installed public runner, CUDA_LAUNCH_BLOCKING absent, 600 warmup / 7200 measured ticks, plain and validation. No consumer polling override.",
+    "shorter_consumer_diagnostic": "F8-76-WINDOWS-COMPLETION-DIAGNOSTIC remains non-qualification history; it is not substituted for these full baseline samples."
+  },
+  "after": {
+    "captured_at": "2026-11-02T21:14:46.312821+00:00",
+    "phase": "release",
+    "source_revision": "701a3f12ef434381a5baa0b62a8f4a1473505a6a",
+    "source_tree": "5f8f8348ce258bffa380b16eb87f2e652255b0db",
+    "source_status": "",
+    "build": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102",
+    "cuda_memory_attributes": {
+      "managed_memory": {
+        "result": 0,
+        "value": 1
+      },
+      "concurrent_managed_access": {
+        "result": 0,
+        "value": 0
+      }
+    },
+    "candidate_v9_manifest": {
+      "path": "C:\\Users\\tabut\\Repos\\ballroller-2026\\.codex-worktrees\\parallel-mater-f8-26-20261101\\conformance\\v1\\qualification\\realtime-candidate-v9.json",
+      "bytes": 31867,
+      "sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+    },
+    "artifacts": [
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\parallel_mater_driver_slang_cuda.dll",
+        "bytes": 8532480,
+        "sha256": "5755d64992deab66562c71c10736c3b0242aaec1a2843d7a22862cb8fae2b490"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\parallel-mater.dll",
+        "bytes": 233984,
+        "sha256": "85d00d2f279d5747baada54b599325c4b5b1c4e1b861b52e574ea4518db6f0e5"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\cudart64_12.dll",
+        "bytes": 580608,
+        "sha256": "cf68ac7d47c621988db3343b8a211188e6f94cccf30dec3b15dd52d69fdcf512"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\parallel-mater-slang-cuda-realtime-tests.exe",
+        "bytes": 109056,
+        "sha256": "b474d74e4ca8bcac191983b9a38b385318ab435ec774c59b1a753b1ab3949f0c"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\parallel-mater-command-gallery-tests.exe",
+        "bytes": 519168,
+        "sha256": "fabc1c4bc948dc7ec7de7a91e0bcb12dd1e28c8b5d3ab8828a3ee6ae36c9f2b2"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\parallel-mater-conformance.exe",
+        "bytes": 2052096,
+        "sha256": "2e31daf4739cdf069df6a25e079d1095a4c8cab7b4c5ae501add5d2e35adaec1"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\parallel_mater_layer_validation.dll",
+        "bytes": 131584,
+        "sha256": "1c5f87e34fe3117d88b20b364f8bb76bedc9a5227141115ba30c25377dc71cb3"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\CMakeCache.txt",
+        "bytes": 47146,
+        "sha256": "787e6a1fd742c494251b35f2802443533c3f58c00c10cc155c971bf3a4640187"
+      },
+      {
+        "path": "D:\\Repos\\parallel-mater-f8-77-final-build-20261102\\parallel-mater-submission-queue-tests.exe",
+        "bytes": 78336,
+        "sha256": "a50bd343bf3b96744d3899c5b47ba5db0198fa0d6e72f82b7f115c0ababe67dd"
+      }
+    ]
+  },
+  "machine": {
+    "captured_at": "2026-11-02T21:08:49.2750900Z",
+    "os": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200",
+      "OSArchitecture": "64-bit"
+    },
+    "cpu": {
+      "Name": "AMD Ryzen 5 5500                               ",
+      "NumberOfCores": 6,
+      "NumberOfLogicalProcessors": 12
+    },
+    "gpu": "NVIDIA GeForce GTX 1080, 582.66, 8192 MiB",
+    "cmake": "cmake version 4.4.2",
+    "ninja": "1.12.1",
+    "cuda": [
+      "nvcc: NVIDIA (R) Cuda compiler driver",
+      "Copyright (c) 2005-2025 NVIDIA Corporation",
+      "Built on Tue_May_27_02:24:01_Pacific_Daylight_Time_2025",
+      "Cuda compilation tools, release 12.9, V12.9.86",
+      "Build cuda_12.9.r12.9/compiler.36037853_0"
+    ],
+    "msvc_toolset": "14.44.35207",
+    "python": "Python 3.13.15",
+    "slang": "2026.18",
+    "slang_supported_version_observation": {
+      "executable": "D:\\Repos\\parallel-mater\\build-d3d12-full\\_deps\\parallel_mater_slang-src\\bin\\slangc.exe",
+      "executable_sha256": "6d485000fabbb84f305ac06aacb9a32d8896b939a08c48f0dc9d1c77b529eaff",
+      "arguments": [
+        "-version"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "2026.18\n"
+    }
+  },
+  "release_binary_inventory": {
+    "artifact": "release-binary-hashes.json",
+    "sha256": "07244fbe060f1eef5ae772a61cacc57f28c9d4b239bce9b6b24eb814a5e78ffc",
+    "count": 113
+  },
+  "test_harness_corrections": {
+    "initial_report": "docs/roadmap/evidence/F8-77-WINDOWS-PUBLIC-COMPLETION-WAITS.json",
+    "initial_ci": "https://github.com/tabutyn/parallel-mater/actions/runs/41514424323/attempts/3",
+    "optional_hardware": "Hosted Metal enumeration returned zero devices. Optional Metal/Vulkan/D3D12 tests now explicitly allow exit 77 only after successful zero-device enumeration; failures on an available device still fail. Required CUDA, CPU and host tests have no skip code and no allow-no-device argument.",
+    "windows_modes": "Appending the Windows DLL PATH modification preserves each API test mode. Earlier API validation-case metadata had been overwritten by PATH setup; this fresh suite verifies the actual set/unset mode and keeps CUDA strict.",
+    "historical_scope": "Initial raw reports and timings remain preserved. Earlier standalone validation probes and conformance captures explicitly set their mode and were unaffected by the CTest metadata issue. This fresh capture supersedes registered-test mode acceptance.",
+    "availability_regressions": [
+      {
+        "mode": "plain",
+        "arguments": [],
+        "manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "expected_exit_code": 0,
+        "executable_sha256": "e62ee2a13585bb79d823d196eb995acebed942399ceca97cbf087f0ed7bddea6",
+        "exit_code": 0,
+        "availability": "strict-cuda"
+      },
+      {
+        "mode": "plain",
+        "arguments": [
+          "--allow-no-device"
+        ],
+        "manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "expected_exit_code": 0,
+        "executable_sha256": "e62ee2a13585bb79d823d196eb995acebed942399ceca97cbf087f0ed7bddea6",
+        "exit_code": 0,
+        "availability": "optional-cuda"
+      },
+      {
+        "mode": "plain",
+        "arguments": [
+          "--allow-no-device"
+        ],
+        "manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/zero-device.json",
+        "expected_exit_code": 77,
+        "executable_sha256": "e62ee2a13585bb79d823d196eb995acebed942399ceca97cbf087f0ed7bddea6",
+        "exit_code": 77,
+        "availability": "optional-no-device"
+      },
+      {
+        "mode": "validation",
+        "arguments": [],
+        "manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "expected_exit_code": 0,
+        "executable_sha256": "e62ee2a13585bb79d823d196eb995acebed942399ceca97cbf087f0ed7bddea6",
+        "exit_code": 0,
+        "availability": "strict-cuda"
+      },
+      {
+        "mode": "validation",
+        "arguments": [
+          "--allow-no-device"
+        ],
+        "manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "expected_exit_code": 0,
+        "executable_sha256": "e62ee2a13585bb79d823d196eb995acebed942399ceca97cbf087f0ed7bddea6",
+        "exit_code": 0,
+        "availability": "optional-cuda"
+      },
+      {
+        "mode": "validation",
+        "arguments": [
+          "--allow-no-device"
+        ],
+        "manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/zero-device.json",
+        "expected_exit_code": 77,
+        "executable_sha256": "e62ee2a13585bb79d823d196eb995acebed942399ceca97cbf087f0ed7bddea6",
+        "exit_code": 77,
+        "availability": "optional-no-device"
+      }
+    ]
+  },
+  "implementation": {
+    "ownership": "The existing per-device submission queue owns a completion epoch and condition variable. Native work drains, captures retire and completion status publishes before queue bookkeeping advances the epoch and notifies all public waiters.",
+    "no_lost_wake": "Observe epoch before checking fence/timeline predicates, then wait under the same queue mutex only while the epoch is unchanged. Completion before blocking is retained; unrelated wakes recheck the original deadline and predicates.",
+    "timeout": "Zero-time polls retain status/error ordering. Finite calls use one steady-clock deadline; unsigned durations outside the representable clock range saturate without signed overflow. Infinite calls block on notification without timed polling.",
+    "preserved": "Queue admission, command execution, error handling, native drains, handle checks, timeline ordering, reset/resource lifetime and worker readiness scheduling remain unchanged. No busy-spin loop, global timer/power policy or per-kernel synchronization is added."
+  },
+  "clean_release_tests": {
+    "total": 146,
+    "passed": 146,
+    "failed": 0,
+    "skipped": 0,
+    "previous_144_retained": true,
+    "added": [
+      "parallel-mater-cuda-completion-wait-plain",
+      "parallel-mater-cuda-completion-wait-validation"
+    ],
+    "focused": "Extended submission-queue tests cover completion before blocking, expired deadline, simultaneous waiters and capture retirement. Public suites cover pending/ready, zero/finite/large/infinite timeout, any/all, foreign/null handles, simultaneous waiters, timeline ordering and reset. Existing async suite adds failed-timeline and ready-plus-failed-fence errors without removing prior checks."
+  },
+  "relocated_sdk": {
+    "schema": "parallel-mater-sdk-evidence/v1",
+    "scope": "packaging_and_public_abi",
+    "status": "passed",
+    "physics_quality": "not_evaluated",
+    "host": "Windows-11-10.0.26200-SP0",
+    "checks": [
+      {
+        "name": "install",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "consumer-configure",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "consumer-build",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "consumer-tests",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "reject-version-0.2",
+        "status": "passed",
+        "exit_code": 1,
+        "expected": 1
+      },
+      {
+        "name": "reject-version-0.4",
+        "status": "passed",
+        "exit_code": 1,
+        "expected": 1
+      },
+      {
+        "name": "conformance-configure",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "conformance-build",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "conformance-inputs",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "installed-runner-inputs",
+        "status": "passed",
+        "exit_code": 0,
+        "expected": 0
+      },
+      {
+        "name": "unsupported-case",
+        "status": "passed",
+        "exit_code": 77,
+        "expected": 77
+      },
+      {
+        "name": "missing-driver",
+        "status": "passed",
+        "exit_code": 2,
+        "expected": 2
+      }
+    ],
+    "architecture": "AMD64",
+    "configuration": "Release",
+    "compiler": {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "id": "MSVC",
+      "version": "19.44.35228.0",
+      "architecture": "x64"
+    },
+    "windows_sdk": {
+      "version": "10.0.26100.0",
+      "resource_compiler": "C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/rc.exe"
+    },
+    "source_revision": "701a3f12ef434381a5baa0b62a8f4a1473505a6a",
+    "source_dirty": false,
+    "realtime_profile": {
+      "status": "not_available",
+      "required": false
+    }
+  },
+  "public_sdk_finite_probe": {
+    "source": {
+      "canonical_source": "tests/api/completion_wait_tests.cpp",
+      "canonical_sha256": "9fe7c13546cf9605c0695ffea2953ff0f40e5defa51a32f260340c100c2e613e",
+      "probe_sha256": "663dfc0222121f94c80ec9efc4aaf64bfd8aafd1aea246132dd6f7190f33397e",
+      "only_changes": "10-second regular finite wake instead of the unsigned-range edge, and 1-millisecond finite expiration instead of 1 microsecond; no latency threshold or production/measurement change.",
+      "public_sdk_only": true
+    },
+    "executions": [
+      {
+        "mode": "plain",
+        "executable_sha256": "328bc9319a4ca503b38fa8433cf3a17765a391f8e95d2fcbc817ee679e0dca3c",
+        "cuda_launch_blocking": null,
+        "validation_layer_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json",
+        "driver_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "executable": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/public-finite-probe.exe",
+        "exit_code": 0
+      },
+      {
+        "mode": "validation",
+        "executable_sha256": "328bc9319a4ca503b38fa8433cf3a17765a391f8e95d2fcbc817ee679e0dca3c",
+        "cuda_launch_blocking": null,
+        "validation_layer_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json",
+        "driver_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+        "executable": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/public-finite-probe.exe",
+        "exit_code": 0
+      }
+    ],
+    "purpose": "Independent consumer compiled only against relocated SDK headers/import library; exercises ordinary finite wake and finite expiry in both modes, alongside the registered unsigned-range-edge and infinite wait cases."
+  },
+  "installed_public_workload": {
+    "id": "rigid-wall",
+    "modes": [
+      "plain",
+      "validation"
+    ],
+    "warmup_ticks": 600,
+    "measured_ticks": 7200,
+    "failed_ticks": 0,
+    "all_raw_samples_retained": true,
+    "executions": [
+      {
+        "seconds": 38.0137867,
+        "exit_code": 0,
+        "command": {
+          "executable": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/bin/parallel-mater-conformance.exe",
+          "arguments": [
+            "--workload",
+            "rigid-wall",
+            "--warmup-ticks",
+            "600",
+            "--measured-ticks",
+            "7200",
+            "--root",
+            "C:/Users/tabut/Repos/ballroller-2026/.codex-worktrees/parallel-mater-f8-26-20261101",
+            "--output",
+            "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/installed-rigid-plain"
+          ],
+          "mode": "plain",
+          "cuda_launch_blocking": null,
+          "source_revision": "701a3f12ef434381a5baa0b62a8f4a1473505a6a",
+          "driver_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+          "validation_layer_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json"
+        }
+      },
+      {
+        "seconds": 45.4206943,
+        "exit_code": 0,
+        "command": {
+          "executable": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/bin/parallel-mater-conformance.exe",
+          "arguments": [
+            "--workload",
+            "rigid-wall",
+            "--warmup-ticks",
+            "600",
+            "--measured-ticks",
+            "7200",
+            "--root",
+            "C:/Users/tabut/Repos/ballroller-2026/.codex-worktrees/parallel-mater-f8-26-20261101",
+            "--output",
+            "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/installed-rigid-validation"
+          ],
+          "mode": "validation",
+          "cuda_launch_blocking": null,
+          "source_revision": "701a3f12ef434381a5baa0b62a8f4a1473505a6a",
+          "driver_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json",
+          "validation_layer_manifest": "D:/Repos/parallel-mater-f8-77-final-evidence-20261102/sdk/relocated-sdk/share/parallel-mater/layers.d/parallel_mater_validation.json"
+        }
+      }
+    ],
+    "observations": {
+      "plain": {
+        "before": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "driver_private_state_used": false,
+          "failed_ticks": 0,
+          "id": "rigid-wall",
+          "measured_ticks": 7200,
+          "schema": "parallel-mater-realtime-workload-capture/v1",
+          "simulated_to_wall_time_ratio": 1.070320052417997,
+          "source": "installed-public-api",
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.1812,
+              "p50": 0.0125,
+              "p95": 0.0187,
+              "p99": 0.0299
+            },
+            "frame_ms": {
+              "maximum": 28.7729,
+              "p50": 15.5233,
+              "p95": 16.0607,
+              "p99": 16.2488
+            },
+            "gpu_ms": {
+              "maximum": 19.10784,
+              "p50": 4.603904,
+              "p95": 6.008832,
+              "p99": 7.061504
+            },
+            "physics_ms": {
+              "maximum": 28.7729,
+              "p50": 15.5233,
+              "p95": 16.0607,
+              "p99": 16.2488
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "after": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "driver_private_state_used": false,
+          "failed_ticks": 0,
+          "id": "rigid-wall",
+          "measured_ticks": 7200,
+          "schema": "parallel-mater-realtime-workload-capture/v1",
+          "simulated_to_wall_time_ratio": 4.1593283117346695,
+          "source": "installed-public-api",
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.1691,
+              "p50": 0.0088,
+              "p95": 0.0135,
+              "p99": 0.0166
+            },
+            "frame_ms": {
+              "maximum": 9.2802,
+              "p50": 3.9025,
+              "p95": 4.9832,
+              "p99": 5.7531
+            },
+            "gpu_ms": {
+              "maximum": 9.168896,
+              "p50": 3.823616,
+              "p95": 4.890624,
+              "p99": 5.636096
+            },
+            "physics_ms": {
+              "maximum": 9.2802,
+              "p50": 3.9025,
+              "p95": 4.9832,
+              "p99": 5.7531
+            }
+          },
+          "warmup_ticks": 600
+        }
+      },
+      "validation": {
+        "before": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "driver_private_state_used": false,
+          "failed_ticks": 0,
+          "id": "rigid-wall",
+          "measured_ticks": 7200,
+          "schema": "parallel-mater-realtime-workload-capture/v1",
+          "simulated_to_wall_time_ratio": 1.0619712161569321,
+          "source": "installed-public-api",
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.1973,
+              "p50": 0.0332,
+              "p95": 0.0428,
+              "p99": 0.0546
+            },
+            "frame_ms": {
+              "maximum": 17.7651,
+              "p50": 15.9374,
+              "p95": 16.0499,
+              "p99": 16.1268
+            },
+            "gpu_ms": {
+              "maximum": 12.746752,
+              "p50": 3.219456,
+              "p95": 7.46496,
+              "p99": 8.15104
+            },
+            "physics_ms": {
+              "maximum": 17.7651,
+              "p50": 15.9374,
+              "p95": 16.0499,
+              "p99": 16.1268
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "after": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "driver_private_state_used": false,
+          "failed_ticks": 0,
+          "id": "rigid-wall",
+          "measured_ticks": 7200,
+          "schema": "parallel-mater-realtime-workload-capture/v1",
+          "simulated_to_wall_time_ratio": 4.800583136434749,
+          "source": "installed-public-api",
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.1562,
+              "p50": 0.0214,
+              "p95": 0.0363,
+              "p99": 0.0462
+            },
+            "frame_ms": {
+              "maximum": 11.8319,
+              "p50": 3.3335,
+              "p95": 4.4264,
+              "p99": 5.1536
+            },
+            "gpu_ms": {
+              "maximum": 11.25632,
+              "p50": 3.23584,
+              "p95": 4.29056,
+              "p99": 5.013504
+            },
+            "physics_ms": {
+              "maximum": 11.8319,
+              "p50": 3.3335,
+              "p95": 4.4264,
+              "p99": 5.1536
+            }
+          },
+          "warmup_ticks": 600
+        }
+      }
+    }
+  },
+  "source_audit": {
+    "before_revision": "172ed9192350a5d96155a9da41c92595e26214e7",
+    "after_revision": "701a3f12ef434381a5baa0b62a8f4a1473505a6a",
+    "after_tree": "5f8f8348ce258bffa380b16eb87f2e652255b0db",
+    "changed_files": [
+      {
+        "path": "src/api/synchronization.cpp",
+        "classification": "Absolute bounded deadlines and queue completion notifications replace the two public polling sleeps; queue admission, execution, validation and failure semantics preserved."
+      },
+      {
+        "path": "src/device/submission.cpp",
+        "classification": "Notify all public waiters after capture retirement, completion publication and queue bookkeeping; retain existing native drain and worker dependency scheduling."
+      },
+      {
+        "path": "src/device/submission.hpp",
+        "classification": "Internal per-queue completion epoch/CV; no public C ABI or backend physics change."
+      },
+      {
+        "path": "tests/api/CMakeLists.txt",
+        "classification": "Register strict CUDA/CPU/host cases, explicit no-device skips for optional GPU backends, and retain mode settings when appending Windows DLL paths."
+      },
+      {
+        "path": "tests/api/async_submission_tests.cpp",
+        "classification": "Add failed timeline and ready-plus-failed fence assertions without removing existing checks."
+      },
+      {
+        "path": "tests/api/completion_wait_tests.cpp",
+        "classification": "Public deterministic timeline-gated ready/pending, zero/finite/large/infinite timeout, wait-any/all, foreign/null handles, simultaneous waiters and reset coverage."
+      },
+      {
+        "path": "tests/api/submission_queue_tests.cpp",
+        "classification": "Add completion-before-blocking, expired deadline, simultaneous waiter and resource retirement regressions."
+      }
+    ],
+    "protected_closures": [
+      {
+        "category": "api_abi",
+        "patterns": [
+          "include/parallel_mater/**/*",
+          "include/parallel_mater_scene/**/*",
+          "registry/pm.xml",
+          "src/loader/**/*",
+          "cmake/ParallelMaterLoader.cmake",
+          "cmake/ParallelMaterConfig.cmake.in",
+          "MIGRATION.md"
+        ],
+        "before": {
+          "file_count": 18,
+          "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+        },
+        "after": {
+          "file_count": 18,
+          "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+        },
+        "changed_by_F8_77": false
+      },
+      {
+        "category": "kernel",
+        "patterns": [
+          "cmake/SlangKernelManifest.cmake",
+          "src/slang/**/*.slang"
+        ],
+        "before": {
+          "file_count": 39,
+          "sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993"
+        },
+        "after": {
+          "file_count": 39,
+          "sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993"
+        },
+        "changed_by_F8_77": false
+      },
+      {
+        "category": "adapter_binding",
+        "patterns": [
+          "src/api/**/*",
+          "src/layers/**/*",
+          "src/driver/**/*",
+          "src/device/**/*",
+          "tools/generate_cpu_dispatch_stubs.py",
+          "tools/generate_dxil_dispatch.py",
+          "tools/generate_vulkan_dispatch.py",
+          "tests/solver/test_dxil_bindings.py"
+        ],
+        "before": {
+          "file_count": 49,
+          "sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67"
+        },
+        "after": {
+          "file_count": 49,
+          "sha256": "5d2ebc7fdeedca9a41d829c0ef9720a450fa5c877f392acbe95608fb18e93e1d"
+        },
+        "changed_by_F8_77": true
+      },
+      {
+        "category": "runtime",
+        "patterns": [
+          "src/simulation/**/*"
+        ],
+        "before": {
+          "file_count": 127,
+          "sha256": "ecf3447e2b222b14d688b9535aad64981056ad3704f91b3700659cba6cb93fe5"
+        },
+        "after": {
+          "file_count": 127,
+          "sha256": "ecf3447e2b222b14d688b9535aad64981056ad3704f91b3700659cba6cb93fe5"
+        },
+        "changed_by_F8_77": false
+      },
+      {
+        "category": "schedule_telemetry",
+        "patterns": [
+          "src/simulation/realtime_schedule.hpp",
+          "src/simulation/runtime_schedule.cu.inc",
+          "src/simulation/production_realtime_backend.cu.inc",
+          "src/simulation/native_schedule_backend.cu.inc",
+          "src/simulation/realtime_telemetry.hpp",
+          "src/simulation/runtime_diagnostics.cu.inc"
+        ],
+        "before": {
+          "file_count": 6,
+          "sha256": "7c2cfdfe8f80fa2850ae56669cce69efd08454ee1ad607781534d41523648adc"
+        },
+        "after": {
+          "file_count": 6,
+          "sha256": "7c2cfdfe8f80fa2850ae56669cce69efd08454ee1ad607781534d41523648adc"
+        },
+        "changed_by_F8_77": false
+      },
+      {
+        "category": "contract",
+        "patterns": [
+          "conformance/v1/qualification/realtime-profile-v1.json",
+          "conformance/v1/qualification/capability-obligations-v1.json",
+          "conformance/v1/qualification/kernel-device-obligations-v1.json",
+          "config/device-profiles.json",
+          "docs/INTERACTION-MODES.md",
+          "docs/DRIVER_SDK.md"
+        ],
+        "before": {
+          "file_count": 6,
+          "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+        },
+        "after": {
+          "file_count": 6,
+          "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+        },
+        "changed_by_F8_77": false
+      },
+      {
+        "category": "public_oracle",
+        "patterns": [
+          "conformance/v1/**/*",
+          "tests/sdk/realtime_profile.c",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/solver/check_slang_architecture.py"
+        ],
+        "before": {
+          "file_count": 543,
+          "sha256": "b42e6d7c12ef27231b666dbbb284492cf3c5d03678f1be6cac65dbcf221f339f"
+        },
+        "after": {
+          "file_count": 543,
+          "sha256": "b42e6d7c12ef27231b666dbbb284492cf3c5d03678f1be6cac65dbcf221f339f"
+        },
+        "changed_by_F8_77": false
+      },
+      {
+        "category": "work_budget",
+        "patterns": [
+          "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+          "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+          "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+          "tests/solver/rigid_realtime_tests.cpp",
+          "tests/api/native_realtime_runtime_tests.cpp",
+          "tests/gallery/metal_schedule_profile_tests.py",
+          "tests/gallery/test_mobile_metal_qualification.py"
+        ],
+        "before": {
+          "file_count": 7,
+          "sha256": "f3af25d62dc3ecc6d4b443b2d6004bea45e2371322da2a8704bf7a6d55127b7f"
+        },
+        "after": {
+          "file_count": 7,
+          "sha256": "f3af25d62dc3ecc6d4b443b2d6004bea45e2371322da2a8704bf7a6d55127b7f"
+        },
+        "changed_by_F8_77": false
+      },
+      {
+        "category": "gallery",
+        "patterns": [
+          "examples/support/**/*",
+          "examples/gallery/**/*",
+          "examples/android/app/src/**/*",
+          "examples/ios/**/*",
+          "cmake/*Gallery*.cmake",
+          "cmake/BundleMacOSRuntime.cmake",
+          "cmake/DeployMacOSBundle.cmake",
+          "scripts/Build-*Gallery*",
+          "scripts/Deploy-*Gallery*",
+          "tests/gallery/**/*"
+        ],
+        "before": {
+          "file_count": 160,
+          "sha256": "f7173222821dfc6926b5b1b711ccb9f2cafbb88e1befa86d0fc746ce39b58a24"
+        },
+        "after": {
+          "file_count": 160,
+          "sha256": "f7173222821dfc6926b5b1b711ccb9f2cafbb88e1befa86d0fc746ce39b58a24"
+        },
+        "changed_by_F8_77": false
+      }
+    ],
+    "candidate_v9_manifest_unchanged": true,
+    "fixed_tick_kernels_equations_schedule_budgets_and_oracles_unchanged": true,
+    "submission_admission_execution_and_native_drain_byte_identical": true,
+    "existing_async_and_queue_assertions_retained": true,
+    "method": "Tracked clean files only, ignored caches excluded; all before closure identities equal the exact retained F8-76 source and no protected documentation changed before this claim.",
+    "qualification": "Adapter-binding closure change requires F8-74 refreeze; F8-78 still owns complete Windows performance acceptance."
+  },
+  "limitations": [
+    "These are normal observations on one physical Windows GTX 1080; they do not establish the complete five-workload or five-negative-control performance acceptance.",
+    "Host critical-path and native GPU statistics are separate observations; their percentile difference is not a measured pure-wait interval. No stalls were filtered and no global power/timer policy was changed.",
+    "F8-78 still requires the complete frozen Windows performance capture and five negative controls in both modes. F8-74 waits for that task and all other accepted repairs before refreeze.",
+    "Candidate v9 remains immutable failed history. Adapter-binding closure changes require refreeze; this task does not qualify F8-26 or any other physical device.",
+    "The retained F8-76 shorter status/yield diagnostic remains explicitly non-qualification history and is not used instead of either full 7200-sample baseline."
+  ],
+  "artifacts": {
+    "archive": "docs/roadmap/evidence/F8-77-WINDOWS-PUBLIC-COMPLETION-WAITS-V2.zip",
+    "sha256": "a2eb3d1111b2a25279fbb39380f7af07fd96d4f9e8bdc28a21dbaa5f10b6bf43",
+    "bytes": 479198,
+    "files": 70,
+    "member_manifest": "SHA256SUMS.json",
+    "member_manifest_sha256": "c78d0c4e847516a9fdc77835f52ac812dec765df6d52e5db041af9c442c5b8ea",
+    "verification": "ZIP CRC and every archived member SHA-256 verified; binaries are identified by hashes without binary payloads."
+  }
+}

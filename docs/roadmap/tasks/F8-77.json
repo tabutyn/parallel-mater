@@ -1,7 +1,7 @@
 {
   "id": "F8-77",
   "title": "Replace Windows public completion polling sleeps",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-76"
   ],
@@ -20,15 +20,31 @@
     "Retain normal physical Windows installed-public workload timing at frozen counts and measurement boundaries, including all stalls and required waits. Run the frozen rigid-wall workload with 600 warmup and 7200 measured ticks in both modes; record actual performance rather than inferring a full-device pass from the wait change. F8-78 still owns successful acceptance of all five workloads and five negative controls.",
     "Publish exact source/tree, device/compiler, binary/manifest hashes, commands and raw samples; classify every protected closure change for F8-74. Candidate v9 remains immutable and no final F8-26 qualification is claimed."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "42db680c-e3ca-42a5-b971-1bfeac890373",
-    "owner": "codex-windows-completion-wait",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-77/windows-gtx1080",
-    "claimed_at": "2026-11-02T19:18:46Z",
-    "heartbeat_at": "2026-11-02T19:18:46Z",
-    "expires_at": "2026-11-03T19:18:46Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: clean Windows GTX 1080 Release at 701a3f12ef434381a5baa0b62a8f4a1473505a6a/tree 5f8f8348ce258bffa380b16eb87f2e652255b0db; ctest --test-dir D:/Repos/parallel-mater-f8-77-final-build-20261102 --output-on-failure --no-tests=error -j 1: 146/146, zero skips, previous 144 retained. Actual plain/validation mode registration verified; queue/public/async notification, timeout, any/all, failure and lifetime regressions, relocated-SDK finite probes and six availability probes pass. docs/roadmap/evidence/F8-77-WINDOWS-PUBLIC-COMPLETION-WAITS-V2.json SHA-256 2d0f96f180f87d1f6438e8910a2f35493e91522fe8f89b642a964792a4868717",
+    "PASS: relocated SDK twelve checks; normal installed rigid-wall with 600 warmup/7200 measured ticks per mode, unchanged counts and all samples/stalls retained, zero failed ticks. Physics p95 before/after 16.0607/4.9832 ms plain and 16.0499/4.4264 ms validation; native GPU timing recorded separately. docs/roadmap/evidence/F8-77-WINDOWS-PUBLIC-COMPLETION-WAITS-V2.zip SHA-256 a2eb3d1111b2a25279fbb39380f7af07fd96d4f9e8bdc28a21dbaa5f10b6bf43; CRC and all 70 member hashes verified.",
+    "PASS: only adapter-binding protected closure changes; other eight categories, API/ABI, native command admission/execution/drain and fixed-tick/physics path unchanged. Exact source/device/compiler/memory, 113 Release binary hashes, installed manifests, commands, raw data and reproducible probes retained. Initial F8-77 evidence preserved; V2 supersedes registered-test mode acceptance after correcting Windows PATH metadata and optional hosted-GPU enumeration. LIMITATION: F8-78 owns full five-workload/five-negative-control acceptance; F8-74 refreeze and fresh F8-26 lease remain required. Candidate v9 unchanged."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "42db680c-e3ca-42a5-b971-1bfeac890373",
+        "owner": "codex-windows-completion-wait",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-77/windows-gtx1080",
+        "claimed_at": "2026-11-02T19:18:46Z",
+        "heartbeat_at": "2026-11-02T19:18:46Z",
+        "expires_at": "2026-11-03T19:18:46Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-02T21:30:27Z",
+      "reason": "Public completion polling replaced with notifications and bounded deadlines. Corrected clean Release passes 146 tests, SDK checks, availability/finite-time probes and both normal rigid-wall captures; F8-78 retains complete Windows performance acceptance.",
+      "evidence": [
+        "PASS: clean Windows GTX 1080 Release at 701a3f12ef434381a5baa0b62a8f4a1473505a6a/tree 5f8f8348ce258bffa380b16eb87f2e652255b0db; ctest --test-dir D:/Repos/parallel-mater-f8-77-final-build-20261102 --output-on-failure --no-tests=error -j 1: 146/146, zero skips, previous 144 retained. Actual plain/validation mode registration verified; queue/public/async notification, timeout, any/all, failure and lifetime regressions, relocated-SDK finite probes and six availability probes pass. docs/roadmap/evidence/F8-77-WINDOWS-PUBLIC-COMPLETION-WAITS-V2.json SHA-256 2d0f96f180f87d1f6438e8910a2f35493e91522fe8f89b642a964792a4868717",
+        "PASS: relocated SDK twelve checks; normal installed rigid-wall with 600 warmup/7200 measured ticks per mode, unchanged counts and all samples/stalls retained, zero failed ticks. Physics p95 before/after 16.0607/4.9832 ms plain and 16.0499/4.4264 ms validation; native GPU timing recorded separately. docs/roadmap/evidence/F8-77-WINDOWS-PUBLIC-COMPLETION-WAITS-V2.zip SHA-256 a2eb3d1111b2a25279fbb39380f7af07fd96d4f9e8bdc28a21dbaa5f10b6bf43; CRC and all 70 member hashes verified.",
+        "PASS: only adapter-binding protected closure changes; other eight categories, API/ABI, native command admission/execution/drain and fixed-tick/physics path unchanged. Exact source/device/compiler/memory, 113 Release binary hashes, installed manifests, commands, raw data and reproducible probes retained. Initial F8-77 evidence preserved; V2 supersedes registered-test mode acceptance after correcting Windows PATH metadata and optional hosted-GPU enumeration. LIMITATION: F8-78 owns full five-workload/five-negative-control acceptance; F8-74 refreeze and fresh F8-26 lease remain required. Candidate v9 unchanged."
+      ]
+    }
+  ]
 }
