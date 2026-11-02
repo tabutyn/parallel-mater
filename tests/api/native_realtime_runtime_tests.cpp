@@ -45,8 +45,10 @@ int main(int argc, char **argv) {
         std::strcmp(argv[1], "--production-smoke-couplings") == 0;
     const bool lifecycle_only = argc == 2 &&
         std::strcmp(argv[1], "--production-lifecycle") == 0;
-    const bool auxiliary_only = argc == 2 &&
-        std::strcmp(argv[1], "--production-auxiliary") == 0;
+    const bool metadata_auxiliary_only = argc == 2 &&
+        std::strcmp(argv[1], "--production-managed-auxiliary") == 0;
+    const bool auxiliary_only = metadata_auxiliary_only || (argc == 2 &&
+        std::strcmp(argv[1], "--production-auxiliary") == 0);
     const bool production = argc == 2 &&
         (std::strcmp(argv[1], "--production") == 0 ||
          couplings_only || smoke_couplings_only || lifecycle_only ||
@@ -63,6 +65,8 @@ int main(int argc, char **argv) {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_3;
+    instance_info.enableValidation = std::getenv("PM_TEST_VALIDATION")
+        ? PM_TRUE : PM_FALSE;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
     std::uint32_t physical_count{};
@@ -378,6 +382,9 @@ int main(int argc, char **argv) {
         commands, mixed_simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
 
+    if (metadata_auxiliary_only)
+        CHECK(mixed_info.fluidCount != 0U && mixed_info.clothCount != 0U &&
+              mixed_info.paintFieldCount != 0U && mixed_info.debugFrameCapacity != 0U);
     if (production && !couplings_only && !smoke_couplings_only &&
         mixed_info.fluidCount != 0U &&
         mixed_info.clothCount != 0U &&

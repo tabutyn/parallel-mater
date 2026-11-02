@@ -513,13 +513,28 @@ if(BUILD_TESTING)
     target_link_libraries(parallel-mater-slang-cuda-realtime-tests
         PRIVATE ParallelMater::parallel_mater)
     add_dependencies(parallel-mater-slang-cuda-realtime-tests
-        parallel-mater-driver-slang-cuda)
+        parallel-mater-driver-slang-cuda parallel-mater-layer-validation)
     add_test(NAME parallel-mater-slang-cuda-realtime-tests
         COMMAND parallel-mater-slang-cuda-realtime-tests --production-couplings)
     set_tests_properties(parallel-mater-slang-cuda-realtime-tests PROPERTIES
         TIMEOUT 300 SKIP_RETURN_CODE 77 LABELS "api;cuda;gpu;realtime;f8"
         ENVIRONMENT
             "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+    foreach(mode plain validation)
+        set(metadata_test parallel-mater-cuda-managed-metadata-auxiliary-${mode})
+        add_test(NAME ${metadata_test}
+            COMMAND parallel-mater-slang-cuda-realtime-tests --production-managed-auxiliary)
+        set_tests_properties(${metadata_test} PROPERTIES
+            TIMEOUT 300 RUN_SERIAL TRUE LABELS "api;cuda;gpu;realtime;f8;regression"
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+        if(mode STREQUAL "validation")
+            set_tests_properties(${metadata_test} PROPERTIES
+                ENVIRONMENT_MODIFICATION "PM_TEST_VALIDATION=set:1")
+        else()
+            set_tests_properties(${metadata_test} PROPERTIES
+                ENVIRONMENT_MODIFICATION "PM_TEST_VALIDATION=unset:")
+        endif()
+    endforeach()
 endif()
 
 endif() # PARALLEL_MATER_BUILD_CUDA
