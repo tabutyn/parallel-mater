@@ -1,7 +1,7 @@
 {
   "id": "F8-76",
   "title": "Repair Windows CUDA managed metadata access",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-70",
     "F8-75"
@@ -22,14 +22,22 @@
     "Publish exact source/tree, binary, manifest, device, compiler, memory attributes and raw before/after hashes. Classify every protected closure change for F8-74; do not mutate candidate v9 or relabel repaired-source observations as final qualification."
   ],
   "evidence": [],
-  "lease": {
-    "token": "3d5aa79b-50c7-4545-aaee-a5b3e03779eb",
-    "owner": "codex-windows-managed-runtime",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-76/windows-gtx1080",
-    "claimed_at": "2026-11-02T13:31:34Z",
-    "heartbeat_at": "2026-11-02T13:31:34Z",
-    "expires_at": "2026-11-03T13:31:34Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "3d5aa79b-50c7-4545-aaee-a5b3e03779eb",
+        "owner": "codex-windows-managed-runtime",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-76/windows-gtx1080",
+        "claimed_at": "2026-11-02T13:31:34Z",
+        "heartbeat_at": "2026-11-02T13:31:34Z",
+        "expires_at": "2026-11-03T13:31:34Z"
+      },
+      "outcome": "released",
+      "at": "2026-11-02T17:13:37Z",
+      "reason": "Managed metadata repair retained in draft PR #643 on work/F8-76/windows-gtx1080 at ff12dffa; 144 tests, SDK and physical scenarios pass, but unchanged 10 ms performance gate fails at 16-32 ms. Broader performance work requires planning; task remains incomplete.",
+      "evidence": []
+    }
+  ]
 }
