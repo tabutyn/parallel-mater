@@ -696,8 +696,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             LABELS "api;gallery;cuda" SKIP_RETURN_CODE 77 TIMEOUT 300
             ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         # Windows managed-memory ownership: construction, asynchronous ticks,
-        # and reset must work for both affected public scenes in both modes.
-        foreach(scene Pegs SoftbodyFluid)
+        # and reset must work for affected public scenes in both modes.
+        foreach(scene Pegs SoftbodyFluid RopeSoftbody)
             foreach(mode plain validation)
                 set(metadata_test parallel-mater-cuda-managed-metadata-${scene}-${mode})
                 add_test(NAME ${metadata_test}

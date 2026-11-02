@@ -1722,6 +1722,11 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
           impl_->rope_soft_body_couplings[slot]->alive)++slot;
     if(slot==impl_->rope_soft_body_couplings.size())
         return failure(StatusCode::capacity_exceeded,"rope soft-body coupling capacity exhausted");
+    // This constructor traverses managed rest geometry and writes arena
+    // storage on the CPU. Earlier command uploads must release that memory.
+    const auto idle_error = wait_queue(impl_->execution);
+    if (idle_error != PM_SUCCESS)
+        return backend_failure(idle_error, "rope soft-body construction wait failed");
     std::unique_ptr<RopeSoftBodyCouplingStorage> owner(
         new(std::nothrow)RopeSoftBodyCouplingStorage());
     if(!owner)return failure(StatusCode::out_of_memory,"rope soft-body coupling allocation failed");
