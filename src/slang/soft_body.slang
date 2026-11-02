@@ -174,6 +174,8 @@ groupshared Vec3 softValuesB[kSoftReductionThreads];
 groupshared float softInverseMasses[kSoftReductionThreads];
 groupshared Vec3 softCenter;
 groupshared Vec3 softCenterCorrection;
+groupshared ShapeMatrix softRealtimeCovariance;
+groupshared uint softRealtimeSubgroupCount;
 groupshared Quaternion softOrientation;
 groupshared uint softRealtimeShapeValid;
 
@@ -613,34 +615,48 @@ void soft_body_realtime_project_shape(
             currentCenter, weighted, inverseMass, valid);
     }
     if (thread == 0u)
+    {
         softCenter = multiply(currentCenter, 1.0f / movable_mass);
+        softRealtimeSubgroupCount = 0u;
+    }
     pmGroupBarrier();
 
-    ShapeMatrix covariance = {};
-    for (uint base = 0u; base < count; base += subgroupWidth)
+    // Columns are independent ordered sums. Give each native subgroup a
+    // column instead of making every subgroup repeat all three columns. Assign
+    // identities through leaders: wave lanes need not follow group-thread IDs.
+    uint subgroup = 0u;
+    if (subgroupLane == 0u)
+        InterlockedAdd(softRealtimeSubgroupCount, 1u, subgroup);
+    subgroup = uint(pmSubgroupRead(float(subgroup), 0u));
+    pmGroupBarrier();
+    uint subgroupCount = softRealtimeSubgroupCount;
+    for (uint column = subgroup; column < 3u; column += subgroupCount)
     {
-        uint node = base + subgroupLane;
-        float inverseMass = node < count ? inverse_masses[node] : 0.0f;
-        ShapeMatrix contribution = {};
-        if (inverseMass > 0.0f)
+        Vec3 covariance = Vec3(0.0f);
+        for (uint base = 0u; base < count; base += subgroupWidth)
         {
-            float mass = 1.0f / inverseMass;
-            Vec3 current = subtract(positions[node], softCenter);
-            Vec3 rest = subtract(rest_positions[node], rest_center);
-            contribution.columns[0] = multiply(current, mass * rest.x);
-            contribution.columns[1] = multiply(current, mass * rest.y);
-            contribution.columns[2] = multiply(current, mass * rest.z);
+            uint node = base + subgroupLane;
+            float inverseMass = node < count ? inverse_masses[node] : 0.0f;
+            Vec3 contribution = Vec3(0.0f);
+            if (inverseMass > 0.0f)
+            {
+                float mass = 1.0f / inverseMass;
+                Vec3 current = subtract(positions[node], softCenter);
+                Vec3 rest = subtract(rest_positions[node], rest_center);
+                float component = column == 0u ? rest.x : (column == 1u ? rest.y : rest.z);
+                contribution = multiply(current, mass * component);
+            }
+            uint valid = min(subgroupWidth, count - base);
+            covariance = soft_body_ordered_subgroup_sum(
+                covariance, contribution, inverseMass, valid);
         }
-        uint valid = min(subgroupWidth, count - base);
-        [unroll]
-        for (uint column = 0u; column < 3u; ++column)
-            covariance.columns[column] = soft_body_ordered_subgroup_sum(
-                covariance.columns[column], contribution.columns[column], inverseMass, valid);
+        if (subgroupLane == 0u) softRealtimeCovariance.columns[column] = covariance;
     }
+    pmGroupBarrier();
     if (thread == 0u)
     {
         ShapeMatrix deformation = shape_matrix_multiply(
-            covariance, inverse_rest);
+            softRealtimeCovariance, inverse_rest);
         float determinant = shape_matrix_determinant(deformation);
         softRealtimeShapeValid = isfinite(determinant) &&
             determinant > 1.0e-4f ? 1u : 0u;

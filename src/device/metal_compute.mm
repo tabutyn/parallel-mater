@@ -12,13 +12,14 @@
 #include <cstring>
 #include <limits>
 #include <sstream>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
 namespace parallel_mater::device::compute {
 namespace {
-void require(bool condition, const std::string &message) {
-    if (!condition) throw std::runtime_error(message);
+void require(bool condition, std::string_view message) {
+    if (!condition) throw std::runtime_error(std::string(message));
 }
 NSString *native(const std::string &value) {
     NSString *result = [NSString stringWithUTF8String:value.c_str()];
@@ -51,20 +52,26 @@ std::string field_name(NSString *native_name) {
 
 class MetalBuffer final : public Buffer {
 public:
-    explicit MetalBuffer(id<MTLBuffer> value) : value(value) {}
+    explicit MetalBuffer(id<MTLBuffer> value)
+        : value(value), device(value.device), size_(value.length),
+          host_address_(value.storageMode == MTLStorageModeShared ? value.contents : nullptr),
+          device_address_(value.gpuAddress), identity_{
+              static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>((__bridge void *)device)),
+              static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>((__bridge void *)value))} {}
     id<MTLBuffer> value;
-    ResourceIdentity identity() const noexcept override {
-        return {
-            static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>((__bridge void *)value.device)),
-            static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>((__bridge void *)value)),
-        };
-    }
-    std::size_t size() const noexcept override { return value.length; }
-    void *host_address() const noexcept override {
-        return value.storageMode == MTLStorageModeShared ? value.contents : nullptr;
-    }
-    std::uint64_t device_address() const noexcept override { return value.gpuAddress; }
+    id<MTLDevice> device;
+    // Native buffer metadata is immutable for the allocation's lifetime. The
+    // dependency tracker reads these fields repeatedly for every dispatch.
+    ResourceIdentity identity() const noexcept override { return identity_; }
+    std::size_t size() const noexcept override { return size_; }
+    void *host_address() const noexcept override { return host_address_; }
+    std::uint64_t device_address() const noexcept override { return device_address_; }
     void *native_handle() const noexcept override { return (__bridge void *)value; }
+private:
+    const std::size_t size_;
+    void *const host_address_;
+    const std::uint64_t device_address_;
+    const ResourceIdentity identity_;
 };
 
 class MetalKernel final : public Kernel {
@@ -407,8 +414,8 @@ private:
         if (submitted_) throw std::logic_error("compute command list already submitted");
     }
     id<MTLBuffer> buffer(const BufferPtr &value) const {
-        auto native = std::dynamic_pointer_cast<MetalBuffer>(value);
-        if (!native || native->value.device != device_)
+        const auto *native = dynamic_cast<const MetalBuffer *>(value.get());
+        if (!native || native->device != device_)
             throw std::invalid_argument("foreign or null compute buffer");
         return native->value;
     }
@@ -449,14 +456,6 @@ public:
             require(library != nil, entry + ": " + error_text(error));
             auto function = [library newFunctionWithName:native(entry)];
             require(function != nil, entry + ": native entry not found");
-            MTLComputePipelineDescriptor *descriptor = [MTLComputePipelineDescriptor new];
-            descriptor.label = native(entry);
-            descriptor.computeFunction = function;
-            MTLComputePipelineReflection *reflection = nil;
-            auto pipeline = [device_ newComputePipelineStateWithDescriptor:descriptor
-                options:MTLPipelineOptionBindingInfo | MTLPipelineOptionBufferTypeInfo
-                reflection:&reflection error:&error];
-            require(pipeline != nil, entry + ": " + error_text(error));
             NSData *data = [NSData dataWithContentsOfFile:native(reflection_path)];
             require(data != nil, entry + ": reflection file missing");
             id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
@@ -468,11 +467,26 @@ public:
             require([reflected_entry[@"name"] isEqualToString:native(entry)], entry + ": wrong entry reflection");
             NSArray *dimensions = reflected_entry[@"threadGroupSize"];
             require(dimensions.count == 3, entry + ": invalid threadgroup dimensions");
+            const Extent threads{[dimensions[0] unsignedIntValue],
+                [dimensions[1] unsignedIntValue], [dimensions[2] unsignedIntValue]};
+            require(threads.x > 0 && threads.y == 1 && threads.z == 1,
+                entry + ": unsupported threadgroup dimensions");
+            MTLComputePipelineDescriptor *descriptor = [MTLComputePipelineDescriptor new];
+            descriptor.label = native(entry);
+            descriptor.computeFunction = function;
+            // Dispatch always uses the Slang entry's fixed group size. Expose
+            // that bound to Metal compilation instead of reserving resources
+            // for a larger group that this adapter will never launch.
+            descriptor.maxTotalThreadsPerThreadgroup = threads.x;
+            MTLComputePipelineReflection *reflection = nil;
+            auto pipeline = [device_ newComputePipelineStateWithDescriptor:descriptor
+                options:MTLPipelineOptionBindingInfo | MTLPipelineOptionBufferTypeInfo
+                reflection:&reflection error:&error];
+            require(pipeline != nil, entry + ": " + error_text(error));
             auto result = std::make_shared<MetalKernel>();
             result->name = entry;
             result->pipeline = pipeline;
-            result->threads = {[dimensions[0] unsignedIntValue], [dimensions[1] unsignedIntValue],
-                               [dimensions[2] unsignedIntValue]};
+            result->threads = threads;
             result->simd_width = static_cast<std::uint32_t>(pipeline.threadExecutionWidth);
             require(result->threads.x > 0 && result->threads.y == 1 && result->threads.z == 1 &&
                 result->threads.x <= pipeline.maxTotalThreadsPerThreadgroup,

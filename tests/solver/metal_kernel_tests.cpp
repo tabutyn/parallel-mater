@@ -85,6 +85,7 @@ public:
                 name != "soft_body_realtime_project_contacts" &&
                 name != "soft_body_realtime_commit" &&
                 name != "fluid_rope_apply" &&
+                name != "pm_radix_prefix_u32" &&
                 name != "rope_realtime_project_constraints" &&
                 name != "prepare_avbd_kernel" && name != "solve_avbd_kernel" &&
                 name != "solve_avbd_stage_kernel") continue;
@@ -126,6 +127,32 @@ public:
         }
     }
 };
+
+void check_radix_prefix(Gpu &gpu) {
+    for (const std::uint32_t blocks : {0U, 1U, 3U, 16U, 257U}) {
+        const auto count = 16U * blocks;
+        std::vector<std::uint32_t> histograms(std::max(count, 1U));
+        std::vector<std::uint32_t> expected(count + 2U, 0xa5a5a5a5U);
+        std::uint32_t running{};
+        for (std::uint32_t index = 0; index < count; ++index) {
+            // Also cover unsigned wraparound; changing the parallel grouping
+            // must preserve the serial prefix's exact integer arithmetic.
+            histograms[index] = index % 17U == 0U ? 0x80000000U : (index * 19U) % 257U;
+            expected[index] = running;
+            running += histograms[index];
+        }
+        auto offsets = gpu.buffer(std::vector<std::uint32_t>(count + 2U, 0xa5a5a5a5U));
+        Arguments arguments(gpu.kernels.at("pm_radix_prefix_u32"));
+        arguments.buffer("histograms", gpu.buffer(histograms));
+        arguments.set("block_count", blocks);
+        arguments.buffer("offsets", offsets);
+        gpu.run(arguments, 1U);
+        require(std::memcmp(offsets->host_address(), expected.data(),
+                expected.size() * sizeof(std::uint32_t)) == 0,
+            "parallel radix prefix disagrees with serial integer oracle");
+    }
+    std::cout << "Radix prefix: empty, partial, many-block and overflow fixtures passed\n";
+}
 
 void check_device_operations(Gpu &gpu) {
     constexpr std::uint32_t count = 8193;
@@ -1391,6 +1418,7 @@ int main(int argc, char **argv) {
             return 0;
         }
         check_device_operations(gpu);
+        check_radix_prefix(gpu);
         check_transfers_and_records(gpu);
         check_device_teardown();
         check_rigid_integration(gpu);

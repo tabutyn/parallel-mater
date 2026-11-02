@@ -696,8 +696,11 @@ private:
             group.push_back(access);
         }
 
-        std::map<ResourceKey, std::vector<ResourceRange>> result;
-        for (const auto &[identity, group] : groups) {
+        for (auto &[identity, group] : groups) {
+            // Most kernel arguments refer to a distinct allocation once. Its
+            // validated range is already normalized; retain the existing node
+            // and vector instead of allocating both again for every dispatch.
+            if (group.size() == 1) continue;
             std::vector<std::size_t> boundaries;
             boundaries.reserve(group.size() * 2);
             for (const auto &access : group) {
@@ -706,7 +709,7 @@ private:
             }
             std::sort(boundaries.begin(), boundaries.end());
             boundaries.erase(std::unique(boundaries.begin(), boundaries.end()), boundaries.end());
-            auto &normalized = result[identity];
+            std::vector<ResourceRange> normalized;
             for (std::size_t i = 1; i < boundaries.size(); ++i) {
                 const auto begin = boundaries[i - 1], end = boundaries[i];
                 unsigned bits{};
@@ -718,8 +721,9 @@ private:
                         end - begin, static_cast<ResourceAccess>(bits)});
             }
             coalesce(normalized);
+            group.swap(normalized);
         }
-        return result;
+        return groups;
     }
 
     static void overlay(std::vector<ResourceRange> &history, const ResourceRange &next) {
@@ -748,6 +752,7 @@ private:
     }
 
     static void coalesce(std::vector<ResourceRange> &ranges) {
+        if (ranges.size() < 2) return;
         std::sort(ranges.begin(), ranges.end(), [](const auto &left, const auto &right) {
             const auto l = left.identity(), r = right.identity();
             if (l.device != r.device) return l.device < r.device;

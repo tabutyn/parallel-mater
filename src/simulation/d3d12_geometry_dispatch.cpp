@@ -699,7 +699,7 @@ PmResult radix_sort_pairs_u64_u32(
         prefix.set(PrefixLayout::arg_block_count, blocks);
         prefix.buffer(PrefixLayout::arg_offsets, *execution, offsets);
         result = launch(stream, "primitives", "pm_radix_prefix_u32",
-                        device::DispatchSize(1U), device::DispatchSize(1U), prefix);
+                        device::DispatchSize(1U), device::DispatchSize(16U), prefix);
         if (result != PM_SUCCESS) return result;
         using RadixScatterLayout = d3d12::generated::layout::primitives::Kernel_pm_radix_scatter_u64_u32;
         Constants<RadixScatterLayout::constant_size> scatter;
