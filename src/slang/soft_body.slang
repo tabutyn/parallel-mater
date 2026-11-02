@@ -541,7 +541,7 @@ float shape_matrix_determinant(ShapeMatrix value)
 Vec3 soft_body_ordered_subgroup_sum(Vec3 total, Vec3 contribution,
     float inverseMass, uint valid)
 {
-    [unroll]
+    [ForceUnroll]
     for (uint item = 0u; item < 32u; ++item)
     {
         if (item < valid)
