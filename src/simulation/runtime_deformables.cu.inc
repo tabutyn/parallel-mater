@@ -1952,6 +1952,10 @@ Status SimulationRuntime::add_rope_cloth_coupling(RopeClothCouplingOptions optio
         options.maximum_cloth_acceleration <= 0.0F ||
         (options.first_vertex == UINT32_MAX && options.last_vertex == UINT32_MAX))
         return failure(StatusCode::invalid_argument, "invalid rope cloth options");
+    // Attachment validation samples managed endpoint positions on the CPU.
+    const auto idle_error = wait_queue(impl_->execution);
+    if (idle_error != PM_SUCCESS)
+        return backend_failure(idle_error, "rope cloth construction wait failed");
     auto &rope = impl_->ropes[options.rope.index]->data;
     auto &cloth = *impl_->cloths[options.cloth.index];
     const std::uint32_t vertices[2]{options.first_vertex, options.last_vertex};
