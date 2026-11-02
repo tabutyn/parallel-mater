@@ -199,7 +199,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-70](roadmap/tasks/F8-70.json) | Refreeze candidate after CPU Gallery lifecycle repair | done | F8-69 | — |
 | [F8-71](roadmap/tasks/F8-71.json) | Requalify candidate v9 on Linux Vulkan devices | done | F8-25, F8-70 | — |
 | [F8-72](roadmap/tasks/F8-72.json) | Repair the Linux CUDA rigid spatial query contract | done | F8-70 | — |
-| [F8-73](roadmap/tasks/F8-73.json) | Repair candidate-v9 macOS Metal failures | done | F8-70 | — |
+| [F8-73](roadmap/tasks/F8-73.json) | Repair candidate-v9 macOS Metal failures | leased | F8-70 | codex-f8-macos-metal-repair / Thomass-MacBook-Air / 2026-11-03T20:15:33Z |
 | [F8-74](roadmap/tasks/F8-74.json) | Refreeze candidate after Metal and Windows repairs | waiting on dependencies | F8-73, F8-75, F8-76, F8-77, F8-78 | — |
 | [F8-75](roadmap/tasks/F8-75.json) | Repair the Windows CUDA fluid fixture memory ordering | done | F8-70 | — |
 | [F8-76](roadmap/tasks/F8-76.json) | Repair Windows CUDA managed metadata access | done | F8-70, F8-75 | — |
