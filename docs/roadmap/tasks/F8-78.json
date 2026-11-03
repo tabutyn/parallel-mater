@@ -1,7 +1,7 @@
 {
   "id": "F8-78",
   "title": "Validate integrated Windows repair and record timing",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-73",
     "F8-76",
@@ -24,7 +24,15 @@
     "Publish exact source/tree, compiler/device/memory attributes, installed driver/SDK/manifest hashes, raw evidence and protected-closure classification. Compare retained before/after measurements with source differences identified. F8-74 requires this integrated correctness evidence. Record the timing deferral explicitly while preserving candidate-v9 failure history."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "426c0a4a-1f2a-4a23-9faf-a5bcdf25f531",
+    "owner": "codex-windows-performance",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-78/windows-gtx1080-20261103",
+    "claimed_at": "2026-11-03T13:07:50Z",
+    "heartbeat_at": "2026-11-03T13:07:50Z",
+    "expires_at": "2026-11-04T13:07:50Z"
+  },
   "history": [
     {
       "lease": {
