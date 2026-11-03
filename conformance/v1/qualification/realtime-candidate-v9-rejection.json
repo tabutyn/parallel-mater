@@ -1,0 +1,123 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-ba67db3",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+  "candidate_manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+  "status": "rejected-required-metal-and-windows-integration",
+  "failure_evidence": [
+    {
+      "label": "macos-metal",
+      "path": "docs/roadmap/evidence/F8-28-CANDIDATE-V9-MACOS-METAL-FAILURE.json",
+      "sha256": "e244ba5b67dd7c6584e822b57df26a9b2c870098854c08b7b51efa9400936da7"
+    },
+    {
+      "label": "windows-cuda",
+      "path": "docs/roadmap/evidence/F8-26-CANDIDATE-V9-WINDOWS-CUDA-FAILURE.json",
+      "sha256": "b0858b7ff180c76bd1ee15af09c3fd3cb59f229d2ff655852773404c7e4b35f8"
+    }
+  ],
+  "accepted_repairs": [
+    {
+      "task": "F8-73",
+      "path": "docs/roadmap/evidence/F8-73-DEVELOPMENT-ACCEPTANCE.json",
+      "sha256": "4a3a172637a077fdf62eff6b53b1a56dd759a3de8abb5fafb5f75abc8233b3fe"
+    },
+    {
+      "task": "F8-75",
+      "path": "docs/roadmap/evidence/F8-75-WINDOWS-CUDA-FLUID-FIXTURE.json",
+      "sha256": "93e9d5784a1cda13585c7b75574c5d4a0984face1c73ed7bfcc301ccf04c134c"
+    },
+    {
+      "task": "F8-76",
+      "path": "docs/roadmap/evidence/F8-76-WINDOWS-CUDA-OWNERSHIP-ACCEPTANCE.json",
+      "sha256": "b06d9df95dc6aec5b16dc82a84a3659fce74e1fd9f85ba05bff01b312c6efd48"
+    },
+    {
+      "task": "F8-77",
+      "path": "docs/roadmap/evidence/F8-77-WINDOWS-PUBLIC-COMPLETION-WAITS-V2.json",
+      "sha256": "2d0f96f180f87d1f6438e8910a2f35493e91522fe8f89b642a964792a4868717"
+    },
+    {
+      "task": "F8-78",
+      "path": "docs/roadmap/evidence/F8-78-WINDOWS-INTEGRATION.json",
+      "sha256": "35d04d6deaa34957d7644b82b4ae18b833ab09f382e990f25a3dbe5fc22aacda"
+    }
+  ],
+  "completed_historical_rows": [
+    {
+      "task": "F8-53",
+      "candidate": "realtime-single-step-v1-ba67db3",
+      "path": "docs/roadmap/evidence/F8-53-CANDIDATE-V9-LINUX-CPU.json",
+      "sha256": "37ea24ee3db589f94481c6cc6ad11a47a846d52a6ae506017103f0de16bfe131",
+      "status": "completed-history-requalify-v10"
+    },
+    {
+      "task": "F8-68",
+      "candidate": "realtime-single-step-v1-ba67db3",
+      "path": "docs/roadmap/evidence/F8-68-CANDIDATE-V9-LINUX-CUDA.json",
+      "sha256": "7fd249e6665f9674e053de00c48dbf4a76cb0996f32a4cce7c9e9502d1184d36",
+      "status": "completed-history-requalify-v10"
+    },
+    {
+      "task": "F8-71",
+      "candidate": "realtime-single-step-v1-ba67db3",
+      "path": "docs/roadmap/evidence/F8-71-CANDIDATE-V9-LINUX-VULKAN.json",
+      "sha256": "a5398863cf27a25d9c6438c6723f0f3e99539563dc1c9f0e91124d063eec2104",
+      "status": "completed-history-requalify-v10"
+    }
+  ],
+  "replacement": {
+    "status": "frozen-awaiting-integration-qualification",
+    "freeze_task": "F8-74",
+    "candidate_id": "realtime-single-step-v1-5bacbe2",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "candidate_manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "ci_run_id": 41708083151
+  },
+  "invalidated_physical_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "qualification_owner": "F8-26",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "qualification_owner": "F8-27",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "qualification_owner": "F8-85",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "qualification_owner": "F8-86",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "qualification_owner": "F8-87",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "qualification_owner": "F8-28",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "qualification_owner": "F8-29",
+      "status": "invalidated-requalify-replacement"
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "qualification_owner": "F8-30",
+      "status": "invalidated-requalify-replacement"
+    }
+  ],
+  "evidence_union_allowed": false,
+  "timing_policy": "F9-07/F9-08 retain final performance qualification"
+}

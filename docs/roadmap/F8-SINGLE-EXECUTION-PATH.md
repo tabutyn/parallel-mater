@@ -109,11 +109,14 @@ rewriting their history or treating unsupported results as passes.
    Vulkan behavior. F8-66 repairs that path and F8-67 freezes candidate v8.
    F8-25 passes the candidate-v8 Linux Vulkan row, but F8-53 rejects v8 on the
    mandatory CPU Gallery contract. F8-69 repairs that contract and F8-70
-   freezes candidate v9. F8-26 through F8-30 and F8-53 qualify v9 on their
-   registered targets; F8-68 requalifies Linux CUDA and F8-71 requalifies Linux
-   Vulkan without rewriting F8-24 or F8-25 history. F8-31 packages and deploys
-   verified builds; F8-99 audits the sole production path and all required
-   results.
+   freezes candidate v9. Candidate v9's completed Linux CPU, CUDA and Vulkan
+   rows remain historical, but its required macOS Metal and Windows CUDA rows
+   fail. F8-73 and F8-75 through F8-78 repair and integrate those paths. F8-74
+   freezes candidate v10 from the exact repaired source. F8-26 through F8-30
+   qualify the remaining registered targets; F8-85 through F8-87 requalify the
+   completed candidate-v9 Linux CPU, CUDA and Vulkan rows without rewriting
+   their history. F8-31 packages and deploys verified builds; F8-99 audits the
+   sole production path and all required results.
 
 F8-38 completed the narrowly scoped rigid-path refreeze, and F8-23 completed
 its interim qualification. F8-52 preserved the first complete single-path
@@ -123,20 +126,24 @@ CUDA suite. F8-63's `realtime-single-step-v1-fc2ffba` then failed the mandatory
 installed-public CUDA suite. F8-65's `realtime-single-step-v1-05f8b04` then
 passed F8-24 Linux CUDA but failed F8-25 Linux Vulkan. F8-67's
 `realtime-single-step-v1-c05d320` passed F8-25 Linux Vulkan but failed F8-53
-CPU Gallery. All remain rejected history. F8-70 replaces them with
-`realtime-single-step-v1-ba67db3`, manifest SHA-256
-`4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b`.
-F8-26 through F8-30, F8-53, F8-68 and F8-71 accept only that exact candidate.
-All earlier records remain immutable provenance; evidence from different
-candidates may not be combined into a pass. See the
-[F8-70 freeze record](F8-70-CANDIDATE-FREEZE.md).
+CPU Gallery. F8-70's `realtime-single-step-v1-ba67db3` then passes its Linux
+CPU, CUDA and Vulkan rows but fails required macOS Metal and Windows CUDA
+integration. All remain rejected or superseded history. F8-74 replaces them
+with `realtime-single-step-v1-5bacbe2` at exact source
+`5bacbe2b1e0fbfad565fb9477bb6873396e31d5d`. F8-26 through F8-30 and F8-85
+through F8-87 accept only that replacement candidate. All earlier records
+remain immutable provenance; evidence from different candidates may not be
+combined into a pass. See the [F8-74 freeze record](F8-74-CANDIDATE-FREEZE.md).
 
 The frozen `realtime-profile-v1.json` and earlier candidate records remain
 unchanged historical inputs. F8-50 updates the executable contract, and F8-61
 captures the repaired matrix, scenarios and validator. F8-65 captures the
 installed-public CUDA repair, F8-67 captures the repaired Linux Vulkan closure,
-and F8-70 captures the repaired CPU Gallery lifecycle plus exact replacement
-hashes.
+F8-70 captures the repaired CPU Gallery lifecycle, and F8-74 captures the
+integrated Metal, shared-Gallery and Windows repair closure. F8-74 publishes an
+F8 integration/correctness verdict separately from final performance: retained
+wall-clock target misses remain F9-07/F9-08 obligations and do not become a
+replacement-candidate performance pass.
 Numeric quality limits may not be weakened to make this migration pass.
 
 Existing branches may temporarily contain migration scaffolding, but "F8 done"

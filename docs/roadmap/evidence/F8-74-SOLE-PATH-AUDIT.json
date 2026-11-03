@@ -1,0 +1,155 @@
+{
+  "schema": "parallel-mater-f8-74-sole-path-audit/v1",
+  "task": "F8-74",
+  "status": "passed",
+  "audited_source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+  "audited_source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+  "baseline_candidate": {
+    "id": "realtime-single-step-v1-ba67db3",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
+    "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+    "status": "rejected-required-metal-and-windows-integration"
+  },
+  "protected_delta": {
+    "method": "Compare every file selected by candidate-v9 protected closure patterns between candidate-v9 source ba67db3 and repaired source 5bacbe2.",
+    "changed_categories": [
+      "kernel",
+      "adapter_binding",
+      "runtime",
+      "schedule_telemetry",
+      "public_oracle",
+      "work_budget",
+      "gallery"
+    ],
+    "changed_unique_file_count": 39,
+    "changed_file_counts_by_category": {
+      "api_abi": 0,
+      "kernel": 8,
+      "adapter_binding": 10,
+      "runtime": 14,
+      "schedule_telemetry": 1,
+      "contract": 0,
+      "public_oracle": 4,
+      "work_budget": 1,
+      "gallery": 3
+    },
+    "unchanged_categories": [
+      "api_abi",
+      "contract"
+    ],
+    "reason": "Accepted F8-73 Metal/shared-Gallery work and F8-75/F8-76/F8-77 Windows ownership, fixture and asynchronous completion repairs changed executable closures. The public API/ABI, capability contract, numerical limits, timing targets and independent work-budget values remain unchanged."
+  },
+  "protected_closures": {
+    "api_abi": {
+      "files": 18,
+      "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+    },
+    "kernel": {
+      "files": 39,
+      "sha256": "dfe3ef649f8cfd363be331280218e533783750f82e080d1dd7503664171bb5b1"
+    },
+    "adapter_binding": {
+      "files": 49,
+      "sha256": "4cd9ad476cdc1bd54f84fe17f053f810f3c620bf2250a7bc3f59fce71f13e6d9"
+    },
+    "runtime": {
+      "files": 127,
+      "sha256": "d7fbd9df07da2a41169f6a0b5accd77e0b7622a063e551f623a15e224a0cbd3e"
+    },
+    "schedule_telemetry": {
+      "files": 6,
+      "sha256": "32b8e4de98281e9fcb07174ef227ee26599e6ed35b1c9f8cd7f5c8a14b8c16d6"
+    },
+    "contract": {
+      "files": 6,
+      "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+    },
+    "public_oracle": {
+      "files": 543,
+      "sha256": "b42e6d7c12ef27231b666dbbb284492cf3c5d03678f1be6cac65dbcf221f339f"
+    },
+    "work_budget": {
+      "files": 7,
+      "sha256": "f3af25d62dc3ecc6d4b443b2d6004bea45e2371322da2a8704bf7a6d55127b7f"
+    },
+    "gallery": {
+      "files": 160,
+      "sha256": "186f826501c6ac2f092d23f98983af0871b67f0d10745052964855f737d6f867"
+    }
+  },
+  "public_contract": {
+    "api_version": "0.3",
+    "driver_abi_version": 2,
+    "creation": "ordinary PmSimulationCreateInfo with no execution-profile extension",
+    "step": "ordinary pmCmdStepSimulation fixed to one 1/60-second substep",
+    "production_schedule_count": 1,
+    "retired_selector_symbols_found": 0,
+    "retired_schedule_sources_found": 0
+  },
+  "surface": {
+    "domains": [
+      "RIGID_BODY",
+      "FLUID",
+      "CLOTH",
+      "SOFT_BODY",
+      "ROPE",
+      "SMOKE"
+    ],
+    "advertised_interaction_modes": [
+      "ATTACHMENT",
+      "CONTACT",
+      "CONTAINMENT",
+      "DRAG",
+      "PHASE",
+      "PRESSURE",
+      "THERMAL",
+      "VISCOSITY"
+    ],
+    "interaction_capabilities": 49,
+    "public_cases": 30,
+    "scenario_fixtures": 12,
+    "independent_measurements": 37,
+    "kernel_groups": 32,
+    "canonical_modules": 26,
+    "canonical_entries": 234,
+    "runtime_variants": 5,
+    "physical_target_rows": 8,
+    "capability_reductions": 0
+  },
+  "windows_integration": {
+    "evidence": "docs/roadmap/evidence/F8-78-WINDOWS-INTEGRATION.json",
+    "evidence_sha256": "35d04d6deaa34957d7644b82b4ae18b833ab09f382e990f25a3dbe5fc22aacda",
+    "registered_release_tests": 146,
+    "installed_sdk_checks": 12,
+    "modes": 2,
+    "public_cases_per_mode": 30,
+    "physical_scenarios_per_mode": 12,
+    "workloads_per_mode": 5,
+    "negative_controls_per_mode": 5,
+    "warmup_ticks_per_workload": 600,
+    "measured_ticks_per_workload": 7200,
+    "correctness_work_recovery": "passed",
+    "final_performance_qualified": false
+  },
+  "timing_debt": {
+    "owners": [
+      "F9-07",
+      "F9-08"
+    ],
+    "physics_p95_target_ms": 10.0,
+    "frame_p95_target_ms": 16.666666666666668,
+    "simulated_to_wall_target": 0.99,
+    "classification": "Retained timing-only misses do not fail the F8 integration/correctness verdict and do not establish a final-performance pass."
+  },
+  "negative_findings": {
+    "selectable_legacy_runtime": false,
+    "blanket_domain_or_interaction_rejection": false,
+    "private_test_only_required_path": false,
+    "runtime_derived_work_budget": false,
+    "compile_only_qualification": false,
+    "changed_fixed_tick_schedule": false,
+    "changed_capability_contract": false,
+    "weakened_work_budget": false,
+    "evidence_union_across_candidates": false
+  }
+}
