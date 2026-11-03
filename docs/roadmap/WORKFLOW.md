@@ -6,8 +6,8 @@ local edits, pushed branches and open PRs are only proposals until merged.
 This is cooperative Git coordination, not an identity/authentication service.
 
 Physics development follows [the 2026-11-02 quality policy](PHYSICS-QUALITY-DEVELOPMENT.md):
-improve one concrete Gallery behavior, preserve the solver limits, and judge
-the affected system before pursuing full candidate qualification. Scoped
+finish the existing F8 integration/qualification/release sequence first;
+scene-quality follow-ups come after its F8-99 exit review. Preserve solver limits. Scoped
 development merges and previews do not wait for every device or the aggregate
 mixed-workload p95 target. Task ownership and truthful evidence still apply.
 
@@ -16,9 +16,9 @@ mixed-workload p95 target. Task ownership and truthful evidence still apply.
 1. Fetch current `main`; inspect open lease PRs to avoid duplicate proposals.
 2. Run `python3 tools/roadmap.py list --ready` and read the selected task card.
 3. Check its machine requirements, acceptance checks, dependencies and locks.
-   F8-79 through F8-84 are the current per-system quality priority. F8-73
-   supplies the repaired Mac development base. Honor existing leases;
-   independent ready tasks may run concurrently without an all-system gate.
+   Finish F8 first: land F8-73, complete remaining performance/qualification,
+   refreeze, deploy and close the F8-99 exit review. F8-79 through F8-84
+   are deferred scene-quality follow-ups after that exit. Honor current leases.
 4. Reserve one leaf ID per claim PR. Do not claim an entire F-series area. If a
    leaf is too large for one focused implementation/review, split it in a
    planning PR before claiming. Keep old IDs and history; never renumber/reuse.
