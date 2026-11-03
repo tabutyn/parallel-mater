@@ -1,7 +1,7 @@
 {
   "id": "F8-78",
   "title": "Validate integrated Windows repair and record timing",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-73",
     "F8-76",
@@ -23,16 +23,13 @@
     "Verify one 1/60-second advance, one spatial publication, atomic rejected-step recovery and every independent dispatch/iteration/submission/readback/synchronization budget. Preserve numerical fixtures, goldens, required timeouts, workload sizes and advertised capabilities.",
     "Publish exact source/tree, compiler/device/memory attributes, installed driver/SDK/manifest hashes, raw evidence and protected-closure classification. Compare retained before/after measurements with source differences identified. F8-74 requires this integrated correctness evidence. Record the timing deferral explicitly while preserving candidate-v9 failure history."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "426c0a4a-1f2a-4a23-9faf-a5bcdf25f531",
-    "owner": "codex-windows-performance",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-78/windows-gtx1080-20261103",
-    "claimed_at": "2026-11-03T13:07:50Z",
-    "heartbeat_at": "2026-11-03T13:07:50Z",
-    "expires_at": "2026-11-04T13:07:50Z"
-  },
+  "evidence": [
+    "PASS: clean Release source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d on Windows GTX 1080, all 146 registered tests with zero skips and every previous test retained, plus 12 relocated-SDK checks. docs/roadmap/evidence/F8-78-WINDOWS-INTEGRATION.json records exact source/tree, device, compiler, memory attributes and all binary/SDK hashes.",
+    "PASS: all 30 public cases and 12 physical scenarios per mode, frozen physical/capability/work/recovery assertions, five unchanged workloads per mode with 600 warmup and 7200 measured ticks. All 72000 measured ticks succeed. All 288000 raw timing values retained and percentile/max summaries recomputed. All five injected defects independently rejected in each mode.",
+    "DISCLOSED: plain/validation six-family physics p95 18.5305/20.6715 ms and simulated/wall ratio 0.989253/0.837211; validation deformable physics p95 11.1551 ms. Original suite retains 8/9 failures, comprising 3/4 timing misses plus five timing-contaminated canonical controls. PR 657 defers this performance qualification to F9-07/F9-08. Candidate refreeze and scene-quality work remain pending.",
+    "ARTIFACT: docs/roadmap/evidence/F8-78-WINDOWS-INTEGRATION.zip SHA-256 b31df89bffefc6a8fbf2bac5b361537b479c5e540b7e18edb7aa48394854c2f7, 158 verified members, 10715493 bytes. Original reports, full mode/control diagnostics, logs and reproduction scripts retained. All nine protected closures classified; frozen API/ABI and contract closures unchanged. Historical candidate and completed-task evidence preserved."
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -48,6 +45,26 @@
       "at": "2026-11-02T22:55:12Z",
       "reason": "Blocked: frozen six-family CUDA p95 remains 17-20 ms versus 10 ms after F8-77; required production batching/fusion overlaps live F8-73. Retained diagnostics locally; no implementation on the task branch.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "426c0a4a-1f2a-4a23-9faf-a5bcdf25f531",
+        "owner": "codex-windows-performance",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-78/windows-gtx1080-20261103",
+        "claimed_at": "2026-11-03T13:07:50Z",
+        "heartbeat_at": "2026-11-03T13:07:50Z",
+        "expires_at": "2026-11-04T13:07:50Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-03T14:26:09Z",
+      "reason": "Integrated Windows repair passes the revised correctness/work/recovery contract. Complete timing capture and independently rejected controls retained; original timing targets remain F9-07/F9-08 debt under PR 657.",
+      "evidence": [
+        "PASS: clean Release source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d on Windows GTX 1080, all 146 registered tests with zero skips and every previous test retained, plus 12 relocated-SDK checks. docs/roadmap/evidence/F8-78-WINDOWS-INTEGRATION.json records exact source/tree, device, compiler, memory attributes and all binary/SDK hashes.",
+        "PASS: all 30 public cases and 12 physical scenarios per mode, frozen physical/capability/work/recovery assertions, five unchanged workloads per mode with 600 warmup and 7200 measured ticks. All 72000 measured ticks succeed. All 288000 raw timing values retained and percentile/max summaries recomputed. All five injected defects independently rejected in each mode.",
+        "DISCLOSED: plain/validation six-family physics p95 18.5305/20.6715 ms and simulated/wall ratio 0.989253/0.837211; validation deformable physics p95 11.1551 ms. Original suite retains 8/9 failures, comprising 3/4 timing misses plus five timing-contaminated canonical controls. PR 657 defers this performance qualification to F9-07/F9-08. Candidate refreeze and scene-quality work remain pending.",
+        "ARTIFACT: docs/roadmap/evidence/F8-78-WINDOWS-INTEGRATION.zip SHA-256 b31df89bffefc6a8fbf2bac5b361537b479c5e540b7e18edb7aa48394854c2f7, 158 verified members, 10715493 bytes. Original reports, full mode/control diagnostics, logs and reproduction scripts retained. All nine protected closures classified; frozen API/ABI and contract closures unchanged. Historical candidate and completed-task evidence preserved."
+      ]
     }
   ]
 }
