@@ -2,8 +2,10 @@
 
 Maintainer direction, 2026-11-02: the current simulations are not convincing or
 compelling. Passing execution, regression, or performance tests does not settle
-that concern. Prioritize improvements that can be inspected in the Gallery,
-one system and one concrete behavior at a time.
+that concern. Subsequent maintainer direction on the same date sets the order:
+land the retained Mac repair and finish the existing F8 integration,
+qualification and release sequence before starting scene repairs. The later
+scene-quality work improves one system and one concrete behavior at a time.
 
 This decision changes development merge and release gates. It supersedes older
 instructions that make full F8 candidate qualification a prerequisite for
@@ -76,17 +78,26 @@ Never combine different revisions into a qualified candidate or describe a
 failed performance baseline as a passing negative-control suite.
 
 F8-74 (whole-candidate refreeze), F8-78 (frozen Windows performance target), and
-F8-99 (aggregate exit review) are deferred milestones. They do not gate the
-new per-system tasks or development previews. A future broad qualification
-claim still needs explicitly agreed device/workload coverage and its own
-passing evidence; no broad claim is made by this policy change.
+F8-99 (aggregate exit review) are active again to finish the existing F8 work.
+Their original qualification rules remain intact. They do not restore aggregate
+timing as a merge blocker for the scoped F8-73 development repair. Broad final
+qualification still requires its own passing device/workload evidence.
+
+F8-79 through F8-84 are deferred until the F8-99 exit review completes. They
+are post-exit quality follow-ups, not prerequisites for that exit. Completing
+F8 does not itself establish that the scenes are convincing.
 
 ## Immediate queue
 
-F8-79 through F8-84 cover a first visible improvement to rigid bodies, liquids,
-cloth, soft bodies, ropes, and smoke respectively. They are independent; no
-all-six completion barrier precedes a merge. Start with rigid contact/settling
-unless a maintainer selects another system. Follow existing leases and locks.
+Land the retained F8-73 Mac adapter/Gallery repair under its revised
+development acceptance. Then complete remaining F8-78 performance work,
+F8-74 candidate refreeze, physical qualification rows, qualified delivery and
+F8-99 exit review according to dependencies and available hardware.
+
+After that exit, reactivate F8-79 through F8-84 through planning. They cover a
+first visible improvement to rigid bodies, liquids, cloth, soft bodies, ropes,
+and smoke respectively. No all-six completion barrier precedes their individual
+merges. Follow existing leases and locks.
 
 These are new follow-ups to previously completed implementation tasks, not a
 rewrite of their history. F8-73 remains the bounded Mac adapter/Gallery repair;

@@ -1,11 +1,12 @@
 {
   "id": "F8-79",
   "title": "Improve rigid-body contacts and settling in the Gallery",
-  "status": "open",
+  "status": "deferred",
   "dependencies": [
     "F8-11",
     "F8-50",
-    "F8-51"
+    "F8-51",
+    "F8-99"
   ],
   "locks": [
     "rigid-equations"
@@ -13,7 +14,7 @@
   "requires": [
     "One working native Gallery target with its shared Slang driver and access to public state/trajectory capture; additional physical devices are not prerequisites for this development task"
   ],
-  "scope": "Follow docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md. Reproduce and fix one concrete visible defect in a small falling-box/stack scene that exposes contact separation, resting jitter, settling, or implausible rebound. Keep the scope to this first representative improvement, not a complete family rewrite or all interactions. Improve shared physics within the unchanged one-step, one-spatial-update and solver-work limits. Use existing supported material/interaction semantics; do not add a second production path or platform physics. Independent tasks may merge without waiting for the other five families, a frozen candidate, or whole-project performance/device qualification.",
+  "scope": "Post-F8-exit scene-quality follow-up: deferred until F8-99 completes, then reactivate through planning. Follow docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md. Reproduce and fix one concrete visible defect in a small falling-box/stack scene that exposes contact separation, resting jitter, settling, or implausible rebound. Keep the scope to this first representative improvement, not a complete family rewrite or all interactions. Improve shared physics within the unchanged one-step, one-spatial-update and solver-work limits. Use existing supported material/interaction semantics; do not add a second production path or platform physics. Independent tasks may merge without waiting for the other five families, a frozen candidate, or whole-project performance/device qualification.",
   "acceptance": [
     "Name the observed defect and intended physical response before changing the solver. Retain a reproducible small scene, source/backend/device, scale, material parameters, initial state, camera and public-state evidence for a small falling-box/stack scene that exposes contact separation, resting jitter, settling, or implausible rebound.",
     "Retain comparable before/after Gallery motion as a short clip or ordered frame sequence, plus state/trajectory data. Explain the visible improvement and remaining defects. Rendering, camera, workload reduction or increased damping alone must not conceal an unresolved physics defect.",

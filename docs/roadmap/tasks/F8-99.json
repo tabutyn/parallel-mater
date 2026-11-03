@@ -1,7 +1,7 @@
 {
   "id": "F8-99",
   "title": "Review F8 single-step quality, performance and device exit evidence",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "F8-00",
     "F8-01",
@@ -79,13 +79,7 @@
     "F8-73",
     "F8-74",
     "F8-75",
-    "F8-76",
-    "F8-79",
-    "F8-80",
-    "F8-81",
-    "F8-82",
-    "F8-83",
-    "F8-84"
+    "F8-76"
   ],
   "locks": [
     "foundation-8-review"
@@ -93,7 +87,7 @@
   "requires": [
     "Access to every registered machine's durable candidate evidence and independent review"
   ],
-  "scope": "Deferred aggregate milestone under the maintainer-approved 2026-11-02 policy in docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md. It does not block per-system quality tasks, development merges, or labeled previews. Preserve the original qualification rules and historical failures; reactivate through planning when broad qualification is the priority. Audit F8 against the maintainer's sole-production-architecture requirement in docs/roadmap/F8-SINGLE-EXECUTION-PATH.md. Require complete native/public/Gallery integration for all supported domains/interactions, removal of the legacy production path and selector, and all device quality/performance evidence on one final candidate. Mandatory dispatch reduction requirements are defined in docs/roadmap/F8-DISPATCH-REDUCTION.md.",
+  "scope": "Audit F8 against the maintainer's sole-production-architecture requirement in docs/roadmap/F8-SINGLE-EXECUTION-PATH.md. Require complete native/public/Gallery integration for all supported domains/interactions, removal of the legacy production path and selector, and all device quality/performance evidence on one final candidate. Mandatory dispatch reduction requirements are defined in docs/roadmap/F8-DISPATCH-REDUCTION.md.",
   "acceptance": [
     "All dependency cards and every current-candidate required kernel/device row are merged done with reviewable evidence; missing hardware, failed quality or missed performance budgets keep this gate open.",
     "Verify one fixed 1/60 step, one shared dynamic index publication, no hidden time subdivision/catch-up, bounded algebraic work, interpolation and deliberate overload slow-motion.",
@@ -102,7 +96,7 @@
     "Source/symbol review and installed public execution prove the old scheduler/profile selection is removed across ordinary, mixed-domain, empty, headless, diagnostic and failure/recovery paths. Historical regression evidence and independent oracles may remain.",
     "Every baseline supported domain/interaction and Gallery scene executes the sole schedule on each applicable adapter; a rigid-only run, shader compilation, mock schedule or reduced capability matrix cannot close the gate.",
     "Explicitly audit F8-54--56: Metal has no body-count-sized no-op launch graph, production coupling searches use complete shared-epoch candidates or documented direct/stencil semantics, and compatible edges are batched. Independent ceilings and matched installed Mac/iPad traces prove substantial reductions; deriving the pass budget from current implementation cost is insufficient.",
-    "Review the visible and physical evidence from F8-79 through F8-84 and their documented remaining limitations. Do not infer convincing system behavior from completed implementation cards or timing results alone. This future aggregate review is not a prerequisite for those scoped merges."
+    "Review the existing F8 architecture, qualification and release scope before scene-quality follow-ups. F8-79 through F8-84 follow this exit and are not its prerequisites. Retain the outstanding concern about convincing scene behavior; do not treat this exit as acceptance of those later improvements."
   ],
   "evidence": [],
   "lease": null,
