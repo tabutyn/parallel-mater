@@ -20,7 +20,6 @@ from check_realtime_candidate import (  # noqa: E402
     validate_candidate,
 )
 
-
 class F874CandidateFreezeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -103,7 +102,6 @@ class F874CandidateFreezeTests(unittest.TestCase):
         )
         self.assertIn('$RUNNER_TEMP/xcode-version.txt', workflow)
         self.assertNotIn("tee xcode-version.txt", workflow)
-
 
 if __name__ == "__main__":
     unittest.main()
