@@ -1,7 +1,7 @@
 {
   "id": "F8-74",
   "title": "Refreeze candidate after Metal and Windows repairs",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-73",
     "F8-75",
@@ -28,6 +28,14 @@
     "Publish separate F8 integration/correctness and final-performance verdicts for the candidate. Document the original 10 ms physics p95, 16.666666666666668 ms frame p95 and 0.99 simulated/wall targets as F9-07/F9-08 obligations. Any executable reporting-policy change requires its own bounded task and merged lease before implementation."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "590b4cc7-7e4d-4dae-a7ae-db76f9e2ea11",
+    "owner": "codex-f8-candidate-freeze",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-74/Thomass-MacBook-Air",
+    "claimed_at": "2026-11-03T19:49:48Z",
+    "heartbeat_at": "2026-11-03T19:49:48Z",
+    "expires_at": "2026-11-04T19:49:48Z"
+  },
   "history": []
 }
