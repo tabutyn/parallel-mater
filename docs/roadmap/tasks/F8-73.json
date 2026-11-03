@@ -1,7 +1,7 @@
 {
   "id": "F8-73",
   "title": "Repair macOS Metal and Gallery for development",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-70"
   ],
@@ -20,16 +20,13 @@
     "Retain exact source/tree, device/toolchain, installed binary/manifest, generated Metal/reflection, raw timings and before/after evidence. Report both workload modes, all stalls and negative-control results. A timing-failed baseline does not count as a negative-control pass. The unchanged whole-project 10 ms/16.667 ms targets are reported outstanding when missed; they do not block this development repair.",
     "Compare all F8-70 protected closures and clearly label this as development repair acceptance, not final physics/performance or multi-device qualification. Keep the original passing ffdafab7 capture and failed integrated-source capture separate; F8-74 requires its own future source freeze and appropriate qualification."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bc50ec1b-edef-4e58-ab14-40361d390d00",
-    "owner": "codex-f8-macos-metal-repair",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-73/Thomass-MacBook-Air",
-    "claimed_at": "2026-11-03T00:04:12Z",
-    "heartbeat_at": "2026-11-03T00:04:12Z",
-    "expires_at": "2026-11-04T00:04:12Z"
-  },
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-73-DEVELOPMENT-ACCEPTANCE.json and matching archive bind clean d0910085, full Release preset with 142 passes and 15 expected unsupported skips, verified canonical Metal Gallery/Dock/signature and a six-frame direct-render smoke image.",
+    "PASS: fresh installed-public correctness executes all 30 cases and all 12 physical scenarios in each mode; independent physical checks pass, final public resources and work ledgers match retained 4ce3be5c, and every protected production-source category is identical.",
+    "PASS: F8-73-METAL-REPAIR-PROGRESS.json retains exact historical binding/reset failures and deliberate repairs; ordered kernel and native transfer-boundary/batching/lifetime regressions preserve physics results, one fixed advance, one spatial publication and existing work budgets.",
+    "DISCLOSED: F8-73-MAIN-INTEGRATION.json retains the unchanged failed validation performance/negative-control baseline (deformable p95 10.933042 ms, six-family 17.139125 ms). F8-73 completion is development repair acceptance under PR 653, not final performance, multi-device or scene-quality qualification."
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -60,6 +57,26 @@
       "at": "2026-11-02T23:50:02Z",
       "reason": "Maintainer requests loosening aggregate merge/release gates while retaining solver limits; release only to replan this repair, preserving PR 639 and all passing/failing evidence.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "bc50ec1b-edef-4e58-ab14-40361d390d00",
+        "owner": "codex-f8-macos-metal-repair",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-73/Thomass-MacBook-Air",
+        "claimed_at": "2026-11-03T00:04:12Z",
+        "heartbeat_at": "2026-11-03T00:04:12Z",
+        "expires_at": "2026-11-04T00:04:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-03T00:10:12Z",
+      "reason": "Mac adapter/Gallery development repair passes revised correctness, lifetime, solver-work and installed-app acceptance; aggregate performance failures remain explicit release work.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-73-DEVELOPMENT-ACCEPTANCE.json and matching archive bind clean d0910085, full Release preset with 142 passes and 15 expected unsupported skips, verified canonical Metal Gallery/Dock/signature and a six-frame direct-render smoke image.",
+        "PASS: fresh installed-public correctness executes all 30 cases and all 12 physical scenarios in each mode; independent physical checks pass, final public resources and work ledgers match retained 4ce3be5c, and every protected production-source category is identical.",
+        "PASS: F8-73-METAL-REPAIR-PROGRESS.json retains exact historical binding/reset failures and deliberate repairs; ordered kernel and native transfer-boundary/batching/lifetime regressions preserve physics results, one fixed advance, one spatial publication and existing work budgets.",
+        "DISCLOSED: F8-73-MAIN-INTEGRATION.json retains the unchanged failed validation performance/negative-control baseline (deformable p95 10.933042 ms, six-family 17.139125 ms). F8-73 completion is development repair acceptance under PR 653, not final performance, multi-device or scene-quality qualification."
+      ]
     }
   ]
 }

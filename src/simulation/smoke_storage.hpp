@@ -136,7 +136,6 @@ struct SmokeStorage {
     Vec3 *realtime_accumulated_corrections{};
     std::uint32_t *realtime_candidate_counts{};
     std::uint32_t *realtime_candidate_indices{};
-    std::uint32_t *realtime_candidate_slot_count{};
     std::uint32_t *realtime_count{};
     std::uint32_t *realtime_time_advances{};
     std::uint32_t realtime_leaf_offset{};
@@ -146,9 +145,6 @@ struct SmokeStorage {
     std::uint32_t realtime_pending_next_slot{};
     std::uint64_t realtime_pending_emitted{};
     std::uint32_t realtime_pending_emit_count{};
-    std::uint32_t realtime_candidate_map_count{};
-    std::uint32_t realtime_candidate_compact_count{};
-    std::vector<std::uint32_t> realtime_candidate_gather_slots{};
     float realtime_pending_emission_fraction{};
     float realtime_pending_time{};
     std::uint32_t count{};
@@ -185,7 +181,6 @@ struct SmokeStorage {
         release_managed(realtime_accumulated_corrections);
         release_managed(realtime_candidate_counts);
         release_managed(realtime_candidate_indices);
-        release_managed(realtime_candidate_slot_count);
         release_managed(realtime_count);
         release_managed(realtime_time_advances);
     }

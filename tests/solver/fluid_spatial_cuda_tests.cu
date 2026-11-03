@@ -241,7 +241,8 @@ struct Fixture {
             target_ids, target_live, target_storage_capacity,
             candidate_counts + query_offset,
             candidate_sources + query_offset * candidates_per_query,
-            candidates_per_query, filtered_counts + query_offset,
+            candidates_per_query, 0U, candidates_per_query,
+            filtered_counts + query_offset,
             filtered_sources + query_offset * candidates_per_query, status);
     }
 

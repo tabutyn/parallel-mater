@@ -79,6 +79,9 @@ public void pmSyncWarp(uint) {}
 public void pmGridBarrier() {}
 public void pmGroupBarrier() {}
 public void pmDeviceBarrier() {}
+public uint pmSubgroupLaneIndex() { return 0u; }
+public uint pmSubgroupLaneCount() { return 1u; }
+public float pmSubgroupRead(float value, uint lane) { return value; }
 #elif defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL)
 public in uint3 pmGroupId : SV_GroupID;
 public in uint3 pmGroupThreadId : SV_GroupThreadID;
@@ -463,6 +466,10 @@ public uint pmAtomicPublishAdd(PMBuffer<uint> value, uint addend)
 #endif
 
 #if !defined(PM_TARGET_CPU)
+public uint pmSubgroupLaneIndex() { return WaveGetLaneIndex(); }
+public uint pmSubgroupLaneCount() { return WaveGetLaneCount(); }
+public float pmSubgroupRead(float value, uint lane) { return WaveReadLaneAt(value, lane); }
+
 public void pmGroupBarrier()
 {
 #if defined(PM_TARGET_METAL) || defined(PM_TARGET_VULKAN) || PM_TARGET_D3D12

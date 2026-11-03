@@ -258,6 +258,22 @@ struct CommandScene::Impl {
 
     void release() noexcept {
         if (device != nullptr) (void)pmDeviceWaitIdle(device);
+        // Recorded command buffers retain every resource they reference in
+        // the validation layer. Release them before destroying those
+        // resources so validation and the driver observe the same lifetime.
+        if (device != nullptr && command_pool != nullptr) {
+            if (commands != nullptr)
+                pmFreeCommandBuffers(device, command_pool, 1U, &commands);
+            if (reset_commands != nullptr)
+                pmFreeCommandBuffers(
+                    device, command_pool, 1U, &reset_commands);
+            pmDestroyCommandPool(device, command_pool);
+        }
+        commands = nullptr;
+        reset_commands = nullptr;
+        command_pool = nullptr;
+        if (device != nullptr && fence != nullptr) pmDestroyFence(device, fence);
+        fence = nullptr;
         if (device != nullptr && pipeline != nullptr)
             pmDestroyPhysicsPipeline(device, pipeline);
         if (device != nullptr && statistics_query != nullptr)
@@ -279,15 +295,6 @@ struct CommandScene::Impl {
             pmFreeMemory(device, persistent_memory);
         if (device != nullptr && scratch_memory != nullptr)
             pmFreeMemory(device, scratch_memory);
-        if (device != nullptr && fence != nullptr) pmDestroyFence(device, fence);
-        if (device != nullptr && command_pool != nullptr) {
-            if (commands != nullptr)
-                pmFreeCommandBuffers(device, command_pool, 1U, &commands);
-            if (reset_commands != nullptr)
-                pmFreeCommandBuffers(
-                    device, command_pool, 1U, &reset_commands);
-            pmDestroyCommandPool(device, command_pool);
-        }
         if (device != nullptr) pmDestroyDevice(device);
         if (instance != nullptr) pmDestroyInstance(instance);
     }

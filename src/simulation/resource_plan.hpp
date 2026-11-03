@@ -761,7 +761,6 @@ Status visit_smoke_particles_storage(State &state, std::uint32_t capacity, Visit
     PM_STORAGE(realtime_candidate_counts, capacity, scratch);
     PM_STORAGE(realtime_candidate_indices,
         static_cast<std::size_t>(capacity) * 64U, scratch);
-    PM_STORAGE(realtime_candidate_slot_count, 1U, scratch);
     PM_STORAGE(realtime_time_advances, 1U, scratch);
     state.sort_workspace_size = radix_sort_scratch_bytes(capacity);
     PM_STORAGE(sort_workspace, state.sort_workspace_size, scratch);

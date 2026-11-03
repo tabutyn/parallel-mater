@@ -1,0 +1,1171 @@
+{
+  "build_and_tests": {
+    "configuration": "Release",
+    "ctest_executed_passed": 136,
+    "ctest_expected_unsupported_cpu_skips": 15,
+    "ctest_failures": 0,
+    "ctest_registered": 151,
+    "ctest_seconds": 56.24,
+    "logs": {
+      "f873-force-unroll-ctest.log": {
+        "bytes": 29026,
+        "sha256": "586afa8c2bf89be068b42542297aeacdf7a49009f729990f0b8a23760b281a6e"
+      },
+      "f873-force-unroll-full-build.log": {
+        "bytes": 12644,
+        "sha256": "1d3547cce3351b704fc9a37f7dfd0f223b91bfd03e43a9baba78c07625b2d459"
+      },
+      "f873-unroll-deploy-build.log": {
+        "bytes": 16739,
+        "sha256": "93e0c662de9ad79b7467d4952848022b58735a983c902916ce39e6f4f962b70f"
+      },
+      "f873-unroll-deploy-configure.log": {
+        "bytes": 149,
+        "sha256": "55a7b4906789e17b5f0b68ea7974f3b868d658d4625cf6221b0a5be2f3960948"
+      }
+    },
+    "portable_mirrors": "CUDA source and Vulkan SPIR-V compiled",
+    "preset": "macos-metal-preview"
+  },
+  "changes": [
+    "Cache immutable Metal buffer metadata and avoid temporary shared ownership during validation.",
+    "Avoid redundant allocations when normalizing single-allocation dependency ranges.",
+    "Compile native pipelines with their reflected fixed threadgroup-size bound.",
+    "Keep BVH traversal counters and immutable query inputs local; initialize only live stack slots.",
+    "Compute independent soft-body covariance columns on separate native subgroups, preserving every floating-point addition order and assigning subgroup IDs without assuming lane-to-thread mapping.",
+    "Force Slang to unroll the first 32 ordered subgroup broadcasts; the prior unroll hint left a loop in generated Metal.",
+    "Parallelize independent integer radix digit prefixes with consistent CUDA/D3D12/Vulkan launch sizes and an independent native serial-prefix oracle."
+  ],
+  "device": {
+    "driver": "202618",
+    "driver_binary_sha256": "235274d55222b84221bd8d263847c31f3987b2b0b8732278943829bae02acce0",
+    "driver_manifest_sha256": "380059d165a23cdc7619fca3b8f34ab67e35d8f65cd4886caaf397df9d05dff8",
+    "gpu": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "os": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "target_id": "macos-m4-slang-metal",
+    "toolchain": "Apple LLVM 21.0.0 (clang-2100.1.1.101)"
+  },
+  "diagnostic_only_observations": {
+    "limitations": "Separate exploratory samples with schedule profiling; these phase reductions are not a controlled end-to-end A/B benchmark.",
+    "native_encoding_median_ms_after_metadata_and_tracker": 2.439896,
+    "native_encoding_median_ms_before": 3.43325,
+    "native_gpu_median_ms_after_unrolling": 6.331917,
+    "native_gpu_median_ms_before": 7.3210835,
+    "qualification_claim": false,
+    "rejected_experiment": "Subgroup-broadcast rope Thomas recurrence preserved bits but was slower in isolated tests; reverted."
+  },
+  "f8_70_protected_closure_comparison": [
+    {
+      "baseline_count": 18,
+      "baseline_sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+      "category": "api_abi",
+      "changed": false,
+      "repaired_count": 18,
+      "repaired_sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+    },
+    {
+      "baseline_count": 39,
+      "baseline_sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993",
+      "category": "kernel",
+      "changed": true,
+      "repaired_count": 39,
+      "repaired_sha256": "dfe3ef649f8cfd363be331280218e533783750f82e080d1dd7503664171bb5b1"
+    },
+    {
+      "baseline_count": 49,
+      "baseline_sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67",
+      "category": "adapter_binding",
+      "changed": true,
+      "repaired_count": 49,
+      "repaired_sha256": "80d4763e951efe5b38b428d76b192988f223881ccb7889ed3fc1e9f4891d86f6"
+    },
+    {
+      "baseline_count": 127,
+      "baseline_sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7",
+      "category": "runtime",
+      "changed": true,
+      "repaired_count": 127,
+      "repaired_sha256": "dda7b4e29484eb1d31509eec6ecf4c7bb30930bcfcc9064626e838475ff7dde3"
+    },
+    {
+      "baseline_count": 6,
+      "baseline_sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037",
+      "category": "schedule_telemetry",
+      "changed": true,
+      "repaired_count": 6,
+      "repaired_sha256": "6c7e32a06eef9a96abb21df6f9627943d406634e0f93082e332c8d6da3b468a7"
+    },
+    {
+      "baseline_count": 6,
+      "baseline_sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+      "category": "contract",
+      "changed": false,
+      "repaired_count": 6,
+      "repaired_sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+    },
+    {
+      "baseline_count": 541,
+      "baseline_sha256": "234ff210221d3fc30e5800d41cb9cc3b0509b9ce99273f02f06bae8122cd48cb",
+      "category": "public_oracle",
+      "changed": true,
+      "repaired_count": 543,
+      "repaired_sha256": "812787c635db8865507e7acf3f6b13b6d9120bae17af5943ec3b5de84efa485c"
+    },
+    {
+      "baseline_count": 7,
+      "baseline_sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405",
+      "category": "work_budget",
+      "changed": false,
+      "repaired_count": 7,
+      "repaired_sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405"
+    },
+    {
+      "baseline_count": 160,
+      "baseline_sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80",
+      "category": "gallery",
+      "changed": true,
+      "repaired_count": 160,
+      "repaired_sha256": "9aa80ba1914a1987d9bd789a236f58312cfc780def17af2af2715327c6553bda"
+    }
+  ],
+  "generated_metal_and_reflection": {
+    "files": 1102,
+    "hash_method": "sorted relative path + NUL + file bytes + NUL",
+    "sha256": "0df484d6714fbc726331c51ef84f5e234345981ea131a912353756cfd4f8e12c"
+  },
+  "installed_gallery": {
+    "artifacts": {
+      "Frameworks/libparallel-mater.dylib": {
+        "bytes": 262048,
+        "sha256": "22f53b354c37c215a77c6c199fcc3a512ab3782017b690aeafcd11b213bd95b3"
+      },
+      "Frameworks/libparallel_mater_driver_slang_metal.dylib": {
+        "bytes": 2740160,
+        "sha256": "235274d55222b84221bd8d263847c31f3987b2b0b8732278943829bae02acce0"
+      },
+      "Frameworks/libparallel_mater_layer_validation.dylib": {
+        "bytes": 183600,
+        "sha256": "cc1ade0a5d6ec10d7a0bfee6760dd4ea3ade1e91101799d5933d07bedd7e240d"
+      },
+      "MacOS/ParallelMater Gallery": {
+        "bytes": 937312,
+        "sha256": "6e0808ebb5649fe1d142a0d1418490c86832610d3cbb635696ccf061bb93ca9e"
+      },
+      "Resources/build-info.json": {
+        "bytes": 290,
+        "sha256": "b294e1636fa65aab30ac5843c9f67554b006178edc282b918c00662c466141c2"
+      },
+      "Resources/drivers.d/slang-metal.json": {
+        "bytes": 189,
+        "sha256": "380059d165a23cdc7619fca3b8f34ab67e35d8f65cd4886caaf397df9d05dff8"
+      },
+      "Resources/layers.d/validation.json": {
+        "bytes": 213,
+        "sha256": "b767564dbc1a5a6b8b051ed631c117bf10eed51a9fe1de0629557d2656401ee0"
+      }
+    },
+    "build_info": {
+      "backend": "metal",
+      "build_number": 2116,
+      "dirty": false,
+      "execution_contract": "fixed-tick-60hz-v1",
+      "logo_sha256": "1741f9d7759b2af13255f92a97dbb27a9e50854db634bf1cf3823b455a9e90d3",
+      "release_channel": "development-preview",
+      "revision": "b56e6eeec68aaee73623f01752b401b8791e6e5f",
+      "schema_version": 2
+    },
+    "path": "/Applications/ParallelMater Gallery.app",
+    "shader_bundle": {
+      "files": 493,
+      "hash_method": "sorted relative path + NUL + file bytes + NUL",
+      "sha256": "6c0ba0d0ed0be2ac3219ad8f5f7dfa55735d53f00864492e1d456e9efd473069"
+    },
+    "signature_verification": "PASS: deployment codesign --verify --deep --strict"
+  },
+  "ordered_regression": {
+    "after": {
+      "bytes": 1261792,
+      "sha256": "5118787cecaf2140a17cb2939557077af9af39ac8048262176d50de075361e1c"
+    },
+    "baseline_revision": "3fbc8af46f803e5548b9777aa5551f316dde982f",
+    "before": {
+      "bytes": 1261792,
+      "sha256": "5118787cecaf2140a17cb2939557077af9af39ac8048262176d50de075361e1c"
+    },
+    "comparison": "all bound buffers bit-for-bit identical",
+    "fixtures": {
+      "fluid_rope": 24,
+      "rope": 30,
+      "soft_body": 8
+    }
+  },
+  "qualification": {
+    "archive": {
+      "bytes": 10163379,
+      "path": "docs/roadmap/evidence/F8-73-METAL-PERFORMANCE-20261102.tar.zst",
+      "sha256": "22079a7bad8f188ca9759dd7b007aa2c5ac06f2e93f0412255d382fa409ad883"
+    },
+    "artifacts": {
+      "capture.json": {
+        "bytes": 35522299,
+        "sha256": "9dc1650605332a83384bb535d6898ce16e711ea46d09ccf12ca1fdaaac7bcb36"
+      },
+      "logs": {
+        "files": 32,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "77f82735794ce4699c4c6ce7d677f6c40c831232f83839c55964bf2434049cf8"
+      },
+      "raw": {
+        "files": 94,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "0917b06c5ca1adb2c25f89281665952c65cf26b02a1b183c0e7f723cf85dc273"
+      },
+      "report.json": {
+        "bytes": 2365,
+        "sha256": "37ea9ceb754ed26ccbb748b176a5a7558992c3fd3fee078434e46d2a2bb72b55"
+      }
+    },
+    "command": "python3 conformance/v1/realtime_device_capture.py --runner build-macos-metal-preview/parallel-mater-conformance --driver-manifest \"/Applications/ParallelMater Gallery.app/Contents/Resources/drivers.d/slang-metal.json\" --validation-layer-manifest \"/Applications/ParallelMater Gallery.app/Contents/Resources/layers.d/validation.json\" --runtime-variant metal-runtime --target-id macos-m4-slang-metal --output <new-output-directory>",
+    "negative_control_rule": "Each injected violation must be rejected AND the unmodified baseline must pass. A baseline performance failure therefore keeps all five controls failed; no oracle rule was relaxed.",
+    "negative_controls": [
+      {
+        "id": "candidate_missing_pair",
+        "passed": false,
+        "rejected_failure_count": 3
+      },
+      {
+        "id": "atomic_failure_violation",
+        "passed": false,
+        "rejected_failure_count": 5
+      },
+      {
+        "id": "hidden_retry_violation",
+        "passed": false,
+        "rejected_failure_count": 5
+      },
+      {
+        "id": "timing_stall_retained",
+        "passed": false,
+        "rejected_failure_count": 3
+      },
+      {
+        "id": "timing_failed_tick",
+        "passed": false,
+        "rejected_failure_count": 3
+      }
+    ],
+    "public_cases": {
+      "plain": {
+        "artifacts": {
+          "files": 30,
+          "hash_method": "sorted relative path + NUL + file bytes + NUL",
+          "sha256": "117e11e6110a72ddea8117d6de2bc3e6ec18b05d2483f47fb96ffdb53845b7d5"
+        },
+        "completed": true,
+        "count": 30
+      },
+      "validation": {
+        "artifacts": {
+          "files": 30,
+          "hash_method": "sorted relative path + NUL + file bytes + NUL",
+          "sha256": "77280bccdde607d1b8340d21c3714eda0807f78062fdf945a527f995a6ee0776"
+        },
+        "completed": true,
+        "count": 30
+      }
+    },
+    "report": {
+      "candidate": {
+        "id": "realtime-single-step-v1-ba67db3",
+        "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+        "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5"
+      },
+      "failure_count": 7,
+      "failures": [
+        {
+          "actual": 16.937667,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[six-family-mixed].timings.physics_ms.p95"
+        },
+        {
+          "actual": 16.937667,
+          "expected": 16.666666666666668,
+          "message": "frame p95 exceeds the 60 Hz budget",
+          "path": "$.workloads[six-family-mixed].timings.frame_ms.p95"
+        },
+        {
+          "actual": {
+            "id": "candidate_missing_pair",
+            "passed": false,
+            "rejected_failure_count": 3
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[candidate_missing_pair]"
+        },
+        {
+          "actual": {
+            "id": "atomic_failure_violation",
+            "passed": false,
+            "rejected_failure_count": 5
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[atomic_failure_violation]"
+        },
+        {
+          "actual": {
+            "id": "hidden_retry_violation",
+            "passed": false,
+            "rejected_failure_count": 5
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[hidden_retry_violation]"
+        },
+        {
+          "actual": {
+            "id": "timing_stall_retained",
+            "passed": false,
+            "rejected_failure_count": 3
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[timing_stall_retained]"
+        },
+        {
+          "actual": {
+            "id": "timing_failed_tick",
+            "passed": false,
+            "rejected_failure_count": 3
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[timing_failed_tick]"
+        }
+      ],
+      "negative_control_count": 5,
+      "passed": false,
+      "runtime_variant": "metal-runtime",
+      "scenario_count": 12,
+      "schema": "parallel-mater-realtime-device-suite-report/v1",
+      "target_id": "macos-m4-slang-metal"
+    },
+    "scenarios": {
+      "boundary-replacement-generation": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.fluid.limits.closed-container-leaked-particle-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.closed-system-center-of-mass-drift-support-radius.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-maximum.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-p95.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.free-surface-particle-loss-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-angle-error-rad.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-rotation-drift-rad-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-translation-drift-m-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.rope.limits.attachment-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.bend-angle-error-rad-rms.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-rms.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.tunneling-events.maximum": 0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "capacity-overflow-atomic-recovery": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.cloth.limits.bend-angle-error-rad-rms.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.closed-surface-volume-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.pinned-vertex-drift-m.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-rms.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.fluid.limits.closed-container-leaked-particle-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.closed-system-center-of-mass-drift-support-radius.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-maximum.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-p95.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.free-surface-particle-loss-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.analytic-transport-centroid-error-grid-cells.maximum": 0.04798271734547588,
+          "f8.v1.domain-quality.smoke.limits.closed-tracer-mass-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-rms.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.maximum-speed-overshoot-m-s.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.particle-density-relative-error-p95.maximum": 0.0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "cloth-stiff-pin-impact": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.cloth.limits.bend-angle-error-rad-rms.maximum": 0.009008481121394034,
+          "f8.v1.domain-quality.cloth.limits.closed-surface-volume-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.pinned-vertex-drift-m.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-maximum.maximum": 0.00038114195373606385,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-rms.maximum": 3.693476071211622e-05,
+          "f8.v1.domain-quality.cloth.limits.tunneling-events.maximum": 0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "empty-and-sparse-capacity": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.cloth.limits.bend-angle-error-rad-rms.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.closed-surface-volume-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.pinned-vertex-drift-m.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-rms.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.fluid.limits.closed-container-leaked-particle-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.closed-system-center-of-mass-drift-support-radius.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-maximum.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-p95.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.free-surface-particle-loss-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-angle-error-rad.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-rotation-drift-rad-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-translation-drift-m-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.rope.limits.attachment-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.bend-angle-error-rad-rms.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-rms.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.smoke.limits.analytic-transport-centroid-error-grid-cells.maximum": 0.04045850562228426,
+          "f8.v1.domain-quality.smoke.limits.closed-tracer-mass-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-rms.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.maximum-speed-overshoot-m-s.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.particle-density-relative-error-p95.maximum": 0.0,
+          "f8.v1.domain-quality.soft-body.limits.bond-stretch-relative-error-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.soft-body.limits.bond-stretch-relative-error-rms.maximum": 0.0,
+          "f8.v1.domain-quality.soft-body.limits.inverted-volume-elements.maximum": 0,
+          "f8.v1.domain-quality.soft-body.limits.shape-matching-position-error-characteristic-length-rms.maximum": 0.0,
+          "f8.v1.domain-quality.soft-body.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.soft-body.limits.volume-relative-error.maximum": 0.0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "fluid-closed-container-source-outflow": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.fluid.limits.closed-container-leaked-particle-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.closed-system-center-of-mass-drift-support-radius.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-maximum.maximum": 4.707968233765314e-05,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-p95.maximum": 4.707968233765314e-05,
+          "f8.v1.domain-quality.fluid.limits.free-surface-particle-loss-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "fluid-cloth-rigid-containment": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.cloth.limits.bend-angle-error-rad-rms.maximum": 0.009008481121394034,
+          "f8.v1.domain-quality.cloth.limits.closed-surface-volume-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.pinned-vertex-drift-m.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-maximum.maximum": 0.00038114195373606385,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-rms.maximum": 3.693476071211622e-05,
+          "f8.v1.domain-quality.cloth.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.fluid.limits.closed-container-leaked-particle-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.closed-system-center-of-mass-drift-support-radius.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-maximum.maximum": 2.5028521238255055e-06,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-p95.maximum": 2.5028521238255055e-06,
+          "f8.v1.domain-quality.fluid.limits.free-surface-particle-loss-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-angle-error-rad.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-rotation-drift-rad-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-translation-drift-m-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.tunneling-events.maximum": 0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "rigid-cold-impact-rotation": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-angle-error-rad.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-rotation-drift-rad-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-translation-drift-m-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.tunneling-events.maximum": 0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "rigid-settled-long-run": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-angle-error-rad.maximum": 5.944089450121859e-05,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-position-error-m.maximum": 2.1398067474365234e-05,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 1.5111084598433253e-05,
+          "f8.v1.domain-quality.rigid-body.limits.resting-rotation-drift-rad-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-translation-drift-m-over-settled-window.maximum": 4.76837158203125e-07,
+          "f8.v1.domain-quality.rigid-body.limits.tunneling-events.maximum": 0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "rope-attachment-rotation": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.rope.limits.attachment-position-error-m.maximum": 1.2310379476739693e-07,
+          "f8.v1.domain-quality.rope.limits.bend-angle-error-rad-rms.maximum": 0.23704111714742085,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-maximum.maximum": 0.00023552304485219278,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-rms.maximum": 8.322033504175137e-05,
+          "f8.v1.domain-quality.rope.limits.tunneling-events.maximum": 0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "six-family-mixed": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.cloth.limits.bend-angle-error-rad-rms.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.closed-surface-volume-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.pinned-vertex-drift-m.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.stretch-relative-error-rms.maximum": 0.0,
+          "f8.v1.domain-quality.cloth.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.fluid.limits.closed-container-leaked-particle-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.closed-system-center-of-mass-drift-support-radius.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-maximum.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.density-relative-error-p95.maximum": 1.275761073884496e-07,
+          "f8.v1.domain-quality.fluid.limits.free-surface-particle-loss-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.fluid.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-characteristic-length.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-contact-penetration-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-angle-error-rad.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-joint-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.maximum-unforced-mechanical-energy-growth-fraction.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-rotation-drift-rad-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.resting-translation-drift-m-over-settled-window.maximum": 0.0,
+          "f8.v1.domain-quality.rigid-body.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.rope.limits.attachment-position-error-m.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.bend-angle-error-rad-rms.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.segment-stretch-relative-error-rms.maximum": 0.0,
+          "f8.v1.domain-quality.rope.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.smoke.limits.analytic-transport-centroid-error-grid-cells.maximum": 0.05370356213207971,
+          "f8.v1.domain-quality.smoke.limits.closed-tracer-mass-relative-error.maximum": 0.06344414884336003,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-rms.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.maximum-speed-overshoot-m-s.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.particle-density-relative-error-p95.maximum": 0.16771310567855835,
+          "f8.v1.domain-quality.soft-body.limits.bond-stretch-relative-error-maximum.maximum": 2.7913112266020335e-08,
+          "f8.v1.domain-quality.soft-body.limits.bond-stretch-relative-error-rms.maximum": 1.899418624220544e-08,
+          "f8.v1.domain-quality.soft-body.limits.inverted-volume-elements.maximum": 0,
+          "f8.v1.domain-quality.soft-body.limits.shape-matching-position-error-characteristic-length-rms.maximum": 0.0,
+          "f8.v1.domain-quality.soft-body.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.soft-body.limits.volume-relative-error.maximum": 0.0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "smoke-analytic-transport-long-run": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.smoke.limits.analytic-transport-centroid-error-grid-cells.maximum": 0.008283061859916336,
+          "f8.v1.domain-quality.smoke.limits.closed-tracer-mass-relative-error.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-maximum.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.grid-divergence-dt-rms.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.maximum-speed-overshoot-m-s.maximum": 0.0,
+          "f8.v1.domain-quality.smoke.limits.particle-density-relative-error-p95.maximum": 0.0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      },
+      "soft-body-mass-ratio-volume": {
+        "final_states_equal_to_862b8e25": true,
+        "measurements": {
+          "f8.v1.domain-quality.soft-body.limits.bond-stretch-relative-error-maximum.maximum": 3.120483904606175e-08,
+          "f8.v1.domain-quality.soft-body.limits.bond-stretch-relative-error-rms.maximum": 2.206515329530489e-08,
+          "f8.v1.domain-quality.soft-body.limits.inverted-volume-elements.maximum": 0,
+          "f8.v1.domain-quality.soft-body.limits.shape-matching-position-error-characteristic-length-rms.maximum": 0.0,
+          "f8.v1.domain-quality.soft-body.limits.tunneling-events.maximum": 0,
+          "f8.v1.domain-quality.soft-body.limits.volume-relative-error.maximum": 0.0
+        },
+        "measurements_equal_to_862b8e25": true,
+        "plain_validation_final_state_equal": true,
+        "simulation_status": "PM_SUCCESS",
+        "work_ledger_equal_to_862b8e25": true
+      }
+    },
+    "workloads": {
+      "plain": {
+        "deformable-mixed": {
+          "counts": {
+            "cloth_systems": 2,
+            "cloth_triangle_indices_capacity": 3072,
+            "cloth_triangle_indices_live": 3072,
+            "cloth_vertices_capacity": 578,
+            "cloth_vertices_live": 578,
+            "contact_capacity": 65536,
+            "couplings_capacity": 3,
+            "couplings_live": 3,
+            "rope_nodes_capacity": 72,
+            "rope_nodes_live": 72,
+            "rope_systems": 1,
+            "soft_body_systems": 1,
+            "soft_bonds_capacity": 130033,
+            "soft_bonds_live": 130033,
+            "soft_nodes_capacity": 912,
+            "soft_nodes_live": 912
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 508063,
+            "sha256": "8d66ca7678e9b31c9e91581509d43c82443d0f84518ddedbb219dc1ce1ceffee"
+          },
+          "simulated_to_wall_time_ratio": 3.2913607881740186,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.022625,
+              "p50": 0.002125,
+              "p95": 0.002917,
+              "p99": 0.003708
+            },
+            "frame_ms": {
+              "maximum": 12.463667,
+              "p50": 4.672833,
+              "p95": 7.242292,
+              "p99": 10.257833
+            },
+            "gpu_ms": {
+              "maximum": 12.384256,
+              "p50": 4.610304,
+              "p95": 7.17824,
+              "p99": 10.180608
+            },
+            "physics_ms": {
+              "maximum": 12.463667,
+              "p50": 4.672833,
+              "p95": 7.242292,
+              "p99": 10.257833
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "fluid-rigid": {
+          "counts": {
+            "contact_capacity": 65536,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "fluid_particles_capacity": 30000,
+            "fluid_particles_live": 30000,
+            "fluid_systems": 1,
+            "neighbors_per_particle_capacity": 128,
+            "rigid_bodies_capacity": 65,
+            "rigid_bodies_live": 65
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 486864,
+            "sha256": "c5c122b5eb47e64ac2e728cb4ed3a70a3ecfff165f688e693f6ba7b6d43465f7"
+          },
+          "simulated_to_wall_time_ratio": 6.577558412024333,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.010291,
+              "p50": 0.00275,
+              "p95": 0.002958,
+              "p99": 0.003709
+            },
+            "frame_ms": {
+              "maximum": 9.134917,
+              "p50": 2.196,
+              "p95": 4.217875,
+              "p99": 6.998417
+            },
+            "gpu_ms": {
+              "maximum": 9.071616,
+              "p50": 2.15936,
+              "p95": 4.157952,
+              "p99": 6.930432
+            },
+            "physics_ms": {
+              "maximum": 9.134917,
+              "p50": 2.196,
+              "p95": 4.217875,
+              "p99": 6.998417
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "rigid-wall": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 442771,
+            "sha256": "243b91396e813e174494875238ad9af0e609317124c9452b439e9f7096c26bf6"
+          },
+          "simulated_to_wall_time_ratio": 11.838577249919927,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.018375,
+              "p50": 0.002708,
+              "p95": 0.002833,
+              "p99": 0.002917
+            },
+            "frame_ms": {
+              "maximum": 8.05975,
+              "p50": 1.327875,
+              "p95": 2.043375,
+              "p99": 2.958958
+            },
+            "gpu_ms": {
+              "maximum": 8.03328,
+              "p50": 1.281024,
+              "p95": 1.998336,
+              "p99": 2.879488
+            },
+            "physics_ms": {
+              "maximum": 8.05975,
+              "p50": 1.327875,
+              "p95": 2.043375,
+              "p99": 2.958958
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "six-family-mixed": {
+          "counts": {
+            "cloth_systems": 1,
+            "cloth_vertices_capacity": 1024,
+            "cloth_vertices_live": 1024,
+            "contact_capacity": 32768,
+            "couplings_capacity": 16,
+            "couplings_live": 16,
+            "fluid_particles_capacity": 4096,
+            "fluid_particles_live": 4096,
+            "fluid_systems": 2,
+            "rigid_bodies_capacity": 32,
+            "rigid_bodies_live": 32,
+            "rope_nodes_capacity": 512,
+            "rope_nodes_live": 512,
+            "rope_systems": 1,
+            "smoke_particles_capacity": 2048,
+            "smoke_particles_live": 2048,
+            "smoke_systems": 1,
+            "soft_body_systems": 1,
+            "soft_nodes_capacity": 512,
+            "soft_nodes_live": 512
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": false,
+          "raw": {
+            "bytes": 457199,
+            "sha256": "b7d1b1dfad98a964abe482fff931d471c3d259c558821f124868316d2cf27ba4"
+          },
+          "simulated_to_wall_time_ratio": 1.31613757967752,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.014208,
+              "p50": 0.002291,
+              "p95": 0.003209,
+              "p99": 0.00425
+            },
+            "frame_ms": {
+              "maximum": 27.335584,
+              "p50": 12.38675,
+              "p95": 17.885125,
+              "p99": 19.37275
+            },
+            "gpu_ms": {
+              "maximum": 27.25888,
+              "p50": 12.345344,
+              "p95": 17.83296,
+              "p99": 19.300352
+            },
+            "physics_ms": {
+              "maximum": 27.335584,
+              "p50": 12.38675,
+              "p95": 17.885125,
+              "p99": 19.37275
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "smoke-coupled": {
+          "counts": {
+            "contact_capacity": 16384,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "rigid_bodies_capacity": 4,
+            "rigid_bodies_live": 4,
+            "smoke_particles_capacity": 4500,
+            "smoke_particles_live": 4500,
+            "smoke_systems": 1
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 435020,
+            "sha256": "0ef64ab5144512ea46e6e04e759b2c70ed3c6426b18c3e0bcf243043099b6721"
+          },
+          "simulated_to_wall_time_ratio": 13.715251202137138,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.008417,
+              "p50": 0.002,
+              "p95": 0.002792,
+              "p99": 0.002916
+            },
+            "frame_ms": {
+              "maximum": 4.240459,
+              "p50": 1.141833,
+              "p95": 1.2825,
+              "p99": 3.222292
+            },
+            "gpu_ms": {
+              "maximum": 4.204544,
+              "p50": 1.078784,
+              "p95": 1.229824,
+              "p99": 3.155968
+            },
+            "physics_ms": {
+              "maximum": 4.240459,
+              "p50": 1.141833,
+              "p95": 1.2825,
+              "p99": 3.222292
+            }
+          },
+          "warmup_ticks": 600
+        }
+      },
+      "validation": {
+        "deformable-mixed": {
+          "counts": {
+            "cloth_systems": 2,
+            "cloth_triangle_indices_capacity": 3072,
+            "cloth_triangle_indices_live": 3072,
+            "cloth_vertices_capacity": 578,
+            "cloth_vertices_live": 578,
+            "contact_capacity": 65536,
+            "couplings_capacity": 3,
+            "couplings_live": 3,
+            "rope_nodes_capacity": 72,
+            "rope_nodes_live": 72,
+            "rope_systems": 1,
+            "soft_body_systems": 1,
+            "soft_bonds_capacity": 130033,
+            "soft_bonds_live": 130033,
+            "soft_nodes_capacity": 912,
+            "soft_nodes_live": 912
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 534500,
+            "sha256": "77e425058d123ef63a48d809013c6671dc496a798b928f14997cb1a9144666a9"
+          },
+          "simulated_to_wall_time_ratio": 3.3454479399466623,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.026125,
+              "p50": 0.006375,
+              "p95": 0.008625,
+              "p99": 0.009833
+            },
+            "frame_ms": {
+              "maximum": 12.102792,
+              "p50": 4.656042,
+              "p95": 6.793,
+              "p99": 9.390542
+            },
+            "gpu_ms": {
+              "maximum": 12.05248,
+              "p50": 4.595712,
+              "p95": 6.721536,
+              "p99": 9.340928
+            },
+            "physics_ms": {
+              "maximum": 12.102792,
+              "p50": 4.656042,
+              "p95": 6.793,
+              "p99": 9.390542
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "fluid-rigid": {
+          "counts": {
+            "contact_capacity": 65536,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "fluid_particles_capacity": 30000,
+            "fluid_particles_live": 30000,
+            "fluid_systems": 1,
+            "neighbors_per_particle_capacity": 128,
+            "rigid_bodies_capacity": 65,
+            "rigid_bodies_live": 65
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 515532,
+            "sha256": "edca7a7e1f62010a0897d9eefed1d44ec8a850c2f01abccaa1f442f0cac5f3e8"
+          },
+          "simulated_to_wall_time_ratio": 6.942725888764557,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.042125,
+              "p50": 0.006667,
+              "p95": 0.008542,
+              "p99": 0.009375
+            },
+            "frame_ms": {
+              "maximum": 6.474958,
+              "p50": 2.228375,
+              "p95": 4.219083,
+              "p99": 4.443208
+            },
+            "gpu_ms": {
+              "maximum": 6.41024,
+              "p50": 2.168832,
+              "p95": 4.13696,
+              "p99": 4.360192
+            },
+            "physics_ms": {
+              "maximum": 6.474958,
+              "p50": 2.228375,
+              "p95": 4.219083,
+              "p99": 4.443208
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "rigid-wall": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 456657,
+            "sha256": "1e5d06a3059c16708b7a697189a4ad4976c5a4c9ba2167ec21906447c7148d42"
+          },
+          "simulated_to_wall_time_ratio": 11.658995796361209,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.038167,
+              "p50": 0.007625,
+              "p95": 0.008542,
+              "p99": 0.008625
+            },
+            "frame_ms": {
+              "maximum": 5.186875,
+              "p50": 1.342083,
+              "p95": 1.979625,
+              "p99": 3.430708
+            },
+            "gpu_ms": {
+              "maximum": 5.112832,
+              "p50": 1.282176,
+              "p95": 1.915904,
+              "p99": 3.362048
+            },
+            "physics_ms": {
+              "maximum": 5.186875,
+              "p50": 1.342083,
+              "p95": 1.979625,
+              "p99": 3.430708
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "six-family-mixed": {
+          "counts": {
+            "cloth_systems": 1,
+            "cloth_vertices_capacity": 1024,
+            "cloth_vertices_live": 1024,
+            "contact_capacity": 32768,
+            "couplings_capacity": 16,
+            "couplings_live": 16,
+            "fluid_particles_capacity": 4096,
+            "fluid_particles_live": 4096,
+            "fluid_systems": 2,
+            "rigid_bodies_capacity": 32,
+            "rigid_bodies_live": 32,
+            "rope_nodes_capacity": 512,
+            "rope_nodes_live": 512,
+            "rope_systems": 1,
+            "smoke_particles_capacity": 2048,
+            "smoke_particles_live": 2048,
+            "smoke_systems": 1,
+            "soft_body_systems": 1,
+            "soft_nodes_capacity": 512,
+            "soft_nodes_live": 512
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": false,
+          "raw": {
+            "bytes": 495983,
+            "sha256": "ffb61e191810f05c1aa002c766f76d251598313c25994e3b0ed89611ffef4633"
+          },
+          "simulated_to_wall_time_ratio": 1.5134152565114043,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.0395,
+              "p50": 0.006833,
+              "p95": 0.011791,
+              "p99": 0.014041
+            },
+            "frame_ms": {
+              "maximum": 22.842375,
+              "p50": 10.222833,
+              "p95": 16.937667,
+              "p99": 18.579792
+            },
+            "gpu_ms": {
+              "maximum": 22.736896,
+              "p50": 10.15808,
+              "p95": 16.863232,
+              "p99": 18.489344
+            },
+            "physics_ms": {
+              "maximum": 22.842375,
+              "p50": 10.222833,
+              "p95": 16.937667,
+              "p99": 18.579792
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "smoke-coupled": {
+          "counts": {
+            "contact_capacity": 16384,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "rigid_bodies_capacity": 4,
+            "rigid_bodies_live": 4,
+            "smoke_particles_capacity": 4500,
+            "smoke_particles_live": 4500,
+            "smoke_systems": 1
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "raw": {
+            "bytes": 459776,
+            "sha256": "1ea3a0b99fc4db91e7b6d692e0f478e009394386db1986447affeefa20f33bdd"
+          },
+          "simulated_to_wall_time_ratio": 13.557469691367588,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.023416,
+              "p50": 0.006459,
+              "p95": 0.008375,
+              "p99": 0.008792
+            },
+            "frame_ms": {
+              "maximum": 4.77525,
+              "p50": 1.124041,
+              "p95": 1.363875,
+              "p99": 3.276458
+            },
+            "gpu_ms": {
+              "maximum": 4.663552,
+              "p50": 1.073152,
+              "p95": 1.306624,
+              "p99": 3.212544
+            },
+            "physics_ms": {
+              "maximum": 4.77525,
+              "p50": 1.124041,
+              "p95": 1.363875,
+              "p99": 3.276458
+            }
+          },
+          "warmup_ticks": 600
+        }
+      }
+    }
+  },
+  "qualification_boundary": "Repaired-source evidence only. Candidate-v9 remains immutable failed history. F8-73 cannot complete or merge until every acceptance check passes. F8-74 must then freeze a new candidate and reroute affected physical rows; it also depends on the separate Windows F8-76 repair.",
+  "recorded_utc": "2026-11-02T15:32:32.934090+00:00",
+  "schema": "parallel-mater-f8-73-performance-progress/v1",
+  "source": {
+    "lease_token": "20d66db5-e606-43ae-a3ec-1cb59755171b",
+    "main_base": "7e0e86a18255c36d649eef7017fa4badf194f296",
+    "revision": "b56e6eeec68aaee73623f01752b401b8791e6e5f",
+    "tree": "760e58298c309cae1bb27ca7e42186bcd4c6bb08"
+  },
+  "status": "incomplete-performance-gate",
+  "task": "F8-73",
+  "toolchains": {
+    "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.2\nBuildVersion:\t\t25F84",
+    "metal": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.7OHPOM/Metal.xctoolchain/usr/metal/current/bin",
+    "slang": "2026.18"
+  }
+}

@@ -164,15 +164,11 @@ int main() {
             // Emission can occur after advection: the newest tracer has age zero.
             CHECK(p.age >= 0 && p.age <= 10.01F / 60.0F);
             oldest = std::max(oldest, p.age);
-            const auto ticks = static_cast<int>(std::lround(p.age * 60.0F));
-            const float expected_velocity = grid
-                ? 1.0F : std::pow(0.95F, float(ticks));
-            const float expected_distance = grid
-                ? p.age
-                : (1.0F - expected_velocity) / (60.0F * 0.05F);
+            // With no correction, the shared solver preserves the predicted
+            // velocity for both particle and grid smoke transport.
             CHECK(std::abs(p.position.x - smoke.emitterCenter.x -
-                           expected_distance) < 2e-4F);
-            CHECK(std::abs(p.velocity.x - expected_velocity) < 2e-4F);
+                           p.age) < 2e-4F);
+            CHECK(std::abs(p.velocity.x - 1.0F) < 2e-4F);
             CHECK(std::abs(p.velocity.y) < 2e-4F && std::abs(p.velocity.z) < 2e-4F);
             CHECK(std::abs(p.position.y - 2) <= 0.101F && std::abs(p.position.z) <= 0.101F);
             CHECK(std::isfinite(p.numberDensity) && std::isfinite(p.pressure));

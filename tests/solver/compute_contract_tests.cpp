@@ -168,6 +168,26 @@ void arguments_and_records() {
     wrong.bind("pointers[0]", buffer);
     wrong.bind("pointers[1]", buffer);
     rejects([&] { nested.record("record", wrong); });
+
+    compute::Arguments positional(kernel);
+    positional.record_positional("record", layout, record);
+    positional.validate();
+    const auto &before_bindings = positional.bindings();
+    const auto &before_ranges = positional.resource_ranges();
+    require(before_bindings.size() == 1 && before_ranges.size() == 1,
+        "positional record resources missing");
+    Host changed{9, 7, {0xaaaa, 0xbbbb}};
+    positional.update_record_positional(layout,
+        std::as_bytes(std::span{&changed, std::size_t{1}}));
+    Host updated{};
+    std::memcpy(&updated, positional.bytes().data(), sizeof(updated));
+    require(updated.flag == 9 && updated.padding == 0,
+        "positional record scalar update failed");
+    require(updated.pointers[0] == 0x1004 && updated.pointers[1] == 0,
+        "positional record update replaced relocated pointers");
+    require(&positional.bindings() == &before_bindings &&
+        &positional.resource_ranges() == &before_ranges,
+        "positional record update invalidated unchanged resource metadata");
 }
 void schedule() {
     using Step = std::tuple<AvbdStage, std::uint32_t, std::uint32_t, std::uint32_t>;

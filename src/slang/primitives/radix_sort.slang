@@ -34,24 +34,27 @@ public void pm_radix_histogram_u64(
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(16, 1, 1)]
 public void pm_radix_prefix_u32(
     uniform PMBuffer<uint> histograms, uniform uint block_count,
     uniform PMBuffer<uint> offsets PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
-    if (pmThreadIndex() != 0u) return;
-    uint base = 0u;
-    for (uint digit = 0u; digit < kPmRadix; ++digit)
+    uint digit = pmGroupThreadIndex().x;
+    if (pmBlockIndex().x != 0u || digit >= kPmRadix) return;
+    uint total = 0u;
+    for (uint block = 0u; block < block_count; ++block)
+        total += histograms[digit * block_count + block];
+    pmRadixCounts[digit] = total;
+    pmGroupBarrier();
+    uint running = 0u;
+    for (uint earlier = 0u; earlier < digit; ++earlier)
+        running += pmRadixCounts[earlier];
+    for (uint block = 0u; block < block_count; ++block)
     {
-        uint running = base;
-        for (uint block = 0u; block < block_count; ++block)
-        {
-            uint address = digit * block_count + block;
-            offsets[address] = running;
-            running += histograms[address];
-        }
-        base = running;
+        uint address = digit * block_count + block;
+        offsets[address] = running;
+        running += histograms[address];
     }
 }
 

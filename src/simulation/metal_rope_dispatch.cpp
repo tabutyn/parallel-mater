@@ -76,21 +76,11 @@ void project_rope_realtime_contacts(
 }
 
 void finalize_rope_realtime_self_contacts(
-    device::DispatchSize grid, device::DispatchSize,
-    device::ExecutionQueue stream, void *positions, void *velocities,
-    const void *previous_positions, const void *previous_velocities,
-    const float *inverse_masses, const std::uint8_t *anchor_active,
-    const std::uint8_t *contact_active,
-    std::uint32_t count, std::uint32_t capacity, float node_spacing,
-    float radius, bool self_collision, float maximum_speed, float timestep,
-    std::uint32_t profile_version, std::uint32_t *status) noexcept {
-    (void)metal::launch(stream, "rope_realtime_finalize_self_contacts",
-        grid, positions, velocities, previous_positions,
-        previous_velocities, inverse_masses, anchor_active, contact_active,
-        count, capacity, node_spacing, radius,
-        std::uint32_t{self_collision},
-        maximum_speed, timestep, profile_version, status);
-}
+    device::DispatchSize, device::DispatchSize, device::ExecutionQueue,
+    void *, void *, const void *, const void *, const float *,
+    const std::uint8_t *, const std::uint8_t *, std::uint32_t,
+    std::uint32_t, float, float, bool, float, float, std::uint32_t,
+    std::uint32_t *) noexcept {}
 
 void commit_rope_realtime(
     device::DispatchSize grid, device::DispatchSize,

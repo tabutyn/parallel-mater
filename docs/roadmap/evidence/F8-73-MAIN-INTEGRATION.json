@@ -1,0 +1,1206 @@
+{
+  "build_and_tests": {
+    "executed_passed": 142,
+    "expected_unsupported_skips": 15,
+    "failures": 0,
+    "logs": {
+      "f873-main-sync-build.log": {
+        "bytes": 21299,
+        "sha256": "517d13745f1104818dd1f8b856a6435cf9d71619235b34c9c1869c0473cc75aa"
+      },
+      "f873-main-sync-capture.log": {
+        "bytes": 87,
+        "sha256": "c0fb32675a52aef0e9657a9ff1497b2359ec7f9e5c7ec06d7494f49b96a4fff8"
+      },
+      "f873-main-sync-configure.log": {
+        "bytes": 149,
+        "sha256": "258852f35053854d951913e330dca0162266c97aec00e197228905b9bfbc8b42"
+      },
+      "f873-main-sync-ctest.log": {
+        "bytes": 30062,
+        "sha256": "628449acf0ff268034839937ada8f5f6365f6b932370570cdd5cb010cc35e39a"
+      }
+    },
+    "preset": "macos-metal-preview",
+    "registered": 157
+  },
+  "device": {
+    "driver": "202618",
+    "driver_binary_sha256": "9c070ad015e5f8e981e4842254466a5b8137e617e1256916f053e0855f54aa84",
+    "driver_manifest_sha256": "380059d165a23cdc7619fca3b8f34ab67e35d8f65cd4886caaf397df9d05dff8",
+    "gpu": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "os": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "target_id": "macos-m4-slang-metal",
+    "toolchain": "Apple LLVM 21.0.0 (clang-2100.1.1.101)"
+  },
+  "f8_70_protected_closure_comparison": [
+    {
+      "candidate_v9_sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+      "category": "api_abi",
+      "changed_since_candidate_v9": false,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5",
+      "integrated": {
+        "files": 18,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "f360354da65e282c915245f4316841ad5fd631c3f2123dc70749b18d037527c5"
+      }
+    },
+    {
+      "candidate_v9_sha256": "2b36eeaa5c4a3905fa2c6754b94d02008ea58ffc8a8d8d6b8feb77081ee32993",
+      "category": "kernel",
+      "changed_since_candidate_v9": true,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "dfe3ef649f8cfd363be331280218e533783750f82e080d1dd7503664171bb5b1",
+      "integrated": {
+        "files": 39,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "dfe3ef649f8cfd363be331280218e533783750f82e080d1dd7503664171bb5b1"
+      }
+    },
+    {
+      "candidate_v9_sha256": "67cc1c19c3c60d3289f3d3c73027f56590e4f086739e847100e02b679200bc67",
+      "category": "adapter_binding",
+      "changed_since_candidate_v9": true,
+      "changed_since_ffdafab7": true,
+      "ffdafab7_sha256": "8a61dfd837b2728480219246ebc9f307f99ffc2646d0d2aa26f86918e4745389",
+      "integrated": {
+        "files": 49,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "4cd9ad476cdc1bd54f84fe17f053f810f3c620bf2250a7bc3f59fce71f13e6d9"
+      }
+    },
+    {
+      "candidate_v9_sha256": "396ce6fee3fbe2cffa8009a47ddaf7baf21074da3e41f1cf5827c987d3c938c7",
+      "category": "runtime",
+      "changed_since_candidate_v9": true,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "d7fbd9df07da2a41169f6a0b5accd77e0b7622a063e551f623a15e224a0cbd3e",
+      "integrated": {
+        "files": 127,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "d7fbd9df07da2a41169f6a0b5accd77e0b7622a063e551f623a15e224a0cbd3e"
+      }
+    },
+    {
+      "candidate_v9_sha256": "f8bf6420481cab111fcae91a08f3feb4158eb964b9b4feb2715c8fca1713e037",
+      "category": "schedule_telemetry",
+      "changed_since_candidate_v9": true,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "32b8e4de98281e9fcb07174ef227ee26599e6ed35b1c9f8cd7f5c8a14b8c16d6",
+      "integrated": {
+        "files": 6,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "32b8e4de98281e9fcb07174ef227ee26599e6ed35b1c9f8cd7f5c8a14b8c16d6"
+      }
+    },
+    {
+      "candidate_v9_sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+      "category": "contract",
+      "changed_since_candidate_v9": false,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7",
+      "integrated": {
+        "files": 6,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "2306546edbe897e760b4c08703994db48838fb949d33075a00dda03e4d16edd7"
+      }
+    },
+    {
+      "candidate_v9_sha256": "234ff210221d3fc30e5800d41cb9cc3b0509b9ce99273f02f06bae8122cd48cb",
+      "category": "public_oracle",
+      "changed_since_candidate_v9": true,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "b42e6d7c12ef27231b666dbbb284492cf3c5d03678f1be6cac65dbcf221f339f",
+      "integrated": {
+        "files": 543,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "b42e6d7c12ef27231b666dbbb284492cf3c5d03678f1be6cac65dbcf221f339f"
+      }
+    },
+    {
+      "candidate_v9_sha256": "46e33b1c55fc28891368ee991e1f0572ff02319b644ab0f47594a3e573c4d405",
+      "category": "work_budget",
+      "changed_since_candidate_v9": true,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "f3af25d62dc3ecc6d4b443b2d6004bea45e2371322da2a8704bf7a6d55127b7f",
+      "integrated": {
+        "files": 7,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "f3af25d62dc3ecc6d4b443b2d6004bea45e2371322da2a8704bf7a6d55127b7f"
+      }
+    },
+    {
+      "candidate_v9_sha256": "78d552ba178f5acf969c09c662f63f8fac2d07bb9ed3dc38f21757da0d8f6c80",
+      "category": "gallery",
+      "changed_since_candidate_v9": true,
+      "changed_since_ffdafab7": false,
+      "ffdafab7_sha256": "186f826501c6ac2f092d23f98983af0871b67f0d10745052964855f737d6f867",
+      "integrated": {
+        "files": 160,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "186f826501c6ac2f092d23f98983af0871b67f0d10745052964855f737d6f867"
+      }
+    }
+  ],
+  "generated_metal_and_reflection": {
+    "files": 1102,
+    "hash_method": "sorted relative path + NUL + file bytes + NUL",
+    "sha256": "0df484d6714fbc726331c51ef84f5e234345981ea131a912353756cfd4f8e12c"
+  },
+  "installed_gallery": {
+    "artifacts": {
+      "Frameworks/libparallel-mater.dylib": {
+        "bytes": 262048,
+        "sha256": "22f53b354c37c215a77c6c199fcc3a512ab3782017b690aeafcd11b213bd95b3"
+      },
+      "Frameworks/libparallel_mater_driver_slang_metal.dylib": {
+        "bytes": 2758688,
+        "sha256": "9c070ad015e5f8e981e4842254466a5b8137e617e1256916f053e0855f54aa84"
+      },
+      "Frameworks/libparallel_mater_layer_validation.dylib": {
+        "bytes": 183600,
+        "sha256": "cc1ade0a5d6ec10d7a0bfee6760dd4ea3ade1e91101799d5933d07bedd7e240d"
+      },
+      "MacOS/ParallelMater Gallery": {
+        "bytes": 937312,
+        "sha256": "2f57e4f5bf3f71798a9632f95ac00f09daea2b4dc7ff0fbc1c89cc0bb1c95573"
+      },
+      "Resources/build-info.json": {
+        "bytes": 290,
+        "sha256": "3d2cfb1e2a4ed8eef96856288b194c00b985dc8f50f98ebae3de33b54fdffbe8"
+      },
+      "Resources/drivers.d/slang-metal.json": {
+        "bytes": 189,
+        "sha256": "380059d165a23cdc7619fca3b8f34ab67e35d8f65cd4886caaf397df9d05dff8"
+      },
+      "Resources/layers.d/validation.json": {
+        "bytes": 213,
+        "sha256": "b767564dbc1a5a6b8b051ed631c117bf10eed51a9fe1de0629557d2656401ee0"
+      }
+    },
+    "build_info": {
+      "backend": "metal",
+      "build_number": 2152,
+      "dirty": false,
+      "execution_contract": "fixed-tick-60hz-v1",
+      "logo_sha256": "1741f9d7759b2af13255f92a97dbb27a9e50854db634bf1cf3823b455a9e90d3",
+      "release_channel": "development-preview",
+      "revision": "4ce3be5c7f1aac7b2c25dd98302f091c25693f7c",
+      "schema_version": 2
+    },
+    "path": "/Applications/ParallelMater Gallery.app",
+    "shader_bundle": {
+      "files": 493,
+      "hash_method": "sorted relative path + NUL + file bytes + NUL",
+      "sha256": "6c0ba0d0ed0be2ac3219ad8f5f7dfa55735d53f00864492e1d456e9efd473069"
+    },
+    "signature": "PASS: codesign --verify --deep --strict"
+  },
+  "measurement_environment": {
+    "exit_code": 1,
+    "finished_utc": "2026-11-02T22:14:16.537164+00:00",
+    "samples": [
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:07:27.898343+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:07:47.918940+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:08:07.941519+00:00"
+      },
+      {
+        "matching_renderer_processes": [
+          "90672 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimRenderServer.xpc/Contents/MacOS/SimRenderServer",
+          "90673 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "90674 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "90675 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost"
+        ],
+        "utc": "2026-11-02T22:08:27.961325+00:00"
+      },
+      {
+        "matching_renderer_processes": [
+          "90672 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimRenderServer.xpc/Contents/MacOS/SimRenderServer",
+          "90673 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "90674 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "90675 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost"
+        ],
+        "utc": "2026-11-02T22:08:48.036453+00:00"
+      },
+      {
+        "matching_renderer_processes": [
+          "90672 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimRenderServer.xpc/Contents/MacOS/SimRenderServer",
+          "90673 Rs   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "90674 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "90675 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost"
+        ],
+        "utc": "2026-11-02T22:09:08.134623+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:09:28.209448+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:09:48.229150+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:10:08.248845+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:10:28.272028+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:10:48.294106+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:11:08.317955+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:11:28.347628+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:11:48.373697+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:12:08.397865+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:12:28.424219+00:00"
+      },
+      {
+        "matching_renderer_processes": [
+          "91611 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimRenderServer.xpc/Contents/MacOS/SimRenderServer",
+          "91612 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "91613 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "91614 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost"
+        ],
+        "utc": "2026-11-02T22:12:48.461259+00:00"
+      },
+      {
+        "matching_renderer_processes": [
+          "91611 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimRenderServer.xpc/Contents/MacOS/SimRenderServer",
+          "91612 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "91613 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "91614 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost"
+        ],
+        "utc": "2026-11-02T22:13:08.549449+00:00"
+      },
+      {
+        "matching_renderer_processes": [
+          "91611 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimRenderServer.xpc/Contents/MacOS/SimRenderServer",
+          "91612 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "91613 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost",
+          "91614 Ss   /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost"
+        ],
+        "utc": "2026-11-02T22:13:28.678832+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:13:48.804122+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:14:08.824793+00:00"
+      },
+      {
+        "matching_renderer_processes": [],
+        "utc": "2026-11-02T22:14:16.517302+00:00"
+      }
+    ],
+    "schema": "parallel-mater-isolated-qualification-environment/v1",
+    "source_revision": "4ce3be5c7f1aac7b2c25dd98302f091c25693f7c",
+    "started_utc": "2026-11-02T22:07:27.898237+00:00",
+    "user_coordination": "Post-main-merge F8-77 integration requalification; this wrapper checks for render hosts before starting and records them throughout. No game or simulator processes are modified by this wrapper."
+  },
+  "qualification": {
+    "archive": {
+      "bytes": 9343519,
+      "path": "docs/roadmap/evidence/F8-73-MAIN-INTEGRATION-20261102.tar.zst",
+      "sha256": "e0ecdb1111ce4b354abcbf5164cbeb9eda9408945d9e641cc5e041a363ac72f0"
+    },
+    "artifacts": {
+      "capture.json": {
+        "bytes": 35522297,
+        "sha256": "6e7df151751c60a1d118e49e3e7fd20e8020b5cc82f98a9315922275376237b5"
+      },
+      "logs": {
+        "files": 32,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "7267dba851b71dd6e48808dc3c471a4a5cf526816dd414a0038411dadb43294b"
+      },
+      "raw": {
+        "files": 94,
+        "hash_method": "sorted relative path + NUL + file bytes + NUL",
+        "sha256": "ee2fa5bfad72afc17c5ab259515283196e895039594527005291932871b69bcc"
+      }
+    },
+    "both_modes": {
+      "aggregate_capture_sha256": "6e7df151751c60a1d118e49e3e7fd20e8020b5cc82f98a9315922275376237b5",
+      "modes": {
+        "plain": {
+          "negative_controls": [
+            {
+              "id": "candidate_missing_pair",
+              "passed": true,
+              "rejected_failure_count": 1
+            },
+            {
+              "id": "atomic_failure_violation",
+              "passed": true,
+              "rejected_failure_count": 2
+            },
+            {
+              "id": "hidden_retry_violation",
+              "passed": true,
+              "rejected_failure_count": 2
+            },
+            {
+              "id": "timing_stall_retained",
+              "passed": true,
+              "rejected_failure_count": 1
+            },
+            {
+              "id": "timing_failed_tick",
+              "passed": true,
+              "rejected_failure_count": 1
+            }
+          ],
+          "raw_artifact_sha256": {
+            "deformable-mixed": "de760f7c689c894fe811bccb2e2d3d3afee15aec1e06cfc6943635f98acb46e7",
+            "fluid-rigid": "e1d752890274b36d5f4502622aa57d2a7f24a2f8cb5c60fa9d0830bb1fcab5c9",
+            "rigid-wall": "21328e5fb987ce0f9427a953a635cafeddf686e6f51e8e1cc3f0c18c39078b43",
+            "six-family-mixed": "bfc700d4065b4e3f9ca8e38b391ffd83ece99235c38eab46b7dc9327496efc37",
+            "smoke-coupled": "adc72e95f985a4344c1d77331bf86c70949ce575baac135f72e5f682a48a469f"
+          },
+          "report": {
+            "candidate": {
+              "id": "realtime-single-step-v1-ba67db3",
+              "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+              "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5"
+            },
+            "failure_count": 0,
+            "failures": [],
+            "negative_control_count": 5,
+            "passed": true,
+            "runtime_variant": "metal-runtime",
+            "scenario_count": 12,
+            "schema": "parallel-mater-realtime-device-suite-report/v1",
+            "target_id": "macos-m4-slang-metal"
+          }
+        },
+        "validation": {
+          "negative_controls": [
+            {
+              "id": "candidate_missing_pair",
+              "passed": false,
+              "rejected_failure_count": 4
+            },
+            {
+              "id": "atomic_failure_violation",
+              "passed": false,
+              "rejected_failure_count": 5
+            },
+            {
+              "id": "hidden_retry_violation",
+              "passed": false,
+              "rejected_failure_count": 5
+            },
+            {
+              "id": "timing_stall_retained",
+              "passed": false,
+              "rejected_failure_count": 4
+            },
+            {
+              "id": "timing_failed_tick",
+              "passed": false,
+              "rejected_failure_count": 4
+            }
+          ],
+          "raw_artifact_sha256": {
+            "deformable-mixed": "3fd5ce6a7c5b697cd82f517d4395801b58c563c746563173ee9abd8c0da4833a",
+            "fluid-rigid": "9975be0e89ab7f05244df981240f0ed14e4efa0923c9e86f73ecf7d2b5dc4c57",
+            "rigid-wall": "45e5908a9bbd2e0c7373e3c553f4b3ba4f819dcf28d62ff2d17296d25cfc7ba1",
+            "six-family-mixed": "580adaf8da518d9662dcb200ec3dc599f2953d09891e984ddd964d1b8380c8ab",
+            "smoke-coupled": "f21d56ad63dd5d9a7913d7b787caa72ca30cd1aa72eaa3b89926ac20a1444f4a"
+          },
+          "report": {
+            "candidate": {
+              "id": "realtime-single-step-v1-ba67db3",
+              "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+              "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5"
+            },
+            "failure_count": 8,
+            "failures": [
+              {
+                "actual": 10.933042,
+                "expected": 10.0,
+                "message": "physics p95 exceeds the target tier",
+                "path": "$.workloads[deformable-mixed].timings.physics_ms.p95"
+              },
+              {
+                "actual": 17.139125,
+                "expected": 10.0,
+                "message": "physics p95 exceeds the target tier",
+                "path": "$.workloads[six-family-mixed].timings.physics_ms.p95"
+              },
+              {
+                "actual": 17.139125,
+                "expected": 16.666666666666668,
+                "message": "frame p95 exceeds the 60 Hz budget",
+                "path": "$.workloads[six-family-mixed].timings.frame_ms.p95"
+              },
+              {
+                "actual": {
+                  "id": "candidate_missing_pair",
+                  "passed": false,
+                  "rejected_failure_count": 4
+                },
+                "expected": null,
+                "message": "negative control did not reject the injected violation",
+                "path": "$.negative_controls[candidate_missing_pair]"
+              },
+              {
+                "actual": {
+                  "id": "atomic_failure_violation",
+                  "passed": false,
+                  "rejected_failure_count": 5
+                },
+                "expected": null,
+                "message": "negative control did not reject the injected violation",
+                "path": "$.negative_controls[atomic_failure_violation]"
+              },
+              {
+                "actual": {
+                  "id": "hidden_retry_violation",
+                  "passed": false,
+                  "rejected_failure_count": 5
+                },
+                "expected": null,
+                "message": "negative control did not reject the injected violation",
+                "path": "$.negative_controls[hidden_retry_violation]"
+              },
+              {
+                "actual": {
+                  "id": "timing_stall_retained",
+                  "passed": false,
+                  "rejected_failure_count": 4
+                },
+                "expected": null,
+                "message": "negative control did not reject the injected violation",
+                "path": "$.negative_controls[timing_stall_retained]"
+              },
+              {
+                "actual": {
+                  "id": "timing_failed_tick",
+                  "passed": false,
+                  "rejected_failure_count": 4
+                },
+                "expected": null,
+                "message": "negative control did not reject the injected violation",
+                "path": "$.negative_controls[timing_failed_tick]"
+              }
+            ],
+            "negative_control_count": 5,
+            "passed": false,
+            "runtime_variant": "metal-runtime",
+            "scenario_count": 12,
+            "schema": "parallel-mater-realtime-device-suite-report/v1",
+            "target_id": "macos-m4-slang-metal"
+          }
+        }
+      },
+      "oracle_source_sha256": "e644cadeaf952779403fe9bc5a62e1d3db067e803d1b623d8a0c94dc0a3b1c28",
+      "passed": false,
+      "profile_sha256": "0cca981dd77d5e18b6d7a4846c8a00c586bb0a7a6c6df707b4020d39c2e7fd17",
+      "schema": "parallel-mater-f8-73-both-workload-modes/v1"
+    },
+    "public_cases": {
+      "plain": {
+        "artifacts": {
+          "files": 30,
+          "hash_method": "sorted relative path + NUL + file bytes + NUL",
+          "sha256": "3138db8592fc09784580d9f4f299febc455936fab6cf29f84649bbe631b926d0"
+        },
+        "completed": 30
+      },
+      "validation": {
+        "artifacts": {
+          "files": 30,
+          "hash_method": "sorted relative path + NUL + file bytes + NUL",
+          "sha256": "eb22b17df6e0be74ca44d4772252d961fdc435975ab4dab667997b9a2ded8695"
+        },
+        "completed": 30
+      }
+    },
+    "report": {
+      "candidate": {
+        "id": "realtime-single-step-v1-ba67db3",
+        "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b",
+        "source_revision": "ba67db35447b1f9022be4c3d8aae59dbe6d514d5"
+      },
+      "failure_count": 8,
+      "failures": [
+        {
+          "actual": 10.933042,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[deformable-mixed].timings.physics_ms.p95"
+        },
+        {
+          "actual": 17.139125,
+          "expected": 10.0,
+          "message": "physics p95 exceeds the target tier",
+          "path": "$.workloads[six-family-mixed].timings.physics_ms.p95"
+        },
+        {
+          "actual": 17.139125,
+          "expected": 16.666666666666668,
+          "message": "frame p95 exceeds the 60 Hz budget",
+          "path": "$.workloads[six-family-mixed].timings.frame_ms.p95"
+        },
+        {
+          "actual": {
+            "id": "candidate_missing_pair",
+            "passed": false,
+            "rejected_failure_count": 4
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[candidate_missing_pair]"
+        },
+        {
+          "actual": {
+            "id": "atomic_failure_violation",
+            "passed": false,
+            "rejected_failure_count": 6
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[atomic_failure_violation]"
+        },
+        {
+          "actual": {
+            "id": "hidden_retry_violation",
+            "passed": false,
+            "rejected_failure_count": 6
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[hidden_retry_violation]"
+        },
+        {
+          "actual": {
+            "id": "timing_stall_retained",
+            "passed": false,
+            "rejected_failure_count": 4
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[timing_stall_retained]"
+        },
+        {
+          "actual": {
+            "id": "timing_failed_tick",
+            "passed": false,
+            "rejected_failure_count": 4
+          },
+          "expected": null,
+          "message": "negative control did not reject the injected violation",
+          "path": "$.negative_controls[timing_failed_tick]"
+        }
+      ],
+      "negative_control_count": 5,
+      "passed": false,
+      "runtime_variant": "metal-runtime",
+      "scenario_count": 12,
+      "schema": "parallel-mater-realtime-device-suite-report/v1",
+      "target_id": "macos-m4-slang-metal"
+    },
+    "runner": {
+      "bytes": 2971528,
+      "sha256": "983685beda5153c92cad92222829c42134c220e47f4d17ea8773951076443480"
+    },
+    "scenarios": {
+      "boundary-replacement-generation": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "capacity-overflow-atomic-recovery": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "cloth-stiff-pin-impact": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "empty-and-sparse-capacity": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "fluid-closed-container-source-outflow": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "fluid-cloth-rigid-containment": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "rigid-cold-impact-rotation": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "rigid-settled-long-run": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "rope-attachment-rotation": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "six-family-mixed": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "smoke-analytic-transport-long-run": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      },
+      "soft-body-mass-ratio-volume": {
+        "measurements_equal_to_ffdafab7": true,
+        "plain_validation_states_equal": true,
+        "states_equal_to_ffdafab7": true,
+        "work_ledger_equal_to_ffdafab7": true
+      }
+    },
+    "workloads": {
+      "plain": {
+        "deformable-mixed": {
+          "counts": {
+            "cloth_systems": 2,
+            "cloth_triangle_indices_capacity": 3072,
+            "cloth_triangle_indices_live": 3072,
+            "cloth_vertices_capacity": 578,
+            "cloth_vertices_live": 578,
+            "contact_capacity": 65536,
+            "couplings_capacity": 3,
+            "couplings_live": 3,
+            "rope_nodes_capacity": 72,
+            "rope_nodes_live": 72,
+            "rope_systems": 1,
+            "soft_body_systems": 1,
+            "soft_bonds_capacity": 130033,
+            "soft_bonds_live": 130033,
+            "soft_nodes_capacity": 912,
+            "soft_nodes_live": 912
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 2.8853624807717813,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.525666,
+              "p50": 0.003333,
+              "p95": 0.011584,
+              "p99": 0.022666
+            },
+            "frame_ms": {
+              "maximum": 153.7815,
+              "p50": 5.334792,
+              "p95": 8.996583,
+              "p99": 13.446292
+            },
+            "gpu_ms": {
+              "maximum": 137.334784,
+              "p50": 5.246976,
+              "p95": 8.774144,
+              "p99": 13.252608
+            },
+            "physics_ms": {
+              "maximum": 153.7815,
+              "p50": 5.334792,
+              "p95": 8.996583,
+              "p99": 13.446292
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "fluid-rigid": {
+          "counts": {
+            "contact_capacity": 65536,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "fluid_particles_capacity": 30000,
+            "fluid_particles_live": 30000,
+            "fluid_systems": 1,
+            "neighbors_per_particle_capacity": 128,
+            "rigid_bodies_capacity": 65,
+            "rigid_bodies_live": 65
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 4.854577334998345,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 1.251042,
+              "p50": 0.00825,
+              "p95": 0.011125,
+              "p99": 0.031
+            },
+            "frame_ms": {
+              "maximum": 46.823875,
+              "p50": 2.791125,
+              "p95": 7.1515,
+              "p99": 13.557
+            },
+            "gpu_ms": {
+              "maximum": 46.258176,
+              "p50": 2.697216,
+              "p95": 7.000064,
+              "p99": 13.34784
+            },
+            "physics_ms": {
+              "maximum": 46.823875,
+              "p50": 2.791125,
+              "p95": 7.1515,
+              "p99": 13.557
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "rigid-wall": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 9.39774781170891,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.151709,
+              "p50": 0.005875,
+              "p95": 0.009584,
+              "p99": 0.013375
+            },
+            "frame_ms": {
+              "maximum": 11.035208,
+              "p50": 1.509917,
+              "p95": 3.309167,
+              "p99": 5.036125
+            },
+            "gpu_ms": {
+              "maximum": 10.972672,
+              "p50": 1.441792,
+              "p95": 3.236864,
+              "p99": 4.992
+            },
+            "physics_ms": {
+              "maximum": 11.035208,
+              "p50": 1.509917,
+              "p95": 3.309167,
+              "p99": 5.036125
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "six-family-mixed": {
+          "counts": {
+            "cloth_systems": 1,
+            "cloth_vertices_capacity": 1024,
+            "cloth_vertices_live": 1024,
+            "contact_capacity": 32768,
+            "couplings_capacity": 16,
+            "couplings_live": 16,
+            "fluid_particles_capacity": 4096,
+            "fluid_particles_live": 4096,
+            "fluid_systems": 2,
+            "rigid_bodies_capacity": 32,
+            "rigid_bodies_live": 32,
+            "rope_nodes_capacity": 512,
+            "rope_nodes_live": 512,
+            "rope_systems": 1,
+            "smoke_particles_capacity": 2048,
+            "smoke_particles_live": 2048,
+            "smoke_systems": 1,
+            "soft_body_systems": 1,
+            "soft_nodes_capacity": 512,
+            "soft_nodes_live": 512
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 1.9833508439798297,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.013042,
+              "p50": 0.002792,
+              "p95": 0.003584,
+              "p99": 0.005625
+            },
+            "frame_ms": {
+              "maximum": 23.72,
+              "p50": 7.95275,
+              "p95": 9.917208,
+              "p99": 13.4685
+            },
+            "gpu_ms": {
+              "maximum": 23.655424,
+              "p50": 7.926784,
+              "p95": 9.89184,
+              "p99": 13.416448
+            },
+            "physics_ms": {
+              "maximum": 23.72,
+              "p50": 7.95275,
+              "p95": 9.917208,
+              "p99": 13.4685
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "smoke-coupled": {
+          "counts": {
+            "contact_capacity": 16384,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "rigid_bodies_capacity": 4,
+            "rigid_bodies_live": 4,
+            "smoke_particles_capacity": 4500,
+            "smoke_particles_live": 4500,
+            "smoke_systems": 1
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 12.48627988706524,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.012292,
+              "p50": 0.002791,
+              "p95": 0.002917,
+              "p99": 0.003042
+            },
+            "frame_ms": {
+              "maximum": 3.652583,
+              "p50": 1.265833,
+              "p95": 1.367125,
+              "p99": 3.279416
+            },
+            "gpu_ms": {
+              "maximum": 3.624192,
+              "p50": 1.240576,
+              "p95": 1.337344,
+              "p99": 3.25376
+            },
+            "physics_ms": {
+              "maximum": 3.652583,
+              "p50": 1.265833,
+              "p95": 1.367125,
+              "p99": 3.279416
+            }
+          },
+          "warmup_ticks": 600
+        }
+      },
+      "validation": {
+        "deformable-mixed": {
+          "counts": {
+            "cloth_systems": 2,
+            "cloth_triangle_indices_capacity": 3072,
+            "cloth_triangle_indices_live": 3072,
+            "cloth_vertices_capacity": 578,
+            "cloth_vertices_live": 578,
+            "contact_capacity": 65536,
+            "couplings_capacity": 3,
+            "couplings_live": 3,
+            "rope_nodes_capacity": 72,
+            "rope_nodes_live": 72,
+            "rope_systems": 1,
+            "soft_body_systems": 1,
+            "soft_bonds_capacity": 130033,
+            "soft_bonds_live": 130033,
+            "soft_nodes_capacity": 912,
+            "soft_nodes_live": 912
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": false,
+          "simulated_to_wall_time_ratio": 2.9851820662415327,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.223458,
+              "p50": 0.0085,
+              "p95": 0.020625,
+              "p99": 0.024792
+            },
+            "frame_ms": {
+              "maximum": 47.503584,
+              "p50": 4.667792,
+              "p95": 10.933042,
+              "p99": 15.914666
+            },
+            "gpu_ms": {
+              "maximum": 47.199232,
+              "p50": 4.634624,
+              "p95": 10.842112,
+              "p99": 15.74912
+            },
+            "physics_ms": {
+              "maximum": 47.503584,
+              "p50": 4.667792,
+              "p95": 10.933042,
+              "p99": 15.914666
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "fluid-rigid": {
+          "counts": {
+            "contact_capacity": 65536,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "fluid_particles_capacity": 30000,
+            "fluid_particles_live": 30000,
+            "fluid_systems": 1,
+            "neighbors_per_particle_capacity": 128,
+            "rigid_bodies_capacity": 65,
+            "rigid_bodies_live": 65
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 6.7788786692428475,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.0325,
+              "p50": 0.00825,
+              "p95": 0.008708,
+              "p99": 0.015292
+            },
+            "frame_ms": {
+              "maximum": 8.14,
+              "p50": 2.300084,
+              "p95": 4.227625,
+              "p99": 4.416875
+            },
+            "gpu_ms": {
+              "maximum": 8.040448,
+              "p50": 2.254848,
+              "p95": 4.182016,
+              "p99": 4.368128
+            },
+            "physics_ms": {
+              "maximum": 8.14,
+              "p50": 2.300084,
+              "p95": 4.227625,
+              "p99": 4.416875
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "rigid-wall": {
+          "counts": {
+            "constraints_capacity": 0,
+            "constraints_live": 0,
+            "contact_capacity": 65536,
+            "rigid_bodies_capacity": 386,
+            "rigid_bodies_live": 386
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 11.549209521572552,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.03175,
+              "p50": 0.007375,
+              "p95": 0.0085,
+              "p99": 0.014375
+            },
+            "frame_ms": {
+              "maximum": 4.745208,
+              "p50": 1.37775,
+              "p95": 1.962417,
+              "p99": 3.175833
+            },
+            "gpu_ms": {
+              "maximum": 4.704256,
+              "p50": 1.3312,
+              "p95": 1.918464,
+              "p99": 3.125248
+            },
+            "physics_ms": {
+              "maximum": 4.745208,
+              "p50": 1.37775,
+              "p95": 1.962417,
+              "p99": 3.175833
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "six-family-mixed": {
+          "counts": {
+            "cloth_systems": 1,
+            "cloth_vertices_capacity": 1024,
+            "cloth_vertices_live": 1024,
+            "contact_capacity": 32768,
+            "couplings_capacity": 16,
+            "couplings_live": 16,
+            "fluid_particles_capacity": 4096,
+            "fluid_particles_live": 4096,
+            "fluid_systems": 2,
+            "rigid_bodies_capacity": 32,
+            "rigid_bodies_live": 32,
+            "rope_nodes_capacity": 512,
+            "rope_nodes_live": 512,
+            "rope_systems": 1,
+            "smoke_particles_capacity": 2048,
+            "smoke_particles_live": 2048,
+            "smoke_systems": 1,
+            "soft_body_systems": 1,
+            "soft_nodes_capacity": 512,
+            "soft_nodes_live": 512
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": false,
+          "simulated_to_wall_time_ratio": 1.6234487428029496,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.74425,
+              "p50": 0.009667,
+              "p95": 0.026583,
+              "p99": 0.057792
+            },
+            "frame_ms": {
+              "maximum": 273.730375,
+              "p50": 9.37675,
+              "p95": 17.139125,
+              "p99": 22.74375
+            },
+            "gpu_ms": {
+              "maximum": 237.961216,
+              "p50": 9.3184,
+              "p95": 16.930816,
+              "p99": 22.450176
+            },
+            "physics_ms": {
+              "maximum": 273.730375,
+              "p50": 9.37675,
+              "p95": 17.139125,
+              "p99": 22.74375
+            }
+          },
+          "warmup_ticks": 600
+        },
+        "smoke-coupled": {
+          "counts": {
+            "contact_capacity": 16384,
+            "couplings_capacity": 1,
+            "couplings_live": 1,
+            "rigid_bodies_capacity": 4,
+            "rigid_bodies_live": 4,
+            "smoke_particles_capacity": 4500,
+            "smoke_particles_live": 4500,
+            "smoke_systems": 1
+          },
+          "failed_ticks": 0,
+          "measured_ticks": 7200,
+          "physics_p95_passed": true,
+          "simulated_to_wall_time_ratio": 8.611188581908388,
+          "timings": {
+            "cpu_ms": {
+              "maximum": 0.298791,
+              "p50": 0.011375,
+              "p95": 0.023375,
+              "p99": 0.043292
+            },
+            "frame_ms": {
+              "maximum": 17.896833,
+              "p50": 1.387958,
+              "p95": 4.067959,
+              "p99": 10.768167
+            },
+            "gpu_ms": {
+              "maximum": 17.737728,
+              "p50": 1.295872,
+              "p95": 3.960704,
+              "p99": 10.676224
+            },
+            "physics_ms": {
+              "maximum": 17.896833,
+              "p50": 1.387958,
+              "p95": 4.067959,
+              "p99": 10.768167
+            }
+          },
+          "warmup_ticks": 600
+        }
+      }
+    }
+  },
+  "qualification_boundary": "Complete single capture on integrated source, independently evaluated in both modes. Earlier ffdafab7 acceptance remains separate history and is not substituted for this source. This source cannot merge while a required gate fails. User requested deferring another timing run. Candidate-v9 is unchanged; F8-74 still must freeze and qualify a replacement after F8-78.",
+  "recorded_utc": "2026-11-02T22:15:47.278062+00:00",
+  "schema": "parallel-mater-f8-73-main-integration/v1",
+  "source": {
+    "integrated_changes": "F8-77 public completion notifications and F8-78 lease metadata",
+    "main_base": "c474c4d8780147526dcf74af64c27cc85ea52f3f",
+    "previous_accepted_source": {
+      "lease_token": "ae9bbf3b-2a53-4b16-90aa-3ea1891beb94",
+      "main_base": "4c29150fac03a4964d30d75c69944c48ee6a413b",
+      "revision": "ffdafab7c7aca2bb9b8bacfc4730985e356d763b",
+      "tree": "210a6ffb22cf83b7c6cb76844ef1197b546d1baa"
+    },
+    "revision": "4ce3be5c7f1aac7b2c25dd98302f091c25693f7c",
+    "tree": "87cce39502f8b0bf99d98a4f850aefca319cffbc"
+  },
+  "status": "integration-performance-gate-pending",
+  "task": "F8-73",
+  "toolchains": {
+    "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.2\nBuildVersion:\t\t25F84",
+    "metal": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.7OHPOM/Metal.xctoolchain/usr/metal/current/bin",
+    "slang": "2026.18"
+  }
+}

@@ -754,7 +754,9 @@ public void pm_spatial_resolve_admission(
     }
     PmSpatialLeafMetadata leaf = metadata[source];
     if ((leaf.flags & kPmSpatialLeafProvisional) == 0u) return;
-    uint pending[kPmSpatialQueryStackCapacity] = {};
+    // Only live stack entries are read; every push initializes its slot.
+    uint pending[kPmSpatialQueryStackCapacity];
+    pending[0] = 0u;
     uint pending_count = count == 0u ? 0u : 1u;
     bool conflict = false;
     bool overflow = false;
@@ -937,14 +939,21 @@ public void pm_spatial_query_aabbs(
         return;
     }
     if (count == 0u) return;
-    uint pending[kPmSpatialQueryStackCapacity] = {};
+    // Keep traversal state private until this query completes. Writing the
+    // diagnostic counter for every node forces device traffic in the loop.
+    uint pending[kPmSpatialQueryStackCapacity];
+    pending[0] = 0u;
     uint pending_count = 1u;
+    uint visited = 0u;
     uint written = 0u;
+    uint query_mask = query_masks[query_index];
+    uint excluded_sort_key = excluded_sort_keys[query_index];
+    uint base = query_index * candidates_per_query;
     bool overflow = false;
     while (pending_count != 0u && !overflow)
     {
         uint node = pending[--pending_count];
-        visited_nodes[query_index] += 1u;
+        ++visited;
         if (node >= 2u * count - 1u)
         {
             overflow = true;
@@ -963,14 +972,13 @@ public void pm_spatial_query_aabbs(
             }
             PmSpatialLeafMetadata leaf = metadata[source];
             if (admission[source] == 0u ||
-                (leaf.query_mask & query_masks[query_index]) == 0u ||
-                leaf.sort_key == excluded_sort_keys[query_index]) continue;
+                (leaf.query_mask & query_mask) == 0u ||
+                leaf.sort_key == excluded_sort_key) continue;
             if (written == candidates_per_query)
             {
                 overflow = true;
                 continue;
             }
-            uint base = query_index * candidates_per_query;
             uint insert = written;
             while (insert != 0u && pmSpatialIdentityLess(
                 leaf.identity, metadata[candidates[base + insert - 1u]].identity))
@@ -990,6 +998,7 @@ public void pm_spatial_query_aabbs(
         pending[pending_count++] = right_children[node];
         pending[pending_count++] = left_children[node];
     }
+    visited_nodes[query_index] = visited;
     if (overflow)
     {
         candidate_counts[query_index] = 0u;

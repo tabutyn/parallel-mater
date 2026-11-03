@@ -635,7 +635,7 @@ void launch_legacy_sort(Fixture &fixture) {
         pm_radix_histogram_u64<<<fixture.active_blocks, tile>>>(
             source_keys, fixture.live, tile, shift, fixture.active_blocks,
             fixture.histograms);
-        pm_radix_prefix_u32<<<1U, 1U>>>(
+        pm_radix_prefix_u32<<<1U, 16U>>>(
             fixture.histograms, fixture.active_blocks, fixture.radix_offsets);
         pm_radix_scatter_u64_u32<<<fixture.active_blocks, tile>>>(
             source_keys, source_values, fixture.live, tile, shift,

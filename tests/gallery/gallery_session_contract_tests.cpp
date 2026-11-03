@@ -596,10 +596,13 @@ int main() {
                     desktop_runtime.controller_state().constraints_released,
                 "Desktop semantic action did not match mobile release");
         require(desktop_runtime.primary_action(failure) ==
-                    gallery::GalleryActionOutcome::reset_requested &&
-                    desktop_runtime.reset(failure) &&
-                    !desktop_runtime.controller_state().constraints_released,
-                "Desktop semantic action did not match mobile reset");
+                    gallery::GalleryActionOutcome::reset_requested,
+                "Desktop semantic action did not request mobile reset");
+        if (!desktop_runtime.reset(failure))
+            throw std::runtime_error(
+                "Desktop semantic reset failed: " + failure);
+        require(!desktop_runtime.controller_state().constraints_released,
+                "Desktop semantic reset retained released constraints");
         desktop_runtime.clear();
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Desktop adapter controller test leaked its runtime");

@@ -140,6 +140,10 @@ void fluid_rope_contacts(
         multiply(reaction, fraction);
 }
 
+groupshared uint fluidRopeContributionNodes[256];
+groupshared Vec3 fluidRopeContributionImpulses[256];
+groupshared uint fluidRopeActiveContributionTile;
+
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void fluid_rope_apply(
@@ -159,18 +163,49 @@ void fluid_rope_apply(
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint node = pmThreadIndex();
-    if (node >= rope_count || (node == 0u && first_attached) ||
-        (node + 1u == rope_count && last_attached))
-        return;
+    uint lane = pmGroupThreadIndex().x;
+    uint groupFirst = pmBlockIndex().x * pmGroupSize().x;
+    uint groupEnd = min(groupFirst + pmGroupSize().x, rope_count);
+    bool movable = node < rope_count && !(node == 0u && first_attached) &&
+        !(node + 1u == rope_count && last_attached);
     Vec3 reaction = {};
-    for (uint particle = 0u; particle < *particle_count; ++particle)
+    uint particles = *particle_count;
+    // Each lane loads one particle for all nodes in the group. Accumulate
+    // surviving contributions in the original particle/endpoint order.
+    for (uint base = 0u; base < particles; base += pmGroupSize().x)
     {
-        uint contribution = particle * 2u;
-        if (contribution_nodes[contribution] == node)
-            reaction = add(reaction, contribution_impulses[contribution]);
-        if (contribution_nodes[contribution + 1u] == node)
-            reaction = add(reaction, contribution_impulses[contribution + 1u]);
+        if (lane == 0u) fluidRopeActiveContributionTile = 0u;
+        pmGroupBarrier();
+        uint particle = base + lane;
+        if (particle < particles)
+        {
+            uint contribution = particle * 2u;
+            for (uint endpoint = 0u; endpoint < 2u; ++endpoint)
+            {
+                uint target = contribution_nodes[contribution + endpoint];
+                uint local = lane * 2u + endpoint;
+                fluidRopeContributionNodes[local] = target;
+                if (target >= groupFirst && target < groupEnd)
+                {
+                    fluidRopeContributionImpulses[local] =
+                        contribution_impulses[contribution + endpoint];
+                    uint ignored;
+                    InterlockedOr(fluidRopeActiveContributionTile, 1u, ignored);
+                }
+            }
+        }
+        pmGroupBarrier();
+        if (movable && fluidRopeActiveContributionTile != 0u)
+        {
+            uint valid = min(pmGroupSize().x, particles - base) * 2u;
+            for (uint contribution = 0u; contribution < valid; ++contribution)
+                if (fluidRopeContributionNodes[contribution] == node)
+                    reaction = add(reaction,
+                        fluidRopeContributionImpulses[contribution]);
+        }
+        pmGroupBarrier();
     }
+    if (!movable) return;
     float mass = rope_mass / float(rope_count);
     Vec3 velocityChange = clamp_length(
         multiply(reaction, 1.0f / mass),

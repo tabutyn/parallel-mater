@@ -58,7 +58,7 @@ PmResult radix_sort_pairs_u64_u32(
     for (std::uint32_t shift = 0U; shift < 64U; shift += 4U) {
         pm_radix_histogram_u64<<<blocks, primitive_tile_size, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
             source_keys, count, primitive_tile_size, shift, blocks, histograms);
-        pm_radix_prefix_u32<<<1U, 1U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+        pm_radix_prefix_u32<<<1U, 16U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
             histograms, blocks, offsets);
         pm_radix_scatter_u64_u32<<<blocks, primitive_tile_size, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
             source_keys, source_values, count, primitive_tile_size, shift,
