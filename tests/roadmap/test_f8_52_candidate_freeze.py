@@ -16,6 +16,15 @@ from check_realtime_candidate import (  # noqa: E402
     validate_candidate,
 )
 
+PLANNED_ID = "realtime-single-step-v1-5bacbe2"
+PLANNED_SOURCE_REVISION = "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d"
+PLANNED_SOURCE_TREE = "67f5088c2e9f50938c55856e3683326e42675310"
+PLANNED_MANIFEST_SHA256 = (
+    "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a"
+)
+PLANNED_CI_RUN_ID = 41708083151
+PLANNED_QUALIFICATION_TASKS = {f"F8-{number}" for number in range(26, 31)}
+
 
 class F870CandidateFreezeTests(unittest.TestCase):
     @classmethod
@@ -23,7 +32,20 @@ class F870CandidateFreezeTests(unittest.TestCase):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
     def test_rejected_candidate_is_immutable_after_refreeze(self):
-        self.assertEqual(validate_candidate(), [])
+        expected_transition_errors = {
+            f"{task_id} {message}"
+            for task_id in PLANNED_QUALIFICATION_TASKS
+            for message in (
+                "does not bind exact source identity",
+                "does not bind exact candidate manifest",
+                "does not bind exact protected CI run",
+                "does not preserve candidate history",
+            )
+        }
+        self.assertEqual(
+            sorted(validate_candidate()),
+            sorted(expected_transition_errors),
+        )
         self.assertEqual(self.candidate["task"], "F8-70")
         rejection = json.loads((
             ROOT / "conformance/v1/qualification/"
@@ -91,9 +113,18 @@ class F870CandidateFreezeTests(unittest.TestCase):
                 (ROOT / "docs/roadmap/tasks" / f"{task_id}.json")
                 .read_text(encoding="utf-8")
             )
-            self.assertIn("F8-70", task["dependencies"])
-            self.assertIn(ACTIVE_ID, task["scope"])
-            self.assertIn(ACTIVE_SOURCE_REVISION, task["scope"])
+            if task_id in PLANNED_QUALIFICATION_TASKS:
+                self.assertIn("F8-74", task["dependencies"])
+                self.assertIn(PLANNED_ID, task["scope"])
+                self.assertIn(PLANNED_SOURCE_REVISION, task["scope"])
+                self.assertIn(PLANNED_SOURCE_TREE, task["scope"])
+                self.assertIn(PLANNED_MANIFEST_SHA256, task["scope"])
+                self.assertIn(str(PLANNED_CI_RUN_ID), task["scope"])
+                self.assertIn(ACTIVE_ID, task["scope"])
+            else:
+                self.assertIn("F8-70", task["dependencies"])
+                self.assertIn(ACTIVE_ID, task["scope"])
+                self.assertIn(ACTIVE_SOURCE_REVISION, task["scope"])
             self.assertIn("cannot be unioned", task["scope"])
 
 
