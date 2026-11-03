@@ -16,12 +16,14 @@ mixed-workload p95 target. Task ownership and truthful evidence still apply.
 1. Fetch current `main`; inspect open lease PRs to avoid duplicate proposals.
 2. Run `python3 tools/roadmap.py list --ready` and read the selected task card.
 3. Check its machine requirements, acceptance checks, dependencies and locks.
-   Finish F8 first: land F8-73, complete remaining performance/qualification,
-   refreeze, deploy and close the F8-99 exit review. F8-79 through F8-84
+   Finish F8 first: F8-73 is merged; complete remaining performance/qualification,
+   refreeze, deploy and close the F8-99 exit review. F9-01 through F9-06
    are deferred scene-quality follow-ups after that exit. Honor current leases.
 4. Reserve one leaf ID per claim PR. Do not claim an entire F-series area. If a
    leaf is too large for one focused implementation/review, split it in a
-   planning PR before claiming. Keep old IDs and history; never renumber/reuse.
+   planning PR before claiming. Keep old IDs and history; never renumber/reuse
+   except the maintainer-approved, history-free F8-to-F9 scene migration
+   documented in [the quality policy](PHYSICS-QUALITY-DEVELOPMENT.md#f9-scene-repair-series).
 
 A task with unfinished dependencies is waiting, even if its stored status is
 `open`. Shared-area locks are exclusive across leased tasks, including expired
