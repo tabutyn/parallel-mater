@@ -1,7 +1,7 @@
 {
   "id": "F8-78",
   "title": "Meet frozen Windows GTX 1080 performance gates",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-76",
     "F8-77"
@@ -23,14 +23,22 @@
     "Publish exact source/tree, compiler/device/memory attributes, installed driver/SDK/manifest hashes and raw evidence; classify every protected closure change. F8-74 refreeze waits for this successful evidence and F8-77 as well as the Metal/ownership repairs. Candidate v9 remains immutable failed history and final F8-26 still needs a fresh replacement-candidate lease."
   ],
   "evidence": [],
-  "lease": {
-    "token": "50a43773-0e6c-4798-8a06-33fc4fa8aff4",
-    "owner": "codex-windows-performance",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-78/windows-gtx1080",
-    "claimed_at": "2026-11-02T21:59:55Z",
-    "heartbeat_at": "2026-11-02T21:59:55Z",
-    "expires_at": "2026-11-03T21:59:55Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "50a43773-0e6c-4798-8a06-33fc4fa8aff4",
+        "owner": "codex-windows-performance",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-78/windows-gtx1080",
+        "claimed_at": "2026-11-02T21:59:55Z",
+        "heartbeat_at": "2026-11-02T21:59:55Z",
+        "expires_at": "2026-11-03T21:59:55Z"
+      },
+      "outcome": "released",
+      "at": "2026-11-02T22:55:12Z",
+      "reason": "Blocked: frozen six-family CUDA p95 remains 17-20 ms versus 10 ms after F8-77; required production batching/fusion overlaps live F8-73. Retained diagnostics locally; no implementation on the task branch.",
+      "evidence": []
+    }
+  ]
 }
