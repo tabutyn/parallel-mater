@@ -58,11 +58,59 @@ class LeaseTests(unittest.TestCase):
         self.assertEqual((ROOT / roadmap.ROADMAP).read_text(), roadmap.rendered(ROOT, tasks))
         self.assertGreaterEqual(len(tasks), 60)
 
-    def test_registered_f8_ids_validate_but_unknown_groups_do_not(self):
+    def test_registered_f8_f9_ids_validate_but_unknown_groups_do_not(self):
         roadmap.validate({'F8-00': task('F8-00')})
-        for id in ('F9-00', 'P5-00', 'F8-1', 'F08-00'):
+        roadmap.validate({'F9-01': task('F9-01')})
+        for id in ('F10-00', 'P5-00', 'F8-1', 'F08-00'):
             with self.assertRaisesRegex(ValueError, 'invalid ID'):
                 roadmap.validate({id: task(id)})
+
+    def test_scene_migration_preserves_contract_and_separates_index(self):
+        base = {old: task(old) | {'status': 'deferred'}
+                for old in roadmap.TASK_ID_MIGRATIONS}
+        candidate = {new: dict(base[old], id=new)
+                     for old, new in roadmap.TASK_ID_MIGRATIONS.items()}
+        roadmap.validate(candidate)
+        self.assertEqual(roadmap.transitions(base, candidate, NOW, ['tools/roadmap.py']), [])
+        text = roadmap.index(candidate)
+        self.assertIn('### F9. Scene physics quality and repairs', text)
+        self.assertNotIn('### F8.', text)
+        for new in candidate:
+            self.assertIn(f'roadmap/tasks/{new}.json', text)
+
+    def test_scene_migration_rejects_started_work_and_contract_changes(self):
+        for update in ({'status': 'open'}, {'status': 'done', 'evidence': ['PASS']},
+                       {'history': ['retired lease']}, {'lease': {'token': 'live'}}):
+            with self.subTest(update=update):
+                old = task('F8-79') | {'status': 'deferred'} | update
+                with self.assertRaisesRegex(ValueError, 'never-started deferred'):
+                    roadmap.transitions({'F8-79': old}, {'F9-01': dict(old, id='F9-01')}, NOW)
+        old = task('F8-79') | {'status': 'deferred'}
+        for field, value in (('status', 'open'), ('scope', 'Different scope'),
+                             ('dependencies', ['F8-99']), ('locks', ['new-lock']),
+                             ('acceptance', ['Weaker check'])):
+            with self.subTest(field=field):
+                new = dict(old, id='F9-01') | {field: value}
+                with self.assertRaisesRegex(ValueError, 'complete task contract'):
+                    roadmap.transitions({'F8-79': old}, {'F9-01': new}, NOW)
+
+    def test_migration_does_not_allow_arbitrary_deletion_or_id_reuse(self):
+        old = task('F8-79') | {'status': 'deferred'}
+        new = dict(old, id='F9-01')
+        for base, candidate in (({'F1-01': task()}, {}), ({'F8-79': old}, {}),
+                                ({'F8-79': old, 'F9-01': new}, {'F9-01': new})):
+            with self.subTest(base=base):
+                with self.assertRaisesRegex(ValueError, 'do not delete/reuse'):
+                    roadmap.transitions(base, candidate, NOW)
+        with self.assertRaisesRegex(ValueError, 'reserved'):
+            roadmap.transitions({'F9-01': new}, {'F9-01': new, 'F8-79': old}, NOW)
+        with self.assertRaisesRegex(ValueError, 'planning-only'):
+            roadmap.transitions({'F8-79': old}, {'F9-01': new}, NOW, ['src/physics.cpp'])
+        base = {'F8-79': old, 'F1-01': task()}
+        candidate = {'F9-01': new, 'F1-01': task()}
+        claim(candidate)
+        with self.assertRaisesRegex(ValueError, 'cannot include a lease operation'):
+            roadmap.transitions(base, candidate, NOW, paths())
 
     def test_only_entirely_completed_categories_are_collapsed(self):
         done = task() | {'status': 'done', 'evidence': ['Historical evidence']}

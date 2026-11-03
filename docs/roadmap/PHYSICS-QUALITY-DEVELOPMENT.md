@@ -6,6 +6,7 @@ that concern. Subsequent maintainer direction on the same date sets the order:
 land the retained Mac repair and finish the existing F8 integration,
 qualification and release sequence before starting scene repairs. The later
 scene-quality work improves one system and one concrete behavior at a time.
+On 2026-11-03, the maintainer assigned that later work to its own F9 series.
 
 This decision changes development merge and release gates. It supersedes older
 instructions that make full F8 candidate qualification a prerequisite for
@@ -83,18 +84,40 @@ Their original qualification rules remain intact. They do not restore aggregate
 timing as a merge blocker for the scoped F8-73 development repair. Broad final
 qualification still requires its own passing device/workload evidence.
 
-F8-79 through F8-84 are deferred until the F8-99 exit review completes. They
+F9-01 through F9-06 are deferred until the F8-99 exit review completes. They
 are post-exit quality follow-ups, not prerequisites for that exit. Completing
 F8 does not itself establish that the scenes are convincing.
 
+## F9 scene repair series
+
+F9 owns the scene-quality improvements after F8. These six deferred cards had
+no lease, evidence or execution history when moved on 2026-11-03. Only their
+IDs changed; their scope, dependencies, locks and acceptance checks are intact.
+The previous IDs remain reserved and their original definitions stay in Git
+history. The roadmap checker permits only this explicit migration; it still
+rejects deletion or renumbering of started/completed work and unrelated IDs.
+
+| Previous ID | Current task | System |
+|---|---|---|
+| F8-79 | [F9-01](tasks/F9-01.json) | Rigid-body contacts and settling |
+| F8-80 | [F9-02](tasks/F9-02.json) | Liquid motion and settling |
+| F8-81 | [F9-03](tasks/F9-03.json) | Cloth drape and motion |
+| F8-82 | [F9-04](tasks/F9-04.json) | Soft-body deformation and recovery |
+| F8-83 | [F9-05](tasks/F9-05.json) | Rope hanging and swinging |
+| F8-84 | [F9-06](tasks/F9-06.json) | Smoke transport and buoyancy |
+
+Every F9 card retains its F8-99 prerequisite and remains deferred until that
+exit review. F9 completion is not required to close F8. Solver limits and the
+focused-change acceptance above continue to apply.
+
 ## Immediate queue
 
-Land the retained F8-73 Mac adapter/Gallery repair under its revised
-development acceptance. Then complete remaining F8-78 performance work,
+F8-73 is merged under its revised development acceptance. Complete remaining
+F8-78 performance work,
 F8-74 candidate refreeze, physical qualification rows, qualified delivery and
 F8-99 exit review according to dependencies and available hardware.
 
-After that exit, reactivate F8-79 through F8-84 through planning. They cover a
+After that exit, reactivate F9-01 through F9-06 through planning. They cover a
 first visible improvement to rigid bodies, liquids, cloth, soft bodies, ropes,
 and smoke respectively. No all-six completion barrier precedes their individual
 merges. Follow existing leases and locks.

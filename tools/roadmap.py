@@ -24,9 +24,15 @@ GROUPS = {'F1': 'Resource lifetime and capacity', 'F2': 'Interaction graph and s
           'F5': 'Independent conformance and quality', 'F6': 'SDK releases and repository ownership',
           'F7': 'Shared Gallery application',
           'F8': '60 Hz single-step simulation and shared spatial indexing',
+          'F9': 'Scene physics quality and repairs',
           'P1': 'Deferred domain and interaction coverage', 'P2': 'Deferred engine integration',
           'P3': 'Deferred measured optimization', 'P4': 'Deferred vendor and standards adoption'}
 ARCHIVED_COMPLETED_GROUPS = {'F5'}
+# Maintainer-approved 2026-11-03 reclassification of never-started scene work.
+# Only these deferred, history-free cards may move, with their full contract intact.
+# Old IDs stay reserved; see PHYSICS-QUALITY-DEVELOPMENT.md for the mapping.
+TASK_ID_MIGRATIONS = {'F8-79': 'F9-01', 'F8-80': 'F9-02', 'F8-81': 'F9-03',
+                      'F8-82': 'F9-04', 'F8-83': 'F9-05', 'F8-84': 'F9-06'}
 
 
 def require(condition, message):
@@ -191,7 +197,23 @@ def coordination_path(path):
 
 def transitions(base, tasks, now, changed_paths=(), branch=None):
     """Validate against current main, not a stale merge base."""
-    require(set(base) <= set(tasks), 'do not delete/reuse task IDs; retain history')
+    removed = set(base) - set(tasks)
+    for old in removed:
+        new = TASK_ID_MIGRATIONS.get(old)
+        require(new in tasks and new not in base,
+                'do not delete/reuse task IDs; retain history')
+        previous = base[old]
+        require(previous['status'] == 'deferred' and previous['lease'] is None
+                and not previous['history'] and not previous['evidence'],
+                f'{old}: only never-started deferred scene cards may migrate')
+        require(tasks[new] == dict(previous, id=new),
+                f'{old}: migration must preserve the complete task contract')
+    for old, new in TASK_ID_MIGRATIONS.items():
+        require(not (old in tasks and new in tasks),
+                f'{old}: migrated ID is reserved; use {new}')
+    if removed:
+        require(all(coordination_path(path) for path in changed_paths),
+                'task migration must be planning-only')
     changes = []
     for id, current in tasks.items():
         if id not in base:
@@ -251,6 +273,7 @@ def transitions(base, tasks, now, changed_paths=(), branch=None):
             require(current['history'] == expected_history, f'{id}: immutable lease history')
         if current['status'] != 'done':
             require(current['evidence'] == previous['evidence'], f'{id}: evidence is recorded by completion')
+    require(not removed or not changes, 'task migration cannot include a lease operation')
     require(len(changes) <= 1, 'one lease operation/task per PR')
     if changes and changes[0][0] == 'complete':
         require(all(tasks[other] == base[other] for other in base if other != changes[0][1]),
