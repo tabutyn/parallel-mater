@@ -5,6 +5,10 @@ Current development direction, 2026-11-02: follow
 The one-step, one-spatial-update, and existing solver-work limits below remain
 unchanged. Full candidate timing/device gates apply to broad qualification;
 they do not block scoped system improvements or labeled development previews.
+The later 2026-11-03 decision also defers wall-clock target misses in the
+remaining F8 integration sequence to F9-07/F9-08. Apply the current policy's
+separate correctness and timing verdicts at refreeze, device acceptance,
+delivery and exit. The original timing targets below remain F9 obligations.
 
 Maintainer direction, 2026-10-25: F8 replaces the production simulation
 architecture. It is not an optional performance mode, a second solver product,

@@ -1,0 +1,34 @@
+{
+  "id": "F9-07",
+  "title": "Meet Windows GTX 1080 timing targets after scene repairs",
+  "status": "deferred",
+  "dependencies": [
+    "F8-78",
+    "F8-99",
+    "F9-01",
+    "F9-02",
+    "F9-03",
+    "F9-04",
+    "F9-05",
+    "F9-06"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule",
+    "f8-windows-cuda-performance"
+  ],
+  "requires": [
+    "Physical Windows GTX 1080, accepted scene repairs and complete retained F8-78 capture"
+  ],
+  "scope": "Post-F8 performance follow-up authorized on 2026-11-03. Optimize measured Windows GPU execution, submission, data movement and required completion waits after scene-quality corrections. Start from a fresh exact-source baseline and retain F8-78 history. Coordinate overlapping shared work through the existing locks. Preserve repaired physical semantics and all one-step, spatial and solver-work limits.",
+  "acceptance": [
+    "Publish exact-source before/after profiles attributing CPU, required completion waits and native GPU costs. Retain all normal samples and stalls with device/toolchain and installed artifact provenance.",
+    "Pass the full registered Windows Release suite, ownership/completion regressions, affected portable/reference checks, relocated SDK and installed Gallery checks. Preserve the accepted F9 scene-quality improvements with independent physical checks.",
+    "Complete all 30 public cases, all 12 physical scenarios and physical/work/recovery assertions in both modes. Reproduce all five workloads using frozen counts, 600 warmup and 7200 measured ticks and zero failed ticks.",
+    "Meet the original targets in every workload/mode with physics p95 at most 10 ms, frame p95 at most 16.666666666666668 ms and simulated/wall ratio at least 0.99. Pass all five canonical negative controls from a passing unmodified baseline.",
+    "Preserve one 1/60-second advance, one spatial publication and independent iteration/dispatch/submission/readback/synchronization ceilings. Retain workload size, measurement boundaries, timeouts and capability coverage.",
+    "Publish raw evidence and exact source/tree, driver/SDK/manifest hashes, protected-closure classification and remaining limitations for F9-08 qualification planning."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

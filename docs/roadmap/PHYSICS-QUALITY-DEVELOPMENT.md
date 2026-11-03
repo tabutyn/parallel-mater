@@ -7,6 +7,8 @@ land the retained Mac repair and finish the existing F8 integration,
 qualification and release sequence before starting scene repairs. The later
 scene-quality work improves one system and one concrete behavior at a time.
 On 2026-11-03, the maintainer assigned that later work to its own F9 series.
+Later that day, the maintainer also deferred performance-only blockers to F9
+so the broken scenes can be repaired before final timing optimization.
 
 This decision changes development merge and release gates. It supersedes older
 instructions that make full F8 candidate qualification a prerequisite for
@@ -78,15 +80,47 @@ The historical frozen capture still evaluates with its original thresholds.
 Never combine different revisions into a qualified candidate or describe a
 failed performance baseline as a passing negative-control suite.
 
-F8-74 (whole-candidate refreeze), F8-78 (frozen Windows performance target), and
-F8-99 (aggregate exit review) are active again to finish the existing F8 work.
-Their original qualification rules remain intact. They do not restore aggregate
-timing as a merge blocker for the scoped F8-73 development repair. Broad final
-qualification still requires its own passing device/workload evidence.
+F8-74 (integration-candidate refreeze), F8-78 (integrated Windows validation),
+and F8-99 (integration exit review) remain active. Apply the timing deferral
+below throughout the remaining F8 device, delivery and exit sequence. Broad
+60 Hz performance qualification requires later passing device/workload evidence.
 
 F9-01 through F9-06 are deferred until the F8-99 exit review completes. They
 are post-exit quality follow-ups, not prerequisites for that exit. Completing
 F8 does not itself establish that the scenes are convincing.
+
+## Timing deferral approved on 2026-11-03
+
+The remaining F8 cards accept integration and correctness with disclosed timing
+debt. CPU/GPU/physics/frame latency and simulated/wall-rate targets become
+informational for F8 completion. The original 10 ms physics p95, 16.667 ms frame
+target, 0.99 simulated/wall ratio and other frozen per-tier timing targets carry
+forward into F9. This decision supersedes earlier F8 instructions requiring
+those wall-clock targets before refreeze, device acceptance, delivery or exit.
+
+Every capture must still execute its required cases, scenarios and workloads at
+the frozen counts and sample sizes, retain all samples and stalls, and identify
+exact source/device/artifact provenance. Evaluate physical/numerical assertions,
+resource ownership, lifecycle, rejected-step recovery and independent work
+budgets separately. A failure in any of those checks blocks the affected F8
+acceptance. Missing required device evidence remains an open qualification row.
+
+Keep the original validator outputs and thresholds for historical captures.
+Record every failure by assertion and classify timing-only debt explicitly.
+For each canonical negative control, retain the injected-defect result and the
+unmodified baseline result separately. When baseline timing already fails,
+record the control as unqualified for final performance acceptance. Demonstrate
+the affected correctness/work/recovery rejection independently. F9 owns the
+remaining timing-dependent control qualification. Any executable reporting
+change needs a bounded implementation card and merged lease.
+
+F8-78 captures the integrated Windows repair and these separate verdicts.
+F8-74 freezes an integration candidate and routes fresh device rows under this
+policy. F8-31 publishes its tested scope and limitations. F8-99 inventories all
+outstanding timing debt before exiting. F9-07 owns Windows GTX 1080 optimization
+against the original targets after scene repairs. F9-08 defines the fresh
+candidate and bounded device/performance qualification tasks needed for a broad
+60 Hz claim. Both follow the F8 exit, alongside the existing F9 scene series.
 
 ## F9 scene repair series
 
@@ -106,21 +140,23 @@ rejects deletion or renumbering of started/completed work and unrelated IDs.
 | F8-83 | [F9-05](tasks/F9-05.json) | Rope hanging and swinging |
 | F8-84 | [F9-06](tasks/F9-06.json) | Smoke transport and buoyancy |
 
-Every F9 card retains its F8-99 prerequisite and remains deferred until that
+Every F9 card includes an F8-99 prerequisite and remains deferred until that
 exit review. F9 completion is not required to close F8. Solver limits and the
 focused-change acceptance above continue to apply.
 
 ## Immediate queue
 
 F8-73 is merged under its revised development acceptance. Complete remaining
-F8-78 performance work,
-F8-74 candidate refreeze, physical qualification rows, qualified delivery and
+F8-78 integrated Windows correctness and timing capture,
+F8-74 integration-candidate refreeze, physical qualification rows, delivery and
 F8-99 exit review according to dependencies and available hardware.
 
 After that exit, reactivate F9-01 through F9-06 through planning. They cover a
 first visible improvement to rigid bodies, liquids, cloth, soft bodies, ropes,
 and smoke respectively. No all-six completion barrier precedes their individual
 merges. Follow existing leases and locks.
+F9-07 then addresses Windows timing after those first scene improvements.
+F9-08 plans the remaining exact-candidate performance qualification.
 
 These are new follow-ups to previously completed implementation tasks, not a
 rewrite of their history. F8-73 remains the bounded Mac adapter/Gallery repair;

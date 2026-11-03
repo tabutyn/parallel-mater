@@ -8,6 +8,10 @@ starting scene-quality follow-ups F9-01 through F9-06. Keep the one-step,
 one-spatial-update and solver-work limits. Full mixed-workload timing and
 all-device qualification are not prerequisites for scoped development merges
 or labeled previews; affected correctness tests and required CI still apply.
+The maintainer's 2026-11-03 timing deferral also applies to the remaining F8
+refreeze, device, delivery and exit cards. Record wall-clock target misses as
+F9-07/F9-08 debt. Required correctness, recovery and independent solver-work
+checks still gate those cards. Follow the quality policy for separate verdicts.
 
 - Fetch current main and choose one ready leaf task matching this machine.
 - Push a claim-only PR updating that card and the roadmap. Do not implement the

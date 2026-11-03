@@ -1,0 +1,31 @@
+{
+  "id": "F9-08",
+  "title": "Plan final timing qualification across the device matrix",
+  "status": "deferred",
+  "dependencies": [
+    "F8-99",
+    "F9-01",
+    "F9-02",
+    "F9-03",
+    "F9-04",
+    "F9-05",
+    "F9-06",
+    "F9-07"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Accepted F9 scene repairs, F9-07 Windows timing evidence and the F8 exit performance-debt inventory"
+  ],
+  "scope": "After the F8 integration exit and initial F9 scene repairs, inventory every deferred per-device timing target and timing-contaminated negative-control result. Define a fresh candidate freeze, bounded per-device optimization/requalification leaves and a final 60 Hz performance exit review. This bounded investigation/planning task carries performance obligations forward from F8 without granting unmeasured qualification.",
+  "acceptance": [
+    "Map every F8 timing miss or unqualified timing-dependent negative control to its original device, workload, mode, threshold, source and retained evidence. Cover Windows CUDA/D3D12, Linux CPU/CUDA/Vulkan, macOS Metal, iOS Metal and Android as applicable.",
+    "Publish bounded new task cards for remaining optimization, a fresh exact-source candidate freeze, required physical device/workload requalification and a final performance exit review. Assign machine requirements, exclusive shared-area locks and an acyclic dependency graph.",
+    "Require the final performance exit to wait for every required device/workload row and passing canonical negative controls. Retain frozen counts, sample sizes, every stall and wait, original per-tier latency/rate targets and independent physical/work/recovery checks.",
+    "Retain earlier candidate identities, raw failures and completed task history. Define separate integration, physical-quality and final timing verdicts. Only later passing exact-candidate evidence can establish broad 60 Hz qualification."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

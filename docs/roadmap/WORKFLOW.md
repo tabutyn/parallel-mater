@@ -10,13 +10,16 @@ finish the existing F8 integration/qualification/release sequence first;
 scene-quality follow-ups come after its F8-99 exit review. Preserve solver limits. Scoped
 development merges and previews do not wait for every device or the aggregate
 mixed-workload p95 target. Task ownership and truthful evidence still apply.
+The 2026-11-03 timing deferral also permits the remaining F8 integration sequence
+to complete with disclosed timing-only debt assigned to F9-07/F9-08. Required
+correctness, recovery, device coverage and independent solver-work checks apply.
 
 ## Pick one bounded task
 
 1. Fetch current `main`; inspect open lease PRs to avoid duplicate proposals.
 2. Run `python3 tools/roadmap.py list --ready` and read the selected task card.
 3. Check its machine requirements, acceptance checks, dependencies and locks.
-   Finish F8 first: F8-73 is merged; complete remaining performance/qualification,
+   Finish F8 first: F8-73 is merged; complete integrated correctness/qualification,
    refreeze, deploy and close the F8-99 exit review. F9-01 through F9-06
    are deferred scene-quality follow-ups after that exit. Honor current leases.
 4. Reserve one leaf ID per claim PR. Do not claim an entire F-series area. If a
@@ -190,6 +193,9 @@ behavior can satisfy a broad final qualification claim. This is not a merge or
 development-preview prerequisite for the focused tasks defined by the current
 quality policy. Their correctness/work-budget checks remain mandatory;
 aggregate timing misses are retained as outstanding release targets.
+For remaining F8 cards, the 2026-11-03 policy specifically defers wall-clock
+qualification to F9-07/F9-08. F8 delivery and exit must identify their accepted
+integration scope and outstanding timing/scene-quality limits.
 The [dispatch reduction requirements](F8-DISPATCH-REDUCTION.md) also apply:
 F8-54--56 must complete Metal batching, coupling search/batching and independent
 installed Mac/iPad work measurements before F8-52 freezes the final candidate.
