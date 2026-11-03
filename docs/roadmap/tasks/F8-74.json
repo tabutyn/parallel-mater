@@ -1,7 +1,7 @@
 {
   "id": "F8-74",
   "title": "Refreeze candidate after Metal and Windows repairs",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-73",
     "F8-75",
@@ -27,15 +27,27 @@
     "Exact-source Windows evidence for the integrated F8-75/F8-76/F8-77/F8-78 repair passes the registered suite, installed SDK/Gallery requirements and installed-public physical/work/recovery checks under normal asynchronous execution. All five desktop workloads and five canonical negative controls are retained in both modes at unchanged counts, 600 warmup and 7200 measured ticks. Classify each failed assertion. Timing-only misses and timing-contaminated negative-control baselines are disclosed F9 debt. Preserve original validator results and candidate-v9 failure evidence, and bind F8-26 to the new candidate before its claim.",
     "Publish separate F8 integration/correctness and final-performance verdicts for the candidate. Document the original 10 ms physics p95, 16.666666666666668 ms frame p95 and 0.99 simulated/wall targets as F9-07/F9-08 obligations. Any executable reporting-policy change requires its own bounded task and merged lease before implementation."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "590b4cc7-7e4d-4dae-a7ae-db76f9e2ea11",
-    "owner": "codex-f8-candidate-freeze",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-74/Thomass-MacBook-Air",
-    "claimed_at": "2026-11-03T19:49:48Z",
-    "heartbeat_at": "2026-11-03T19:49:48Z",
-    "expires_at": "2026-11-04T19:49:48Z"
-  },
-  "history": []
+  "evidence": [
+    "Candidate manifest conformance/v1/qualification/realtime-candidate-v10.json SHA-256 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a; exact-source CI run 41708083151 passed 17/17 jobs with ten hashed artifacts in docs/roadmap/evidence/F8-74-PROTECTED-CI.json; freeze record docs/roadmap/evidence/F8-74-CANDIDATE-V10-FREEZE.json; independent checker and 93 roadmap tests passed."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "590b4cc7-7e4d-4dae-a7ae-db76f9e2ea11",
+        "owner": "codex-f8-candidate-freeze",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-74/Thomass-MacBook-Air",
+        "claimed_at": "2026-11-03T19:49:48Z",
+        "heartbeat_at": "2026-11-03T19:49:48Z",
+        "expires_at": "2026-11-04T19:49:48Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-03T20:34:46Z",
+      "reason": "Froze exact repaired candidate v10 after green protected CI; preserved candidate-v9 history, routed every device row, and separated F8 correctness from F9 performance debt.",
+      "evidence": [
+        "Candidate manifest conformance/v1/qualification/realtime-candidate-v10.json SHA-256 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a; exact-source CI run 41708083151 passed 17/17 jobs with ten hashed artifacts in docs/roadmap/evidence/F8-74-PROTECTED-CI.json; freeze record docs/roadmap/evidence/F8-74-CANDIDATE-V10-FREEZE.json; independent checker and 93 roadmap tests passed."
+      ]
+    }
+  ]
 }

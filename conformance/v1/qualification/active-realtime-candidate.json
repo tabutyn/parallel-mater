@@ -1,6 +1,6 @@
 {
   "schema": "parallel-mater-active-realtime-candidate/v1",
-  "candidate_id": "realtime-single-step-v1-ba67db3",
-  "manifest": "conformance/v1/qualification/realtime-candidate-v9.json",
-  "manifest_sha256": "4ed4ed7a097928944ac5667e8120e2447affda962a258e56c01dfd0d90d9dd4b"
+  "candidate_id": "realtime-single-step-v1-5bacbe2",
+  "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+  "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a"
 }
