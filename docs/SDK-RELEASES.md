@@ -16,6 +16,18 @@ SDK patch number never silently changes either interface. Applications request
 their API explicitly; the documented zero alias is not a compatibility promise
 for arbitrary future versions. See [API contract](API-CONTRACT.md).
 
+### Current development integration delivery
+
+The current F8 delivery is candidate `realtime-single-step-v1-5bacbe2`, exact
+source `5bacbe2b1e0fbfad565fb9477bb6873396e31d5d`, API 0.3.0, and driver
+interface 2. Normal simulation creation always uses `fixed-tick-60hz-v1`; the
+package contains no legacy/profile execution selector. The
+[delivery release note](F8-INTEGRATION-RELEASE.md) and its machine-readable
+manifest publish exact package/application identities, migration steps, device
+results, dispatch reductions, and unresolved correctness, scene, and timing
+failures. This is a development integration delivery, not broad conformance or
+60 Hz performance qualification.
+
 | Build profile or option | Contents and dependencies |
 |---|---|
 | `sdk-minimal` | Loader, validation, generated C/driver/layer headers; no Slang, GPU SDK, scene parser or renderer |

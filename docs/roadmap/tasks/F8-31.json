@@ -1,7 +1,7 @@
 {
   "id": "F8-31",
   "title": "Ship the integrated single-path SDK and Gallery",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-23",
     "F8-24",
@@ -38,15 +38,29 @@
     "Publish the final candidate's F8-54--56 actual native dispatch/work reductions and independent ceilings alongside its quality and frame timings. Installed Mac/iPad identities match the measured candidate; preserve comparable workload counts and disclose remaining limits.",
     "Release notes distinguish passing integration/correctness/work-budget evidence from outstanding scene quality and measured timing targets. Report timing-only misses under F9-07/F9-08. A broad 60 Hz performance qualification claim requires later passing evidence."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "602aad42-9d5f-4aa9-9c65-24b1fc69af6d",
-    "owner": "codex-f8-single-path-release",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-31/Thomass-MacBook-Air",
-    "claimed_at": "2026-11-04T18:55:07Z",
-    "heartbeat_at": "2026-11-04T18:55:07Z",
-    "expires_at": "2026-11-05T18:55:07Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-31-INTEGRATED-DELIVERY.json",
+    "docs/F8-INTEGRATION-RELEASE.md"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "602aad42-9d5f-4aa9-9c65-24b1fc69af6d",
+        "owner": "codex-f8-single-path-release",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-31/Thomass-MacBook-Air",
+        "claimed_at": "2026-11-04T18:55:07Z",
+        "heartbeat_at": "2026-11-04T18:55:07Z",
+        "expires_at": "2026-11-05T18:55:07Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-04T19:11:58Z",
+      "reason": "Shipped the candidate-v10 single-path SDK and Gallery development integration with verified Apple installs, relocatable package evidence, dispatch reductions, migration guidance, and explicit Android, D3D12, Linux-reference, scene-quality, and timing limitations",
+      "evidence": [
+        "docs/roadmap/evidence/F8-31-INTEGRATED-DELIVERY.json",
+        "docs/F8-INTEGRATION-RELEASE.md"
+      ]
+    }
+  ]
 }
