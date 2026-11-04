@@ -19,6 +19,10 @@ from check_realtime_candidate import (  # noqa: E402
     V9_SHA256,
     validate_candidate,
 )
+from check_realtime_candidate_v10 import (  # noqa: E402
+    replacement_leaf_state_is_valid,
+)
+
 
 class F874CandidateFreezeTests(unittest.TestCase):
     @classmethod
@@ -95,6 +99,29 @@ class F874CandidateFreezeTests(unittest.TestCase):
         tampered["qualification_routing"]["evidence_union_allowed"] = True
         tampered["qualification_routing"]["tasks"].remove("F8-85")
         self.assertIn("qualification routing drift", validate_candidate(tampered))
+
+    def test_replacement_leaves_allow_legal_workflow_states(self):
+        task = {"dependencies": ["F8-53", "F8-74"], "evidence": [], "history": []}
+
+        task.update({"status": "open", "lease": None})
+        self.assertTrue(replacement_leaf_state_is_valid(task, "F8-53"))
+
+        task.update({"status": "leased", "lease": {"token": "test-token"}})
+        self.assertTrue(replacement_leaf_state_is_valid(task, "F8-53"))
+
+        task.update({
+            "status": "done",
+            "lease": None,
+            "evidence": ["docs/roadmap/evidence/F8-85.json"],
+            "history": [{"outcome": "completed"}],
+        })
+        self.assertTrue(replacement_leaf_state_is_valid(task, "F8-53"))
+
+        task.update({"status": "leased", "lease": None})
+        self.assertFalse(replacement_leaf_state_is_valid(task, "F8-53"))
+
+        task.update({"status": "blocked", "lease": None})
+        self.assertFalse(replacement_leaf_state_is_valid(task, "F8-53"))
 
     def test_ipad_ci_does_not_dirty_the_source_checkout(self):
         workflow = (ROOT / ".github/workflows/mobile-gallery.yml").read_text(
