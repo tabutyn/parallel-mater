@@ -172,9 +172,14 @@ focused-change acceptance above continue to apply.
 
 ## Immediate queue
 
-F8-73, F8-78 and F8-74 are merged. Complete the candidate-v10 physical
-qualification rows, delivery and F8-99 exit review according to dependencies
-and available hardware, carrying the specifically recorded F9-09 scene debt.
+F8-73, F8-78, F8-74 and the candidate-v10 physical observation/delivery cards
+are merged. The preliminary F8-99 review did not close the series: five
+required rows retain non-timing correctness, capability or exact-capture
+failures. Follow the bounded chain in
+[`F8-99-EXIT-AUDIT.json`](evidence/F8-99-EXIT-AUDIT.json): repair F8-88 through
+F8-92, freeze F8-93, physically qualify F8-94 through F8-97, deliver F8-98 and
+then repeat F8-99. Keep candidate-v10 failures immutable and carry the
+specifically recorded F9-09 scene debt.
 
 After that exit, reactivate F9-01 through F9-06 through planning. They cover a
 first visible improvement to rigid bodies, liquids, cloth, soft bodies, ropes,

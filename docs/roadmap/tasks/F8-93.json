@@ -1,0 +1,29 @@
+{
+  "id": "F8-93",
+  "title": "Freeze the repaired F8 exit candidate",
+  "status": "open",
+  "dependencies": [
+    "F8-88",
+    "F8-89",
+    "F8-90",
+    "F8-91",
+    "F8-92"
+  ],
+  "locks": [
+    "f8-exit-candidate-freeze"
+  ],
+  "requires": [
+    "Merged repair evidence and protected Linux, Windows, macOS, Android and iPad CI"
+  ],
+  "scope": "Freeze one clean replacement for rejected candidate v10 after all five non-timing exit repairs merge. Candidate v10 and its device failures remain immutable provenance. Hash the complete protected API, shared Slang, adapter, runtime, schedule, public-oracle, work-budget and shared Gallery closure; publish a new candidate identity and route every registered physical row to it.",
+  "acceptance": [
+    "Publish exact source revision/tree, immutable manifest hash, active pointer and protected closure hashes for API 0.3, driver ABI 2, six domains, eight interaction modes, 49 capabilities, 30 public cases, 12 scenarios, 37 measurements and all runtime variants.",
+    "Independently prove one public creation path, one production scheduler, one 1/60 advance, one shared spatial publication, no profile selector, no legacy schedule and no vendor-specific physical fork.",
+    "Run exact-source protected CI and retain artifact, toolchain and extracted-tree hashes. All correctness, lifecycle, recovery and independent work-budget checks must pass; timing-only misses remain disclosed F9 debt.",
+    "Revalidate F8-54 through F8-56 dispatch/search ceilings for every affected protected change. Require fresh installed Apple traces if Metal, shared coupling, resource scheduling or Gallery execution changed.",
+    "Route fresh Windows, Apple, Android and Linux physical qualification tasks. Never union candidate-v10 device observations into a replacement-candidate pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

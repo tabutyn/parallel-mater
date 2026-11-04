@@ -1,0 +1,26 @@
+{
+  "id": "F8-89",
+  "title": "Repair Android Vulkan correctness and exact workload capture",
+  "status": "open",
+  "dependencies": [
+    "F8-30",
+    "F8-74"
+  ],
+  "locks": [
+    "f8-exit-correctness-repair"
+  ],
+  "requires": [
+    "Physical Pixel 7 Vulkan device and Android build/deployment toolchain"
+  ],
+  "scope": "Repair the non-timing Android Vulkan exit blockers recorded by F8-30: three lifecycle profiles fail at the first public step, four independent quality evaluations exceed frozen tolerances, all 30 public cases differ from the checked-in reference and the exact pixel7-gallery-v1 workload producer is missing. Preserve the sole schedule and shared Slang equations. Candidate-v10 remains immutable failed history.",
+  "acceptance": [
+    "Reproduce and classify every F8-30 lifecycle, quality and public-reference failure on the physical Pixel 7 before repair; retain raw inputs, outputs and installed artifact identities.",
+    "Fix the public Vulkan resource, lifecycle, numerical or shared-kernel causes without weakening tolerances, changing workload counts, adding CPU physics fallback or introducing Android-specific equations.",
+    "Provide the installed public producer for all four exact pixel7-gallery-v1 workloads with 600 warmup and 7200 measured ticks, all samples and stalls retained, zero failed ticks and explicit timing/correctness separation.",
+    "Pass every advertised capability, applicable public case, physical scenario, quality profile, lifecycle/recovery assertion, independent work budget and negative control in plain and validation modes.",
+    "Pass Android Gallery catalog, controls, background/foreground, surface recreation, sustained-run and installed SDK checks. Publish exact source, APK, driver, device, OS and manifest hashes."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

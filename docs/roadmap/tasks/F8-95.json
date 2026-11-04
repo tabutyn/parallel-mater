@@ -1,0 +1,26 @@
+{
+  "id": "F8-95",
+  "title": "Qualify the F8 exit candidate on Mac and iPad",
+  "status": "open",
+  "dependencies": [
+    "F8-93"
+  ],
+  "locks": [
+    "f8-exit-apple-qualification"
+  ],
+  "requires": [
+    "Physical M4 MacBook Air and M1 iPad with Metal deployment access"
+  ],
+  "scope": "Qualify only the F8-93 replacement candidate on the registered macOS M4 and iPadOS M1 Metal targets. Verify exact installed Gallery identities, the complete public schedule and affected dispatch-reduction evidence. Preserve scoped F9 scene-quality and timing debt without weakening solver-work limits.",
+  "acceptance": [
+    "Build, sign, deploy and identify the exact frozen source on Mac and iPad, including executable, embedded Metal driver, SDK, manifest, Dock and device runtime hashes.",
+    "Pass every applicable capability, 30 public cases, 12 scenarios, numerical/lifecycle/recovery assertion, fixed-work check and negative control in plain and validation modes.",
+    "Exercise all 28 Gallery scenes, controls, pause/reset, background/foreground, failure recovery and sustained execution using the shared fixed-tick session and GPU rendering path.",
+    "Reconcile native dispatches, workgroups, barriers, spatial builds/publications and public counters against independent F8-54--56 ceilings. Prove no body-count no-op graph, exhaustive coupling search, intra-tick host readback or global host wait reappeared.",
+    "Retain all timing samples and stalls. Route allowed scene-quality debt to F9-01--06 and timing debt to F9-07/F9-08 with separate verdicts.",
+    "Publish current revisioned Metal capability evidence suitable for the generated public qualification index."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

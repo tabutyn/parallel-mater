@@ -1,0 +1,26 @@
+{
+  "id": "F8-94",
+  "title": "Qualify the F8 exit candidate on Windows",
+  "status": "open",
+  "dependencies": [
+    "F8-93"
+  ],
+  "locks": [
+    "f8-exit-windows-qualification"
+  ],
+  "requires": [
+    "Physical Windows GTX 1080 with CUDA and D3D12"
+  ],
+  "scope": "Qualify only the F8-93 replacement candidate on the registered Windows GTX 1080 CUDA and D3D12 targets. Execute the complete installed public SDK and Gallery contract for both adapters. Preserve candidate-v10 history, the PEG PAINT F9-09 routing and the F9 timing deferral.",
+  "acceptance": [
+    "Build, package, relocate and install the exact frozen source for both CUDA and D3D12; bind source, binary, driver, SDK, shortcut and Gallery identities.",
+    "Pass 49 capability obligations, 30 public cases, 12 physical scenarios, lifecycle/recovery assertions, fixed-work checks and five negative controls in plain and validation modes on each applicable adapter.",
+    "Complete every frozen workload with declared counts, 600 warmup and 7200 retained measured ticks, zero failed ticks and all stalls preserved. Classify timing separately under F9-07/F9-08.",
+    "Verify ordinary API 0.3 and installed Gallery use the sole schedule with no fallback or profile selection. Retain PEG PAINT as failed F9-09 scene debt unless separately repaired and reviewed.",
+    "Publish independent CUDA/D3D12 verdicts and raw artifacts; neither row may substitute for the other.",
+    "Publish current revisioned capability evidence suitable for the generated public qualification index; candidate-suite reports may not remain an undocumented substitute."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

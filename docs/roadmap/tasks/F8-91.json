@@ -1,0 +1,26 @@
+{
+  "id": "F8-91",
+  "title": "Repair Linux CUDA reference and repeatability correctness",
+  "status": "open",
+  "dependencies": [
+    "F8-74",
+    "F8-86"
+  ],
+  "locks": [
+    "f8-exit-correctness-repair"
+  ],
+  "requires": [
+    "Physical ThomasLaptop RTX 3050 Ti CUDA target"
+  ],
+  "scope": "Repair the F8-86 Linux CUDA exit blocker: all 30 public cases retain 5,928 frozen-reference differences with numerical or invariant failures, and cloth-water fails fresh plain-run repeatability. Preserve shared Slang equations, fixed work and immutable candidate-v10 evidence; do not infer correctness from the passing analytic or timing suites alone.",
+  "acceptance": [
+    "Reproduce all 30 public-reference failures and the cloth-water plain-to-plain failure with exact installed source, driver, SDK, GPU and manifest identities.",
+    "Identify the first nondeterministic or cross-reference divergence using retained state, dispatch and synchronization evidence. Fix races, initialization, ownership or shared-equation defects without relaxing tolerances or excluding samples.",
+    "Pass all 30 public cases in plain and validation modes, repeated-run comparisons, 49 capability obligations, 12 physical scenarios, five negative controls and lifecycle/recovery assertions.",
+    "Preserve one fixed advance, one shared spatial publication and independent iteration, dispatch, submission, readback and synchronization ceilings. Retain the full workload timing protocol and all stalls.",
+    "Pass installed SDK relocation and Gallery checks and publish complete before/after evidence."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
