@@ -1,7 +1,7 @@
 {
   "id": "F8-29",
   "title": "Qualify the candidate on physical iOS Metal devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -30,6 +30,14 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b58adf03-30c1-41e9-b15c-0aa7ee7a8e8e",
+    "owner": "codex-f8-ipad-metal-qualification",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-29/Thomass-MacBook-Air-v10",
+    "claimed_at": "2026-11-04T14:01:15Z",
+    "heartbeat_at": "2026-11-04T14:01:15Z",
+    "expires_at": "2026-11-05T14:01:15Z"
+  },
   "history": []
 }
