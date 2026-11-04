@@ -192,7 +192,8 @@ def coordination_path(path):
     return (path in ('docs/ROADMAP.md', 'CONTRIBUTING.md', 'AGENTS.md', 'tools/roadmap.py',
                      'docs/continuous-integration.md', '.github/pull_request_template.md') or
             path.startswith(('docs/roadmap/', 'tests/roadmap/', 'docs/history/ROADMAP-',
-                             '.github/workflows/', 'tools/ci/', 'tests/ci/')))
+                             '.github/workflows/', 'tools/ci/', 'tests/ci/',
+                             'tools/check_realtime_candidate')))
 
 
 def transitions(base, tasks, now, changed_paths=(), branch=None):
