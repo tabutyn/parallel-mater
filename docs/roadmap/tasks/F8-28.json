@@ -1,7 +1,7 @@
 {
   "id": "F8-28",
   "title": "Qualify the candidate on macOS Metal devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -30,7 +30,15 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "4b1fe107-aa05-4b83-85ec-dd3e71f779bb",
+    "owner": "codex-f8-macos-metal-qualification",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-28/Thomass-MacBook-Air-v10",
+    "claimed_at": "2026-11-04T12:39:42Z",
+    "heartbeat_at": "2026-11-04T12:39:42Z",
+    "expires_at": "2026-11-05T12:39:42Z"
+  },
   "history": [
     {
       "lease": {
