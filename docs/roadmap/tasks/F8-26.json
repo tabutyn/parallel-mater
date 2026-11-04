@@ -1,7 +1,7 @@
 {
   "id": "F8-26",
   "title": "Qualify the candidate on Windows CUDA devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -31,7 +31,15 @@
     "The v10 Windows PEG PAINT capture completes 240 one-step frames with zero capacity overflows, then fails its unchanged 100-texel deposition assertion with 7 texels. Retain that quality failure, particle bounds, command, source, logs and CSV under docs/roadmap/evidence/F8-26-CANDIDATE-V10-GALLERY-DEBT.json and F9-09. This named scene-quality debt permits F8 integration acceptance under the maintainer's existing F9 scene deferral. All other required Gallery checks and every frozen public/primitive correctness, resource/recovery and work-budget check remain required. Report the separate integration, Gallery-quality and timing verdicts."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "2ea51857-9fb2-4fc2-9aff-d5917efde830",
+    "owner": "codex-windows-qualification",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-26/windows-gtx1080-v10-final-20261104",
+    "claimed_at": "2026-11-04T13:28:12Z",
+    "heartbeat_at": "2026-11-04T13:28:12Z",
+    "expires_at": "2026-11-05T13:28:12Z"
+  },
   "history": [
     {
       "lease": {
