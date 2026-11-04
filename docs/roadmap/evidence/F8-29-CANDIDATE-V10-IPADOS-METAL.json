@@ -1,0 +1,217 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v2",
+  "task": "F8-29",
+  "status": "passed_with_scoped_gallery_debt",
+  "final_performance_qualified": true,
+  "lease_token": "b58adf03-30c1-41e9-b15c-0aa7ee7a8e8e",
+  "captured_at": "2026-11-04T15:52:14Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-5bacbe2",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "exact_source_ci_run": 41708083151,
+    "target": "ipados-m1-slang-metal",
+    "runtime_variant": "metal-runtime",
+    "evidence_union_allowed": false
+  },
+  "device": {
+    "name": "Thomas's iPad",
+    "model": "iPad Pro 12.9-inch (5th generation)",
+    "model_identifier": "iPad13,8",
+    "chip": "Apple M1",
+    "gpu": "Apple M1 GPU",
+    "os": "iPadOS 27.0.1",
+    "connection": "physical USB device",
+    "simulator": false,
+    "vendor_id": 4203
+  },
+  "toolchain": {
+    "xcode": "26.6 (17F113)",
+    "cmake": "4.3.4",
+    "host_compiler": "Apple LLVM 21.0.0 (clang-2100.1.1.101)",
+    "metal": "32023.883",
+    "slang": "2026.18",
+    "architecture": "arm64",
+    "signing_team": "MGV4UTVV6J"
+  },
+  "verdicts": {
+    "f8_integration_correctness": {
+      "status": "passed",
+      "basis": "The independent frozen validator accepted all 12 scenarios, 37 measurements, 30 installed-public cases, 49 capabilities, five negative controls, numerical and recovery assertions, one 1/60 advance, one spatial publication, fixed work, and both plain and validation executions."
+    },
+    "final_performance": {
+      "status": "passed",
+      "physics_p95_ms_maximum": 8.5,
+      "observed_worst_p95_ms": 5.025583,
+      "minimum_simulated_to_wall_time_ratio": 0.99,
+      "observed_minimum_ratio": 4.203325306743541,
+      "basis": "Every one of the eight workload executions passed the frozen iPad tier with all stalls retained and no failed ticks."
+    },
+    "gallery_scene_quality": {
+      "status": "passed_with_scoped_f9_debt",
+      "owners": [
+        "F9-02",
+        "F9-05"
+      ],
+      "basis": "All 28 Gallery scenes and lifecycle/control checks completed, but the unchanged fluid-rope analytic quality profile reports three interaction-quality failures. Those scene-quality defects are preserved for F9 without relaxing the sole fixed-tick schedule or work budgets."
+    },
+    "gallery_schedule_diagnostics": {
+      "status": "passed_with_scoped_f9_debt",
+      "owners": [
+        "F9-05"
+      ],
+      "basis": "The extended all-scene diagnostic reconciliation found the rope public work estimate at 84 dispatches while native Metal emitted 83. Actual native work is below the estimate and within the frozen budget; F9-05 owns restoring exact diagnostic agreement."
+    }
+  },
+  "results": {
+    "exact_release_build": {
+      "status": "passed",
+      "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+      "source_dirty": false,
+      "gallery_executable_sha256": "7ad4bfc3fe0fa82395fedd08d7d774caf1a6ab2b293280223f10ae4782b75f20",
+      "metal_driver_sha256": "c50158bf0bfb64d78b41735527d881357a14f7b15ae7eedb934af4da2fe344f5",
+      "runtime_sdk_sha256": "ee91ef3b92a380a3cb32d959d8e9f6072a58f3cb29a10b9b1cc214e58ac1ddeb"
+    },
+    "physical_registered_suite": {
+      "status": "passed",
+      "scenario_count": 12,
+      "named_measurement_count": 37,
+      "advertised_capability_count": 49,
+      "public_case_count": 30,
+      "public_cases_completed": 30,
+      "public_cases_failed": 0,
+      "workload_count": 4,
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "warmup_ticks_per_workload": 600,
+      "measured_ticks_per_workload": 7200,
+      "measured_ticks_total": 57600,
+      "raw_timing_values_total": 230400,
+      "failed_workload_ticks": 0,
+      "driver_private_state_used": false,
+      "timestep_seconds": 0.016666666666666666,
+      "substeps": 1,
+      "time_advances_per_successful_tick": 1,
+      "spatial_index_updates_per_successful_tick": 1,
+      "spatial_index_publications_per_successful_tick": 1,
+      "queue_submissions_per_tick": 1,
+      "intra_tick_host_readbacks": 0
+    },
+    "frozen_validator": {
+      "status": "passed",
+      "failure_count": 0,
+      "report_sha256": "fe6a74aec842af2a3b011eb5834f450bf16e77229bfefcf801f666dabf3bcb28",
+      "independent_report_sha256": "fe6a74aec842af2a3b011eb5834f450bf16e77229bfefcf801f666dabf3bcb28",
+      "reports_byte_identical": true
+    },
+    "negative_controls": {
+      "status": "passed",
+      "controls": [
+        {"id": "candidate_missing_pair", "rejected_failure_count": 1},
+        {"id": "atomic_failure_violation", "rejected_failure_count": 3},
+        {"id": "hidden_retry_violation", "rejected_failure_count": 3},
+        {"id": "timing_stall_retained", "rejected_failure_count": 1},
+        {"id": "timing_failed_tick", "rejected_failure_count": 1}
+      ]
+    },
+    "installed_gallery": {
+      "status": "passed_with_scoped_quality_debt",
+      "revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "backend": "metal",
+      "execution_contract": "fixed-tick-60hz-v1",
+      "release_channel": "development-preview",
+      "build_number": 2173,
+      "scenes_exercised": 28,
+      "frames_per_scene": 120,
+      "scenes_failed": 0,
+      "lifecycle_checks_passed": 6,
+      "control_checks_passed": 6,
+      "background_foreground_cycle": "passed",
+      "renderer": "native Metal GPU renderer",
+      "readback": "diagnostic-only"
+    },
+    "additional_physics_qualification": {
+      "core_conservation": {
+        "status": "passed",
+        "fixtures": 2,
+        "samples": 6,
+        "failures": 0
+      },
+      "rigid_brick_penetration": {
+        "status": "passed",
+        "fixtures": 1,
+        "samples": 1,
+        "failures": 0
+      },
+      "adverse_capacity_lifecycle": {
+        "status": "passed",
+        "cases": 2,
+        "checkpoints": 9,
+        "failures": 0
+      },
+      "fluid_rope_contact": {
+        "status": "failed_scoped_to_f9",
+        "owner": [
+          "F9-02",
+          "F9-05"
+        ],
+        "failures": [
+          {
+            "metric": "reciprocal_impulse_residual_n_s",
+            "actual": 0.0500001460313797,
+            "limit": 0.001
+          },
+          {
+            "metric": "maximum_node_distribution_error_n_s",
+            "actual": 0.037499964237213135,
+            "limit": 0.001
+          },
+          {
+            "metric": "maximum_node_force_impulse_residual_n_s",
+            "actual": 0.03749990065892539,
+            "limit": 0.001
+          }
+        ]
+      }
+    }
+  },
+  "timing": {
+    "policy": "Final F8 iPad performance qualification against the unchanged frozen 8.5 ms physics p95 and 0.99 simulated/wall targets.",
+    "target_physics_p95_ms_maximum": 8.5,
+    "target_simulated_to_wall_ratio_minimum": 0.99,
+    "plain": [
+      {"id": "rigid-gallery", "ratio": 5.504984384020432, "physics_ms": {"p50": 3.021166, "p95": 3.294333, "p99": 4.02675, "maximum": 12.602208}},
+      {"id": "fluid-gallery", "ratio": 5.912105831128456, "physics_ms": {"p50": 2.880292, "p95": 3.071042, "p99": 3.70975, "maximum": 13.697708}},
+      {"id": "coupled-gallery", "ratio": 4.235585251894939, "physics_ms": {"p50": 3.821667, "p95": 4.967333, "p99": 5.199542, "maximum": 7.009708}},
+      {"id": "smoke-gallery", "ratio": 6.251222393655045, "physics_ms": {"p50": 2.818792, "p95": 3.123792, "p99": 3.576792, "maximum": 13.189333}}
+    ],
+    "validation": [
+      {"id": "rigid-gallery", "ratio": 5.406019173409, "physics_ms": {"p50": 3.087625, "p95": 3.33225, "p99": 4.140209, "maximum": 14.16075}},
+      {"id": "fluid-gallery", "ratio": 6.145960846682675, "physics_ms": {"p50": 2.894916, "p95": 3.116042, "p99": 3.545209, "maximum": 11.699292}},
+      {"id": "coupled-gallery", "ratio": 4.203325306743541, "physics_ms": {"p50": 3.848375, "p95": 5.025583, "p99": 5.274584, "maximum": 8.190375}},
+      {"id": "smoke-gallery", "ratio": 6.5697749116245125, "physics_ms": {"p50": 2.359833, "p95": 3.191375, "p99": 3.462042, "maximum": 9.255292}}
+    ]
+  },
+  "artifacts": {
+    "archive": "docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.tar.zst",
+    "archive_sha256": "ffe1d7706521a4db3125dc438324b57f05501e54612a0fbc1b5899900bf541ed",
+    "archive_bytes": 10580595,
+    "archive_members": 228,
+    "capture_sha256": "8dc3b83e09f34d6113fc8e30e846466114960c31ac2e9fdaae946a56b324d799",
+    "gallery_report_sha256": "698e165ae7fa0d4b8c72a96fdd607538b475c5b3010a0380db582225edee9b24",
+    "metal_schedule_sha256": "6f898ecc60bac32fd7035e8eed10de9fbedc36a0716b289297199fadd36991a4",
+    "physics_qualification_sha256": "31ff45eb81ba844a58fb839ebed2b8dd92a03ea2e61f46213b8e639eff1c5da9",
+    "fluid_rope_quality_sha256": "cb9057bb794e839f2e9e79eca3043c25890a4713084f46c3112c3d7d45c05a98",
+    "build_info_sha256": "3c4b918afaabc569686fb87f54353dbc73b04fe380232ff25d422ee5db47ca8e"
+  },
+  "reproduction": {
+    "build_harness": "python3 scripts/Build-IPadConformanceHarness.py --candidate-source <exact-v10-source> --candidate-build <exact-v10-ipad-build> --output <harness-build> --team <team>",
+    "capture": "PM_IPAD_DEVICE=<physical-device-id> python3 conformance/v1/realtime_device_capture.py --runner scripts/Run-IPadConformance.py --driver-manifest <slang-metal.json> --validation-layer-manifest <validation.json> --candidate-manifest conformance/v1/qualification/realtime-candidate-v10.json --runtime-variant metal-runtime --target-id ipados-m1-slang-metal --device-os 'iPadOS 27.0.1 (iPad13,8)' --output <capture>",
+    "validate": "python3 conformance/v1/realtime_device_suite.py --capture <capture>/capture.json --candidate-manifest conformance/v1/qualification/realtime-candidate-v10.json --output <capture>/frozen-report.json"
+  }
+}

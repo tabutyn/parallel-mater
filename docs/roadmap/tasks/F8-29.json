@@ -1,7 +1,7 @@
 {
   "id": "F8-29",
   "title": "Qualify the candidate on physical iOS Metal devices",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -20,24 +20,45 @@
   "requires": [
     "Every registered physical iOS/iPadOS target and deployment/signing toolchain"
   ],
-  "scope": "F8 INTEGRATION GATE: qualify only realtime-single-step-v1-5bacbe2, manifest 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a, source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d, tree 67f5088c2e9f50938c55856e3683326e42675310 and exact-source CI run 41708083151. This is the API 0.3/driver ABI 2 sole fixed-tick SDK/Gallery integration contract with 49 capabilities, 30 public cases, 12 scenarios and 37 measurements. Candidate v9 realtime-single-step-v1-ba67db3 remains immutable rejected/superseded history after its Metal and Windows failures; its completed CPU, CUDA and Vulkan rows cannot be unioned with v10. Preserve one 1/60 step, one spatial publication, all correctness/recovery/work budgets and the 2026-11-03 timing deferral. Timing-only misses belong to F9-07/F9-08. Execute every registered physical iOS/iPadOS Metal tuple; simulator is not a substitute.",
+  "scope": "F8 INTEGRATION GATE: qualify only realtime-single-step-v1-5bacbe2, manifest 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a, source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d, tree 67f5088c2e9f50938c55856e3683326e42675310 and exact-source CI run 41708083151. This is the API 0.3/driver ABI 2 sole fixed-tick SDK/Gallery integration contract with 49 capabilities, 30 public cases, 12 scenarios and 37 measurements. Candidate v9 realtime-single-step-v1-ba67db3 remains immutable rejected/superseded history after its Metal and Windows failures; its completed CPU, CUDA and Vulkan rows cannot be unioned with v10. Preserve one 1/60 step, one spatial publication, all correctness/recovery/work budgets and the 2026-11-03 timing deferral. Timing-only misses belong to F9-07/F9-08. Execute every registered physical iOS/iPadOS Metal tuple; simulator is not a substitute. Apply the recorded Gallery fluid-rope quality and rope diagnostic-accounting deferrals without weakening the frozen integration or performance gates. F9-02 and F9-05 own those exact findings and must keep the F8-29 artifacts as their before state.",
   "acceptance": [
     "F8-74 freezes exact candidate realtime-single-step-v1-5bacbe2, manifest 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a, source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d, tree 67f5088c2e9f50938c55856e3683326e42675310 and protected CI run 41708083151; execute only that identity and never union historical observations.",
     "Run every applicable kernel/variant, domain, coupling, lifecycle and negative case. Complete execution, physical/numerical correctness, capability, independent work-budget and recovery assertions must pass; classify every failure.",
     "Prove one dt=1/60 advance and one spatial publication per tick; verify interpolation, overload slow-motion, no catch-up and fixed dispatch/iteration/submission/readback/synchronization budgets.",
     "Retain all frozen workload timing samples and stalls. Report CPU/GPU/physics/frame p50/p95/p99 and simulated/wall ratio. Timing target misses are disclosed F9-07/F9-08 debt and are not F8 integration failures.",
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes. Preserve failures; do not weaken physics, workload, tolerance, timeout or advertised capability.",
-    "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
+    "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior.",
+    "The physical iPad Gallery completes every scene and control/lifecycle check, while the additional fluid-rope analytic profile retains three unchanged quality failures and the extended all-scene schedule audit reports rope at 84 public-estimated versus 83 native Metal dispatches. Preserve both findings under F9-02/F9-05. Native work remains below estimate and within budget; every frozen candidate correctness, work, recovery and timing assertion remains required."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "b58adf03-30c1-41e9-b15c-0aa7ee7a8e8e",
-    "owner": "codex-f8-ipad-metal-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-29/Thomass-MacBook-Air-v10",
-    "claimed_at": "2026-11-04T14:01:15Z",
-    "heartbeat_at": "2026-11-04T14:01:15Z",
-    "expires_at": "2026-11-05T14:01:15Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: exact candidate realtime-single-step-v1-5bacbe2, manifest 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a, source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d and tree 67f5088c2e9f50938c55856e3683326e42675310 ran on physical iPad13,8 / Apple M1 / iPadOS 27.0.1 through the exact signed Metal runtime.",
+    "PASS: independent frozen validation reports 12 scenarios, 37 measurements, 49 capabilities, 30 public cases and five rejected negative controls with zero failures. Four target-tier workloads in plain and validation modes completed 57600 measured ticks and retained 230400 timing values with zero failed ticks.",
+    "PERFORMANCE PASS: all eight workload executions satisfy 8.5 ms physics p95 and 0.99 simulated/wall targets. Worst p95 is 5.025583 ms; minimum ratio is 4.203325. Stalls above p99 remain in raw evidence.",
+    "SCOPED GALLERY: all 28 installed Gallery scenes ran 120 frames and every control/lifecycle check passed. The additional fluid-rope analytic profile preserves three quality failures under F9-02/F9-05; extended rope diagnostics preserve 84 public-estimated versus 83 native dispatches under F9-05. Native work is lower and within the unchanged budget.",
+    "ARTIFACT: docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.tar.zst SHA-256 ffe1d7706521a4db3125dc438324b57f05501e54612a0fbc1b5899900bf541ed, 10580595 bytes, 228 members. docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.json records device, binary, toolchain, verdict, timing and reproduction details."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b58adf03-30c1-41e9-b15c-0aa7ee7a8e8e",
+        "owner": "codex-f8-ipad-metal-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-29/Thomass-MacBook-Air-v10",
+        "claimed_at": "2026-11-04T14:01:15Z",
+        "heartbeat_at": "2026-11-04T14:01:15Z",
+        "expires_at": "2026-11-05T14:01:15Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-04T15:55:03Z",
+      "reason": "Candidate v10 physical iPadOS Metal integration and final performance gates pass. Every frozen correctness, work, recovery and timing assertion passed on iPad13,8. The preserved fluid-rope quality and rope diagnostic-accounting findings are explicitly scoped to F9-02/F9-05 without raising solver limits.",
+      "evidence": [
+        "PASS: exact candidate realtime-single-step-v1-5bacbe2, manifest 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a, source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d and tree 67f5088c2e9f50938c55856e3683326e42675310 ran on physical iPad13,8 / Apple M1 / iPadOS 27.0.1 through the exact signed Metal runtime.",
+        "PASS: independent frozen validation reports 12 scenarios, 37 measurements, 49 capabilities, 30 public cases and five rejected negative controls with zero failures. Four target-tier workloads in plain and validation modes completed 57600 measured ticks and retained 230400 timing values with zero failed ticks.",
+        "PERFORMANCE PASS: all eight workload executions satisfy 8.5 ms physics p95 and 0.99 simulated/wall targets. Worst p95 is 5.025583 ms; minimum ratio is 4.203325. Stalls above p99 remain in raw evidence.",
+        "SCOPED GALLERY: all 28 installed Gallery scenes ran 120 frames and every control/lifecycle check passed. The additional fluid-rope analytic profile preserves three quality failures under F9-02/F9-05; extended rope diagnostics preserve 84 public-estimated versus 83 native dispatches under F9-05. Native work is lower and within the unchanged budget.",
+        "ARTIFACT: docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.tar.zst SHA-256 ffe1d7706521a4db3125dc438324b57f05501e54612a0fbc1b5899900bf541ed, 10580595 bytes, 228 members. docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.json records device, binary, toolchain, verdict, timing and reproduction details."
+      ]
+    }
+  ]
 }
