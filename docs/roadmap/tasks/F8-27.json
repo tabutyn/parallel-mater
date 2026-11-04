@@ -1,7 +1,7 @@
 {
   "id": "F8-27",
   "title": "Qualify the candidate on Windows D3D12 devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -31,6 +31,14 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "1c6c2ca1-335f-469b-928e-11da3c9bb1a7",
+    "owner": "codex-windows-d3d12-qualification",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-27/windows-gtx1080-v10-20261104",
+    "claimed_at": "2026-11-04T14:07:19Z",
+    "heartbeat_at": "2026-11-04T14:07:19Z",
+    "expires_at": "2026-11-05T14:07:19Z"
+  },
   "history": []
 }
