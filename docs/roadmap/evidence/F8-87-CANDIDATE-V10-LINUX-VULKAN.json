@@ -1,0 +1,277 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v2",
+  "task": "F8-87",
+  "status": "failed_frozen_reference_correctness_and_repeatability",
+  "final_performance_qualified": true,
+  "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/682",
+  "lease_token": "44a9730a-09af-47b5-8eeb-38447fd5a803",
+  "captured_at": "2026-11-04T17:50:07Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-5bacbe2",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "active_pointer_sha256": "692857c3e6e9a5b5c4406bb54f61974498e10501557095a819b949dcd71508d7",
+    "exact_source_ci_run": 41708083151,
+    "target": "linux-rtx3050ti-slang-vulkan",
+    "runtime_variant": "vulkan-runtime",
+    "evidence_union_allowed": false
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz; 4 cores, 8 threads",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": "0x10de",
+    "device_id": "0x25a0",
+    "uuid": "GPU-2d010adb-af2c-99d1-bf34-a89a8551e301",
+    "vulkan_api_version": "1.4.325",
+    "vulkan_driver_version": "590.44.1.64",
+    "driver_info": "590.44.01",
+    "gpu_temperature_celsius_before": 47,
+    "gpu_temperature_celsius_after": 49
+  },
+  "toolchain": {
+    "cmake": "4.1.2",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18",
+    "system_vulkan_loader": "1.3.239",
+    "validation_sdk": "1.4.341.0",
+    "validation_sdk_archive_sha256": "ed66477d587a5587dc3601b1c2cdcc1fab5529c505f53a00171876cecd9b4fbe",
+    "validation_sdk_pin_sha256": "40c17bb2ae968c59f2bf5f655e5ace32f24299e438bd7cc5691d6141ce06d773",
+    "validation_layer_sha256": "d532be81a907ac464e281209b3334e1b4f15e49c8eea8a632c23750488820a2c",
+    "validation_layer_manifest_sha256": "9c1ad32382836d329a4bdfcd54ef408c777cef7969c50f891816003f3e942449",
+    "spirv_val_sha256": "cf341751800f75429d546af0ffef33643e4d3e7af22c87018782f8a202a394e3"
+  },
+  "verdicts": {
+    "f8_integration_correctness": {
+      "status": "failed",
+      "basis": "All thirty applicable public cases execute in plain and validation modes, but every case fails the checked-in frozen CUDA reference. The retained 5,941 differences include numerical state or invariant failures in every case. Fresh reproductions also fail plain-to-plain comparison for cloth-water, rope-fluid and rope-soft-body within existing tolerances, proving Vulkan backend repeatability debt independently of validation enablement."
+    },
+    "candidate_v10_analytic_suite": {
+      "status": "passed",
+      "basis": "All 49 advertised capability rows complete their analytic and lifecycle obligations; all twelve exact candidate-v10 scenarios and five negative controls pass the independent realtime device evaluator. These checks are preserved but do not override frozen public-oracle and repeatability failures."
+    },
+    "fixed_tick_sdk_and_gallery_integration": {
+      "status": "passed",
+      "basis": "The exact clean source builds, all 159 registered or isolated tests pass, twelve installed SDK relocation checks pass, and ordinary API 0.3 observations preserve one 1/60 advance, one spatial publication, one queue submission and zero intra-tick host readbacks."
+    },
+    "final_performance": {
+      "status": "passed_with_stalls_retained",
+      "basis": "All five desktop-full-v1 workloads retain 600 warmup and 7,200 measured ticks in plain and validation modes. The worst physics p95 is 8.268425 ms and the minimum simulated/wall ratio is 2.340640940171001, both within frozen targets. Maximum stalls up to 26.01862 ms are retained rather than discarded."
+    }
+  },
+  "results": {
+    "clean_release_build": {
+      "status": "passed",
+      "targets_passed": 672,
+      "targets_failed": 0,
+      "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+      "source_dirty": false
+    },
+    "registered_tests": {
+      "status": "passed",
+      "physical_vulkan_passed": 156,
+      "isolated_discovery_and_launcher_passed": 3,
+      "failed": 0,
+      "total": 159,
+      "physical_elapsed_seconds": 873.51,
+      "isolated_elapsed_seconds": 0.16
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 12,
+      "checks_failed": 0,
+      "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "source_dirty": false,
+      "external_consumers": "passed",
+      "installed_conformance_runner": "passed",
+      "explicit_incompatible_versions": "API/profile versions 0.2 and 0.4 rejected with expected exit 1",
+      "unsupported_case": "expected exit 77",
+      "missing_driver": "expected exit 2"
+    },
+    "installed_public_capture": {
+      "status": "passed_candidate_suite_but_failed_frozen_public_oracle_and_repeatability",
+      "capture_failures": 0,
+      "modes": ["plain", "validation"],
+      "capability_rows": 49,
+      "capability_execution_completed": 49,
+      "capability_analytic_passed": 49,
+      "capability_lifecycle_passed": 49,
+      "public_cases_completed": 30,
+      "unsupported_required_cases": 0,
+      "plain_validation_exact_raw_matches": 26,
+      "plain_validation_raw_mismatches": ["cloth-water", "rope-fluid", "rope-soft-body", "smoke-water"],
+      "scenarios_passed": 12,
+      "scenario_execution_rows": 24,
+      "negative_controls_passed": 5,
+      "workloads_passed": 5,
+      "workload_warmup_ticks_each_mode": 600,
+      "workload_measured_ticks_each_mode": 7200,
+      "total_measured_workload_ticks": 72000,
+      "failed_workload_ticks": 0
+    },
+    "independent_candidate_validation": {
+      "status": "passed",
+      "scenario_count": 12,
+      "negative_control_count": 5,
+      "failure_count": 0
+    },
+    "frozen_public_reference": {
+      "status": "failed_correctness",
+      "scope": "reference_regression",
+      "passed": 0,
+      "failed": 30,
+      "unsupported": 0,
+      "difference_records": 5941,
+      "all_cases_include_numerical_failures": true,
+      "note": "The report retains additional schema and telemetry differences, but every one of the thirty cases also contains numerical errors outside existing frozen tolerances."
+    },
+    "repeatability_reproduction": {
+      "status": "failed",
+      "fresh_plain_plain_failed_cases": {
+        "cloth-water": 23,
+        "rope-fluid": 9,
+        "rope-soft-body": 38
+      },
+      "fresh_plain_plain_passed_cases": ["smoke-water"],
+      "plain_validation_failed_cases": {
+        "cloth-water": 21,
+        "rope-fluid": 8,
+        "rope-soft-body": 38
+      },
+      "plain_validation_semantic_passed_cases": ["smoke-water"],
+      "classification": "Vulkan public-state/quality repeatability failure in three cases independent of validation-layer enablement; smoke-water differs bytewise but remains within existing semantic tolerances."
+    },
+    "fixed_tick_contract": {
+      "status": "passed",
+      "dt_seconds": 0.016666666666666666,
+      "normal_tick_time_advances": 1,
+      "normal_tick_spatial_publications": 1,
+      "normal_tick_queue_submissions": 1,
+      "normal_tick_host_readbacks": 0,
+      "fixed_dispatch_iteration_and_synchronization_budgets": "passed",
+      "high_rate_interpolation": "passed: parallel-mater-gallery-presentation-interpolation-tests",
+      "low_rate_slow_motion_no_catch_up": "passed: parallel-mater-gallery-session-clock-tests",
+      "atomic_failure_recovery": "passed: capacity overflow preserved clock, committed state and pending inputs with zero time advances and zero spatial publications"
+    },
+    "installed_gallery_behavior": {
+      "applicability": "The Linux Gallery application is not installed by the SDK; the shared headless presentation path and installed Linux launcher are applicable.",
+      "presentation_interpolation": "passed",
+      "session_clock": "passed",
+      "headless_frame_timing": "passed",
+      "installed_launcher": "passed"
+    },
+    "cold_and_sustained_coverage": {
+      "cold_start_scenarios": ["rigid-cold-impact-rotation", "cloth-stiff-pin-impact", "six-family-mixed"],
+      "long_run_scenarios": ["rigid-settled-long-run", "fluid-closed-container-source-outflow", "smoke-analytic-transport-long-run", "six-family-mixed"],
+      "status": "passed_candidate_suite"
+    }
+  },
+  "performance": {
+    "tier": "desktop-full-v1",
+    "physics_p95_ms_maximum": 10.0,
+    "frame_budget_ms": 16.666666666666668,
+    "minimum_simulated_to_wall_time_ratio": 0.99,
+    "workloads": [
+      {
+        "id": "rigid-wall",
+        "simulated_to_wall_time_ratio": 6.616722095565223,
+        "cpu_ms": {"p50": 0.015378, "p95": 0.026301, "p99": 0.04185, "maximum": 0.494182},
+        "gpu_ms": {"p50": 2.299904, "p95": 2.749952, "p99": 3.612672, "maximum": 15.668224},
+        "physics_ms": {"p50": 2.373108, "p95": 2.989093, "p99": 4.721039, "maximum": 20.089503},
+        "frame_ms": {"p50": 2.373108, "p95": 2.989093, "p99": 4.721039, "maximum": 20.089503}
+      },
+      {
+        "id": "fluid-rigid",
+        "simulated_to_wall_time_ratio": 7.115054741618139,
+        "cpu_ms": {"p50": 0.016216, "p95": 0.030702, "p99": 0.046118, "maximum": 1.608075},
+        "gpu_ms": {"p50": 2.172928, "p95": 2.516992, "p99": 2.916352, "maximum": 8.75008},
+        "physics_ms": {"p50": 2.25699, "p95": 2.708187, "p99": 3.643421, "maximum": 9.492093},
+        "frame_ms": {"p50": 2.25699, "p95": 2.708187, "p99": 3.643421, "maximum": 9.492093}
+      },
+      {
+        "id": "deformable-mixed",
+        "simulated_to_wall_time_ratio": 3.613602083005151,
+        "cpu_ms": {"p50": 0.01783, "p95": 0.032183, "p99": 0.050051, "maximum": 1.417071},
+        "gpu_ms": {"p50": 4.41344, "p95": 4.909056, "p99": 5.53472, "maximum": 13.57824},
+        "physics_ms": {"p50": 4.508469, "p95": 5.096223, "p99": 6.126101, "maximum": 17.217644},
+        "frame_ms": {"p50": 4.508469, "p95": 5.096223, "p99": 6.126101, "maximum": 17.217644}
+      },
+      {
+        "id": "smoke-coupled",
+        "simulated_to_wall_time_ratio": 15.795307360921477,
+        "cpu_ms": {"p50": 0.011956, "p95": 0.019718, "p99": 0.026736, "maximum": 4.345127},
+        "gpu_ms": {"p50": 0.923648, "p95": 1.107968, "p99": 2.348032, "maximum": 20.496384},
+        "physics_ms": {"p50": 0.985099, "p95": 1.235515, "p99": 2.595208, "maximum": 20.606662},
+        "frame_ms": {"p50": 0.985099, "p95": 1.235515, "p99": 2.595208, "maximum": 20.606662}
+      },
+      {
+        "id": "six-family-mixed",
+        "simulated_to_wall_time_ratio": 2.340640940171001,
+        "cpu_ms": {"p50": 0.019509, "p95": 0.038814, "p99": 0.056166, "maximum": 0.315236},
+        "gpu_ms": {"p50": 6.81984, "p95": 8.073216, "p99": 8.953856, "maximum": 20.144128},
+        "physics_ms": {"p50": 6.939928, "p95": 8.268425, "p99": 9.241224, "maximum": 26.01862},
+        "frame_ms": {"p50": 6.939928, "p95": 8.268425, "p99": 9.241224, "maximum": 26.01862}
+      }
+    ],
+    "status": "passed_with_stalls_retained"
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-87-CANDIDATE-V10-LINUX-VULKAN.tar.zst",
+    "tracked_archive_sha256": "5a9181680a7cb00f0bce3588ff7a4f3913f997072aef9e11b0fb761d98ce6020",
+    "tracked_archive_bytes": 7146462,
+    "tracked_archive_uncompressed_bytes": 133495306,
+    "tracked_archive_file_count": 164,
+    "tracked_archive_tree_sha256": "d8ffc79adc447102b1213fec608d8c136897d218d32b8cfc6a69561da1383fe8",
+    "tree_hash_method": "SHA-256 of sorted archive-relative sha256sum records",
+    "audit_sha256": "96c5c2b27d424c44ba5884a89a29171007ec89dab3bea2bc0035b081b3aedf72",
+    "capture_file_count": 128,
+    "capture_bytes": 130963617,
+    "capture_tree_sha256": "cc867f57a032bb8b32de7734d6962c9ec3a8fd71917127ff1f77b91c23adfab4",
+    "capture_sha256": "c7bd385934477aae0a4454328ea95d2139803baa4a7b125292fe4c69dd688f8a",
+    "independent_validation_report_sha256": "0deb4decbcef3f5027426f4fe914ac4c05fa56a5c3afb0dd041a62ca5e4b3f16",
+    "frozen_public_reference_report_sha256": "e9c9bfb41fd3c676402a4dba19ead4629eb08ae6b0c116029848bdf9db55ed47",
+    "cloth_water_plain_repeat_report_sha256": "382a13c030b536899ba7c51e1286b9f23ea6a13a629adbdb2cdb0ec24e4d0253",
+    "cloth_water_plain_validation_report_sha256": "42a55fc0d831d88064c8248b2668f3089c6fffc5422840a6345a2b5dc19ab342",
+    "rope_fluid_plain_repeat_report_sha256": "ed8aded4204b10b3ec1cab66d6366339d303b3e369374c07557fc353c7b1b77d",
+    "rope_fluid_plain_validation_report_sha256": "e0d485079bf7babe93cc3704d417b6c81a6a13a629adbdb2cdb0ec24e4d0253",
+    "rope_soft_body_plain_repeat_report_sha256": "037333a24f648440e88ae8278b80ef4168896f0fc9044533c0cae52d0fd1fcbc",
+    "rope_soft_body_plain_validation_report_sha256": "037333a24f648440e88ae8278b80ef4168896f0fc9044533c0cae52d0fd1fcbc",
+    "smoke_water_plain_repeat_report_sha256": "c992fe27382184714f4277308cb5ae90073f8db6208bb965e99f993b48ea1272",
+    "smoke_water_plain_validation_report_sha256": "c992fe27382184714f4277308cb5ae90073f8db6208bb965e99f993b48ea1272",
+    "physical_ctest_log_sha256": "2d652d793220511951d31df360f958a56eb5c7384c4eea83afcf03d0cceae20c",
+    "isolated_ctest_log_sha256": "58e527587ecf10d829eedc7402cfb86f1d2683ae46736692c9a35240a24e5d84",
+    "sdk_report_sha256": "f3a479e77a04cdc2dd071822528ebe0b7ced107abb9b8a3b24768e3a8aa077ce",
+    "installed_runner_sha256": "1ef11c28b5a846255c6bd1039549ae3e9c03ea84232bad1cd836d2edd6826c57",
+    "installed_driver_sha256": "4824a80b84f548ddb8b6b6e1321e0c6255aadbb33e869c695c6c909c61aab77e",
+    "installed_driver_manifest_sha256": "824ba64eefb9cf789ce2c952f5e049c1bacb9b3746dd9255f3fa6428c62afade",
+    "installed_validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "installed_validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "provenance_correction": {
+    "status": "corrected_before_acceptance",
+    "detail": "An initial capture used the exact 5bacbe2 installed runner but was launched from the exact-source checkout whose active pointer still named candidate v9. The identity gate rejected it. The accepted capture reran the byte-identical capture script from the candidate-v10 metadata checkout against the same exact runner; final capture and both backend observations name candidate v10 exactly.",
+    "invalid_attempt_contributes_to_verdict": false
+  },
+  "qualification_effect": "Candidate v10 fails the Linux RTX 3050 Ti Slang Vulkan F8 integration/correctness row. The exact build, pinned Vulkan validation SDK, registered suite, installed SDK, 49 capability obligations, twelve candidate-v10 analytic scenarios, recovery controls, fixed-work contract and desktop-full-v1 performance all pass, but all thirty public cases numerically diverge from the frozen reference and three cases fail fresh plain-run repeatability. Candidate-v9 evidence contributes nothing.",
+  "commands": {
+    "configure": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake -S /tmp/parallel-mater-f8-85-v10-source -B /tmp/parallel-mater-f8-87-v10-vulkan-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DPARALLEL_MATER_BUILD_CUDA=OFF -DPARALLEL_MATER_BUILD_VULKAN=ON -DPARALLEL_MATER_BUILD_D3D12=OFF -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=OFF -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_GALLERY=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON",
+    "build": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --build /tmp/parallel-mater-f8-87-v10-vulkan-build --parallel 4",
+    "physical_suite": "__NV_PRIME_RENDER_OFFLOAD=1 PM_DRIVER_FILES=<build>/Release/manifests/slang-vulkan.json PM_LAYER_FILES=<build>/Release/manifests/validation.json VK_LAYER_PATH=<pinned-sdk>/share/vulkan/explicit_layer.d LD_LIBRARY_PATH=<pinned-sdk>/lib VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir <build> -C Release --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_discovery_suite": "PM_DRIVER_FILES, PM_LAYER_FILES, VK_LAYER_PATH, LD_LIBRARY_PATH and VK_INSTANCE_LAYERS unset; ctest --test-dir <build> -C Release --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-87-v10-vulkan-build --output /tmp/f8-87-v10-evidence/sdk-vulkan --config Release",
+    "device_capture": "from candidate-v10 metadata checkout: python3 conformance/v1/realtime_device_capture.py --runner <relocated-sdk>/bin/parallel-mater-conformance --driver-manifest <relocated-sdk>/share/parallel-mater/drivers.d/parallel_mater_slang_vulkan.json --validation-layer-manifest <relocated-sdk>/share/parallel-mater/layers.d/parallel_mater_validation.json --runtime-variant vulkan-runtime --target-id linux-rtx3050ti-slang-vulkan --output /tmp/f8-87-v10-evidence/device-capture",
+    "independent_validation": "python3 conformance/v1/realtime_device_suite.py --capture /tmp/f8-87-v10-evidence/device-capture/capture.json --candidate-manifest conformance/v1/qualification/realtime-candidate-v10.json --output /tmp/f8-87-v10-evidence/validation-report.json",
+    "frozen_public_reference": "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual /tmp/f8-87-v10-evidence/device-capture/raw/plain/public-cases --case all --report /tmp/f8-87-v10-evidence/public-case-reference-report.json",
+    "candidate_check": "python3 tools/check_realtime_candidate.py",
+    "conformance_tests": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+    "roadmap_tests": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+    "reflected_abi_tests": "python3 tests/solver/test_slang_abi.py"
+  }
+}
