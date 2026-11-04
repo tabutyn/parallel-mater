@@ -1,7 +1,7 @@
 {
   "id": "F8-99",
   "title": "Review F8 integration, correctness and device exit evidence",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-00",
     "F8-01",
@@ -106,14 +106,22 @@
     "Audit the exact PEG PAINT deferral and its F9-09 reproduction. Keep the 100-texel check failed in the v10 record, confirm complete frame execution and passing frozen core checks, and carry the repair into F9 after this exit. Additional faults require their own reviewed classification and bounded task."
   ],
   "evidence": [],
-  "lease": {
-    "token": "b9660571-dc9f-4637-8814-d1571d7e36f3",
-    "owner": "codex-f8-exit-review",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-99/Thomass-MacBook-Air",
-    "claimed_at": "2026-11-04T19:50:21Z",
-    "heartbeat_at": "2026-11-04T19:50:21Z",
-    "expires_at": "2026-11-05T19:50:21Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b9660571-dc9f-4637-8814-d1571d7e36f3",
+        "owner": "codex-f8-exit-review",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-99/Thomass-MacBook-Air",
+        "claimed_at": "2026-11-04T19:50:21Z",
+        "heartbeat_at": "2026-11-04T19:50:21Z",
+        "expires_at": "2026-11-05T19:50:21Z"
+      },
+      "outcome": "released",
+      "at": "2026-11-04T19:59:33Z",
+      "reason": "Exit audit found non-timing D3D12, Android Vulkan and Linux correctness blockers; release before planning bounded repair, refreeze, requalification and delivery dependencies",
+      "evidence": []
+    }
+  ]
 }
