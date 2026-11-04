@@ -1,7 +1,7 @@
 {
   "id": "F8-27",
   "title": "Qualify the candidate on Windows D3D12 devices",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -30,15 +30,31 @@
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes. Preserve failures; do not weaken physics, workload, tolerance, timeout or advertised capability.",
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "1c6c2ca1-335f-469b-928e-11da3c9bb1a7",
-    "owner": "codex-windows-d3d12-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-27/windows-gtx1080-v10-20261104",
-    "claimed_at": "2026-11-04T14:07:19Z",
-    "heartbeat_at": "2026-11-04T14:07:19Z",
-    "expires_at": "2026-11-05T14:07:19Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.md",
+    "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.json",
+    "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.zip"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "1c6c2ca1-335f-469b-928e-11da3c9bb1a7",
+        "owner": "codex-windows-d3d12-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-27/windows-gtx1080-v10-20261104",
+        "claimed_at": "2026-11-04T14:07:19Z",
+        "heartbeat_at": "2026-11-04T14:07:19Z",
+        "expires_at": "2026-11-05T14:07:19Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-04T16:46:19Z",
+      "reason": "FAIL: candidate v10 D3D12 advertises 46 of 49 required capabilities and rejects six-family-mixed in plain and validation modes; evidence preserved without weakening the frozen contract.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.md",
+        "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.json",
+        "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.zip"
+      ]
+    }
+  ]
 }
