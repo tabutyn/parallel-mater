@@ -1,7 +1,7 @@
 {
   "id": "F8-30",
   "title": "Qualify the candidate and sustained performance on Android",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-02",
     "F8-22",
@@ -30,15 +30,27 @@
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes. Preserve failures; do not weaken physics, workload, tolerance, timeout or advertised capability.",
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "355352c6-d8df-42fd-b8da-634d7ff51d8b",
-    "owner": "codex-android-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F8-30/ThomasLaptop-v10",
-    "claimed_at": "2026-11-04T14:30:39Z",
-    "heartbeat_at": "2026-11-04T14:30:39Z",
-    "expires_at": "2026-11-05T14:30:39Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-30-CANDIDATE-V10-ANDROID-VULKAN.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "355352c6-d8df-42fd-b8da-634d7ff51d8b",
+        "owner": "codex-android-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-30/ThomasLaptop-v10",
+        "claimed_at": "2026-11-04T14:30:39Z",
+        "heartbeat_at": "2026-11-04T14:30:39Z",
+        "expires_at": "2026-11-05T14:30:39Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-04T15:36:36Z",
+      "reason": "Candidate v10 fails Pixel 7 correctness and lacks the exact frozen pixel7-gallery-v1 workload capture; retained physical evidence records passing Gallery, UI, sustained thermal behavior, and all failures.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-30-CANDIDATE-V10-ANDROID-VULKAN.json"
+      ]
+    }
+  ]
 }
