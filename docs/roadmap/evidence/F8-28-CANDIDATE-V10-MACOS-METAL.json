@@ -1,0 +1,314 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v2",
+  "task": "F8-28",
+  "status": "passed_with_disclosed_timing_debt",
+  "lease_token": "4b1fe107-aa05-4b83-85ec-dd3e71f779bb",
+  "captured_at": "2026-11-04T13:07:15Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-5bacbe2",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "active_pointer_sha256": "692857c3e6e9a5b5c4406bb54f61974498e10501557095a819b949dcd71508d7",
+    "exact_source_ci_run": 41708083151,
+    "target": "macos-m4-slang-metal",
+    "runtime_variant": "metal-runtime",
+    "evidence_union_allowed": false
+  },
+  "device": {
+    "machine": "Thomass-MacBook-Air",
+    "model": "MacBook Air Mac16,12",
+    "chip": "Apple M4",
+    "cpu_cores": "10 (4 performance, 6 efficiency)",
+    "memory_gib": 16,
+    "gpu": "Apple M4, 8 cores",
+    "metal_support": "supported",
+    "os": "macOS 26.5.2 (25F84)",
+    "kernel": "Darwin 25.5.0 arm64",
+    "vendor_id": 4203
+  },
+  "toolchain": {
+    "cmake": "4.3.4",
+    "generator": "Unix Makefiles",
+    "build_type": "Release",
+    "host_compiler": "AppleClang 21.0.0.21000101",
+    "xcode": "26.6 (17F113)",
+    "metal": "32023.883",
+    "slang": "2026.18",
+    "architecture": "arm64"
+  },
+  "verdicts": {
+    "f8_integration_correctness": {
+      "status": "passed",
+      "basis": "All non-timing frozen assertions passed: exact candidate and capability set, 30 public cases, 12 scenarios, 37 measurements, numerical assertions, ordinary API 0.3 creation, one 1/60 advance, one spatial update/publication, fixed work, lifecycle, atomic rejected-step recovery, and plain/validation execution."
+    },
+    "final_performance": {
+      "status": "not_qualified",
+      "owners": [
+        "F9-07",
+        "F9-08"
+      ],
+      "basis": "The retained six-family workload exceeded the unchanged 10 ms physics p95 target in both modes. The 2026-11-03 roadmap policy makes timing informational for F8 but preserves the original target and raw samples for F9."
+    }
+  },
+  "results": {
+    "clean_release_build": {
+      "status": "passed",
+      "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+      "source_dirty": false,
+      "automatic_deployment": "passed",
+      "installed_path": "/Applications/ParallelMater Gallery.app"
+    },
+    "physical_registered_suite": {
+      "status": "passed",
+      "registered": 157,
+      "executed_passed": 142,
+      "explicit_non_metal_cpu_only_skips": 15,
+      "failed": 0,
+      "metal_labeled_passed": 32,
+      "elapsed_seconds": 39.51
+    },
+    "installed_public_capture": {
+      "status": "passed_for_f8_integration_correctness",
+      "advertised_capabilities": 49,
+      "public_cases_completed": 30,
+      "public_cases_failed": 0,
+      "public_cases_unsupported": 0,
+      "scenarios_completed": 12,
+      "scenarios_failed": 0,
+      "named_measurements": 37,
+      "modes": [
+        "plain",
+        "validation"
+      ],
+      "workloads_per_mode": 5,
+      "warmup_ticks_per_workload": 600,
+      "measured_ticks_per_workload": 7200,
+      "measured_ticks_total": 72000,
+      "raw_timing_values_total": 288000,
+      "failed_workload_ticks": 0,
+      "driver_private_state_used": false,
+      "simulation_recreated_during_ticks": false,
+      "timestep_seconds": 0.016666666666666666,
+      "substeps": 1,
+      "time_advances_per_successful_tick": 1,
+      "spatial_index_updates_per_successful_tick": 1,
+      "spatial_index_publications_per_successful_tick": 1,
+      "queue_submissions_per_tick": 1,
+      "intra_tick_host_readbacks": 0
+    },
+    "frozen_validator": {
+      "status": "failed_timing_only",
+      "baseline_failure_count": 1,
+      "baseline_failure": {
+        "path": "$.workloads[six-family-mixed].timings.physics_ms.p95",
+        "expected_maximum_ms": 10.0,
+        "actual_ms": 11.656125
+      },
+      "aggregate_report_failure_count": 6,
+      "explanation": "The aggregate report also marks all five negative controls unqualified because the unchanged baseline is not a final performance pass. The independent audit below preserves the baseline and every injected result separately."
+    },
+    "negative_controls": {
+      "status": "f8_correctness_work_recovery_rejections_passed_timing_controls_deferred",
+      "baseline_failure_count": 1,
+      "baseline_failure_class": "timing_only",
+      "controls": [
+        {
+          "id": "candidate_missing_pair",
+          "injected_failure_count": 2,
+          "added_failure_count": 1,
+          "f8_verdict": "passed"
+        },
+        {
+          "id": "atomic_failure_violation",
+          "injected_failure_count": 3,
+          "added_failure_count": 2,
+          "f8_verdict": "passed"
+        },
+        {
+          "id": "hidden_retry_violation",
+          "injected_failure_count": 3,
+          "added_failure_count": 2,
+          "f8_verdict": "passed"
+        },
+        {
+          "id": "timing_stall_retained",
+          "injected_failure_count": 2,
+          "added_failure_count": 1,
+          "f8_verdict": "unqualified_for_final_performance",
+          "owner": "F9-08"
+        },
+        {
+          "id": "timing_failed_tick",
+          "injected_failure_count": 2,
+          "added_failure_count": 1,
+          "f8_verdict": "unqualified_for_final_performance",
+          "owner": "F9-08"
+        }
+      ],
+      "method": "The unchanged frozen evaluator ran first on the unmodified capture, then on one independent canonical mutation at a time. Full baseline and injected reports are retained in negative-control-audit.json inside the archive."
+    },
+    "installed_gallery": {
+      "status": "passed",
+      "path": "/Applications/ParallelMater Gallery.app",
+      "signature": "codesign --verify --deep --strict passed",
+      "revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "backend": "metal",
+      "dirty": false,
+      "execution_contract": "fixed-tick-60hz-v1",
+      "release_channel": "development-preview",
+      "build_number": 2173,
+      "scenes_exercised": 20,
+      "scenes_failed": 0,
+      "scene_ids": [
+        "fluid",
+        "fluid-rigid",
+        "peg-paint",
+        "cloth",
+        "cloth-tear",
+        "cloth-paint",
+        "water-cloth",
+        "soft-body",
+        "soft-body-rigid",
+        "soft-body-cloth",
+        "soft-body-fluid",
+        "rope",
+        "rope-fluid",
+        "rope-soft-body",
+        "rope-cloth",
+        "smoke",
+        "smoke-water",
+        "smoke-softbody",
+        "smoke-cloth",
+        "smoke-rope"
+      ]
+    }
+  },
+  "timing": {
+    "policy": "Retained informational F8 evidence; unchanged final targets are F9-07/F9-08 obligations.",
+    "targets": {
+      "physics_p95_ms_maximum": 10.0,
+      "frame_p95_ms_maximum": 16.666666666666668,
+      "simulated_to_wall_time_ratio_minimum": 0.99
+    },
+    "plain": [
+      {
+        "id": "rigid-wall",
+        "ratio": 11.091446387460454,
+        "cpu_ms": {"p50": 0.002292, "p95": 0.002917, "p99": 0.003375, "maximum": 0.020167},
+        "gpu_ms": {"p50": 1.234944, "p95": 2.726912, "p99": 4.461056, "maximum": 6.862848},
+        "physics_ms": {"p50": 1.257542, "p95": 2.755833, "p99": 4.48475, "maximum": 6.889},
+        "frame_ms": {"p50": 1.257542, "p95": 2.755833, "p99": 4.48475, "maximum": 6.889}
+      },
+      {
+        "id": "fluid-rigid",
+        "ratio": 5.99340660365005,
+        "cpu_ms": {"p50": 0.002458, "p95": 0.003416, "p99": 0.004792, "maximum": 0.039292},
+        "gpu_ms": {"p50": 2.142208, "p95": 5.743104, "p99": 7.754752, "maximum": 9.580032},
+        "physics_ms": {"p50": 2.168208, "p95": 5.766292, "p99": 7.784625, "maximum": 9.67625},
+        "frame_ms": {"p50": 2.168208, "p95": 5.766292, "p99": 7.784625, "maximum": 9.67625}
+      },
+      {
+        "id": "deformable-mixed",
+        "ratio": 2.955693040596549,
+        "cpu_ms": {"p50": 0.002875, "p95": 0.004, "p99": 0.00525, "maximum": 0.028},
+        "gpu_ms": {"p50": 5.214208, "p95": 9.66656, "p99": 10.57792, "maximum": 11.874304},
+        "physics_ms": {"p50": 5.248459, "p95": 9.693625, "p99": 10.617958, "maximum": 11.952625},
+        "frame_ms": {"p50": 5.248459, "p95": 9.693625, "p99": 10.617958, "maximum": 11.952625}
+      },
+      {
+        "id": "smoke-coupled",
+        "ratio": 11.705319888651681,
+        "cpu_ms": {"p50": 0.002833, "p95": 0.003042, "p99": 0.0035, "maximum": 0.022833},
+        "gpu_ms": {"p50": 1.074688, "p95": 3.600896, "p99": 7.790592, "maximum": 10.40576},
+        "physics_ms": {"p50": 1.099583, "p95": 3.625208, "p99": 7.814584, "maximum": 10.432417},
+        "frame_ms": {"p50": 1.099583, "p95": 3.625208, "p99": 7.814584, "maximum": 10.432417}
+      },
+      {
+        "id": "six-family-mixed",
+        "ratio": 1.8977391566024162,
+        "cpu_ms": {"p50": 0.002833, "p95": 0.004208, "p99": 0.005459, "maximum": 0.055334},
+        "gpu_ms": {"p50": 8.052736, "p95": 12.075008, "p99": 13.785088, "maximum": 23.052288},
+        "physics_ms": {"p50": 8.081291, "p95": 12.111333, "p99": 13.879791, "maximum": 23.080083},
+        "frame_ms": {"p50": 8.081291, "p95": 12.111333, "p99": 13.879791, "maximum": 23.080083}
+      }
+    ],
+    "validation": [
+      {
+        "id": "rigid-wall",
+        "ratio": 10.159732908241642,
+        "cpu_ms": {"p50": 0.006833, "p95": 0.008625, "p99": 0.010125, "maximum": 0.057125},
+        "gpu_ms": {"p50": 1.243648, "p95": 3.270144, "p99": 5.140864, "maximum": 7.133184},
+        "physics_ms": {"p50": 1.276042, "p95": 3.30075, "p99": 5.187291, "maximum": 7.166125},
+        "frame_ms": {"p50": 1.276042, "p95": 3.30075, "p99": 5.187291, "maximum": 7.166125}
+      },
+      {
+        "id": "fluid-rigid",
+        "ratio": 6.10653795627302,
+        "cpu_ms": {"p50": 0.007083, "p95": 0.009166, "p99": 0.010542, "maximum": 0.087459},
+        "gpu_ms": {"p50": 2.116608, "p95": 5.431296, "p99": 7.221248, "maximum": 8.247296},
+        "physics_ms": {"p50": 2.154417, "p95": 5.474166, "p99": 7.258042, "maximum": 8.287084},
+        "frame_ms": {"p50": 2.154417, "p95": 5.474166, "p99": 7.258042, "maximum": 8.287084}
+      },
+      {
+        "id": "deformable-mixed",
+        "ratio": 3.2433680289354228,
+        "cpu_ms": {"p50": 0.008458, "p95": 0.009417, "p99": 0.011791, "maximum": 0.042208},
+        "gpu_ms": {"p50": 4.247552, "p95": 8.740864, "p99": 10.184704, "maximum": 11.5712},
+        "physics_ms": {"p50": 4.2845, "p95": 8.777, "p99": 10.220125, "maximum": 11.607625},
+        "frame_ms": {"p50": 4.2845, "p95": 8.777, "p99": 10.220125, "maximum": 11.607625}
+      },
+      {
+        "id": "smoke-coupled",
+        "ratio": 10.341036541706929,
+        "cpu_ms": {"p50": 0.008375, "p95": 0.009, "p99": 0.011917, "maximum": 0.050959},
+        "gpu_ms": {"p50": 1.087232, "p95": 4.057088, "p99": 9.522176, "maximum": 11.693056},
+        "physics_ms": {"p50": 1.121167, "p95": 4.089708, "p99": 9.579541, "maximum": 11.723542},
+        "frame_ms": {"p50": 1.121167, "p95": 4.089708, "p99": 9.579541, "maximum": 11.723542}
+      },
+      {
+        "id": "six-family-mixed",
+        "ratio": 1.8512478215417154,
+        "cpu_ms": {"p50": 0.008875, "p95": 0.01125, "p99": 0.013417, "maximum": 0.065209},
+        "gpu_ms": {"p50": 8.182784, "p95": 11.616256, "p99": 12.480512, "maximum": 15.22176},
+        "physics_ms": {"p50": 8.219792, "p95": 11.656125, "p99": 12.524583, "maximum": 15.2605},
+        "frame_ms": {"p50": 8.219792, "p95": 11.656125, "p99": 12.524583, "maximum": 15.2605}
+      }
+    ]
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-28-CANDIDATE-V10-MACOS-METAL.tar.zst",
+    "tracked_archive_sha256": "f097064eb56855b2f1a2a7705fba9ac332e4a3a1765266f35f04f9fd2bb47ff0",
+    "tracked_archive_bytes": 10225356,
+    "tracked_archive_uncompressed_bytes": 130705590,
+    "tracked_archive_file_count": 135,
+    "tracked_archive_tree_sha256": "f13b2bec05ce07ab02201f6e79e08a1a0514d4f034af9b701efba2d78fe196b0",
+    "tree_hash_method": "SHA-256 of sorted archive-relative shasum -a 256 records",
+    "capture_sha256": "ae86291e022cddfe4966c070ed222f828d79350d3ac603c66c86711e050235e1",
+    "frozen_report_sha256": "8b543f4ae7ab0496ac15c6fa276d880779ad396f5fd840e87a8c674863f8cde8",
+    "negative_control_audit_sha256": "59f41cca26f3b006f65af6282ce6c2e44ed6a2d95b19230739a1d52febaa5f13",
+    "ctest_log_sha256": "7c7a413aed42a9410ae57e8837097f3c8a64ef0b1e9bf408b10ca208b47b8fcb",
+    "installed_gallery_log_sha256": "5dc0436424c9f5012c91f58e67430cfb48cc38ca70aba85028122af443092290",
+    "capture_producer_sha256": "78c93cf688af6667d07abb78e30dea9540bbb253261679ccb1797b5aa9e83595",
+    "validator_sha256": "e644cadeaf952779403fe9bc5a62e1d3db067e803d1b623d8a0c94dc0a3b1c28",
+    "conformance_runner_sha256": "e961bd81eda2e5dbd32a513846465b39cd10ca1e307b395b9e34f8279c9cb801",
+    "driver_sha256": "215ceccb1da7342b4e337320bbc52db56fdee012553d4ee4bc50c45446e36a22",
+    "driver_manifest_sha256": "f78909d714c33db9be1e6ac62120eaee33274cc02dac780e3269cb7a6567ff69",
+    "validation_layer_sha256": "9dabf43c2609f7eb6af8e77bdebbde0ac4c30dbe391db49e5184008cef990191",
+    "validation_manifest_sha256": "45dcceddc1f0d4375558dc8808823621d9809a4a1935572970629fc65c22ad0c",
+    "installed_gallery_executable_sha256": "cbdcfaac896d0b11a3260bf5ccfd71f9977767952a8b737aea1139e9d72e6e7b",
+    "installed_build_info_sha256": "a22e53bca21a369b3c66fb2792cc246fe53414ef53f9b0f80b4228e4d4494fd2"
+  },
+  "qualification_effect": "Candidate v10 passes the physical macOS M4 Slang Metal F8 integration/correctness row. This is a fresh exact-source build and capture; candidate-v9 observations contribute nothing. Final performance remains explicitly unqualified: six-family physics p95 is 12.111333 ms plain and 11.656125 ms with validation versus the unchanged 10 ms target. Raw timing samples and stalls are retained for F9-07/F9-08.",
+  "commands": {
+    "configure": "cmake --preset macos-metal-preview",
+    "build_and_deploy": "cmake --build --preset macos-metal-preview",
+    "physical_suite": "ctest --preset macos-metal-preview --output-on-failure",
+    "device_capture": "python3 conformance/v1/realtime_device_capture.py --runner <exact-source-build>/parallel-mater-conformance --driver-manifest <exact-source-build>/Release/manifests/slang-metal.json --validation-layer-manifest <exact-source-build>/Release/manifests/validation.json --runtime-variant metal-runtime --target-id macos-m4-slang-metal --output <retained-output>",
+    "frozen_validator": "python3 conformance/v1/realtime_device_suite.py --capture <retained-output>/capture.json --candidate-manifest conformance/v1/qualification/realtime-candidate-v10.json --output <retained-output>/frozen-report.json",
+    "installed_gallery": "python3 tests/gallery/metal_domain_smoke.py '/Applications/ParallelMater Gallery.app/Contents/MacOS/ParallelMater Gallery'",
+    "candidate_check": "python3 tools/check_realtime_candidate.py"
+  }
+}
