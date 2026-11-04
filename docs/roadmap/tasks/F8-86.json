@@ -1,7 +1,7 @@
 {
   "id": "F8-86",
   "title": "Requalify candidate v10 on Linux CUDA",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-68",
     "F8-74"
@@ -22,6 +22,14 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "67799c40-a1d2-4d00-b776-838cecb4937b",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-86/ThomasLaptop-v10",
+    "claimed_at": "2026-11-04T16:25:44Z",
+    "heartbeat_at": "2026-11-04T16:25:44Z",
+    "expires_at": "2026-11-05T16:25:44Z"
+  },
   "history": []
 }
