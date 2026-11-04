@@ -170,7 +170,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | done | F8-22, F8-36, F8-38 | — |
 | [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | — |
 | [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67 | — |
-| [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | leased | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | codex-windows-qualification / windows-gtx1080 / 2026-11-05T13:28:12Z |
+| [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | ready | F8-22, F8-36, F8-38, P1-59, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | ready | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
