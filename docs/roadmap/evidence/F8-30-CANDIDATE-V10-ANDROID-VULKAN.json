@@ -1,0 +1,262 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v2",
+  "task": "F8-30",
+  "status": "failed_correctness_and_missing_exact_workload_capture",
+  "lease_token": "355352c6-d8df-42fd-b8da-634d7ff51d8b",
+  "captured_at": "2026-11-04T15:33:26Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-5bacbe2",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "capture_revision": "05ca79236e8cdf942cba5995df48d0a0779e4495",
+    "capture_revision_note": "The capture revision is a descendant containing candidate-freeze and roadmap records. No runtime, Android Gallery, kernel, API, quality, lifecycle, or public-case source changed between the frozen executable revision and this build.",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "active_pointer_sha256": "692857c3e6e9a5b5c4406bb54f61974498e10501557095a819b949dcd71508d7",
+    "exact_source_ci_run": 41708083151,
+    "target": "android-pixel7-slang-vulkan",
+    "runtime_variant": "vulkan-runtime",
+    "evidence_union_allowed": false
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "manufacturer": "Google",
+    "model": "Pixel 7",
+    "product": "panther",
+    "serial": "2B241FDH20060P",
+    "android_version": "17",
+    "api_level": "37",
+    "security_patch": "2026-10-05",
+    "build_fingerprint": "google/panther/panther:17/CP3A.261005.002.A1/16269273:user/release-keys",
+    "gpu": "Mali-G710",
+    "vendor_id": 5045,
+    "device_id": 2824994816,
+    "vulkan_api_version": "1.4.343",
+    "vulkan_driver_version": 226504704,
+    "vulkan_driver_id": 9,
+    "vulkan_driver_info": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee"
+  },
+  "toolchain": {
+    "adb": "36.0.2",
+    "compiler": "Android Clang 21.0.0",
+    "ndk": "29.0.14206865",
+    "slang": "2026.18",
+    "architecture": "arm64-v8a",
+    "build_type": "Debug",
+    "qualification_build": true
+  },
+  "verdicts": {
+    "f8_integration_correctness": {
+      "status": "failed",
+      "basis": "Three required lifecycle profiles fail deterministically at the first public pmCmdStepSimulation call and four of twelve independent quality evaluations exceed their frozen tolerances. The independent frozen-reference comparison also reports 30 of 30 public cases different from the checked-in reference. These are correctness failures, not timing debt."
+    },
+    "exact_target_workload_capture": {
+      "status": "missing",
+      "basis": "The frozen candidate assigns this target to pixel7-gallery-v1, requiring all four exact workloads after 600 warmup ticks with every one of 7200 measured ticks retained. The frozen Android native producer exposes only desktop workload IDs; the Gallery and supplemental schedule tools do not produce this exact capture. Altering a protected producer after freeze would invalidate the candidate."
+    },
+    "final_performance": {
+      "status": "not_qualified",
+      "owners": [
+        "F9-07",
+        "F9-08"
+      ],
+      "basis": "All available timing and sustained-run samples are retained, but the exact pixel7-gallery-v1 capture is missing. Timing-only target misses remain F9 debt and are not used to disguise the independent F8 correctness failures."
+    }
+  },
+  "results": {
+    "clean_android_build_and_deployment": {
+      "status": "passed",
+      "source_dirty": false,
+      "apk": "examples/android/app/build/outputs/apk/debug/app-debug.apk",
+      "apk_sha256": "d4f634982d92190db0a948f8ae70f5c0e9dfd0dbebbb4499de68355135d2fb79",
+      "native_driver_sha256": "53310cb682bd2adbe2bae688c529581c9b53b98cf6c80933496003bd2dd1c048",
+      "automatic_install": "passed"
+    },
+    "physical_native_suite": {
+      "status": "failed_correctness",
+      "invocations": 26,
+      "passed": 23,
+      "failed": 3,
+      "unit_suites_passed": [
+        "pm-android-command-tests",
+        "pm-android-async-tests",
+        "pm-android-liquid-tests",
+        "pm-android-realtime-runtime-tests --production"
+      ],
+      "public_case_native_execution": {
+        "completed": 30,
+        "failed_to_execute": 0,
+        "unsupported": 0
+      },
+      "independent_reference_evaluation": {
+        "passed": 0,
+        "failed": 30,
+        "unsupported": 0,
+        "note": "The retained report includes schema/extra-field differences as well as numerical differences; this record does not reduce the result to metadata-only drift."
+      },
+      "quality_evaluations": {
+        "total": 12,
+        "passed": 8,
+        "failed": 4
+      },
+      "lifecycle_profiles": {
+        "total": 5,
+        "passed": 2,
+        "failed": 3,
+        "failed_profiles": [
+          "fluid-cloth-containment-lifecycle-v1",
+          "fluid-cloth-contact-lifecycle-v1",
+          "smoke-self-lifecycle-v1"
+        ],
+        "reproduction": "Each failed profile was rerun independently from the preserved payload and returned 2 again without timeout, transport loss, Vulkan validation VUID, or thermal event."
+      },
+      "vulkan_device_contract": "passed"
+    },
+    "quality_failures": [
+      {
+        "id": "rope-self-contact-v1",
+        "failures": [
+          {"metric": "nonadjacent_node_separation", "actual": 0.07049999386072245, "required_minimum": 0.11399999999999999},
+          {"metric": "center_of_mass_drift", "actual": 0.0002447309568332176, "maximum": 0.00001}
+        ]
+      },
+      {
+        "id": "fluid-soft-contact-v1",
+        "failures": [
+          {"metric": "impulse_reciprocity_deviation", "actual": 0.040941149983653974, "maximum": 0.001},
+          {"metric": "force_impulse_deviation", "actual": 0.04094049520126248, "maximum": 0.001}
+        ]
+      },
+      {
+        "id": "fluid-rope-contact-v1",
+        "failures": [
+          {"metric": "impulse_reciprocity_deviation", "actual": 0.0500001460313797, "maximum": 0.001},
+          {"metric": "endpoint_distribution_deviation", "actual": 0.037499964237213135, "maximum": 0.001},
+          {"metric": "force_impulse_deviation", "actual": 0.03749990065892539, "maximum": 0.001}
+        ]
+      },
+      {
+        "id": "fluid-cloth-contact-v1",
+        "failures": [
+          {"metric": "first_step_normal_momentum", "actual": -0.009355305336995023, "absolute_maximum": 0.001},
+          {"metric": "final_normal_momentum", "actual": -0.21395500813945267, "absolute_maximum": 0.001},
+          {"metric": "final_tangential_momentum", "actual": 0.0036501535693983177, "absolute_maximum": 0.001}
+        ]
+      }
+    ],
+    "installed_gallery": {
+      "status": "passed",
+      "backend": "vulkan",
+      "renderer": "native-gpu",
+      "presentation": "direct",
+      "catalog_scenes": 28,
+      "supported_scenes": 28,
+      "scenes_failed": 0,
+      "ordinary_frames_per_scene": 120,
+      "execution_contract": "fixed-tick-60hz-v1",
+      "fixture_contract": "fixed-tick-public-scenarios-v1",
+      "fixture_scenarios": 12,
+      "fixture_measurements": 37,
+      "lifecycle": "attach, resize, background, foreground, failure recovery, invalid-scene recovery, pause/resume, reset, rotation, and teardown passed",
+      "fixed_work_examples": {
+        "rigid-body": {"time_advances": 1, "spatial_publications": 1, "submissions": 1, "intra_tick_host_readbacks": 0, "intra_tick_host_waits": 0},
+        "fluid": {"time_advances": 1, "spatial_publications": 1, "submissions": 1, "intra_tick_host_readbacks": 0, "intra_tick_host_waits": 0}
+      }
+    },
+    "gallery_ui_accessibility": {
+      "status": "passed",
+      "semantic_controls_named": true,
+      "help_and_controls_exercised": true,
+      "screenshots_retained": 4
+    },
+    "sustained_gallery_run": {
+      "status": "passed_runner_contract",
+      "scenes": 28,
+      "windows_per_scene": 2,
+      "ordinary_frames_per_window": 60,
+      "max_thermal_status": 0,
+      "thermal_throttling": false,
+      "slowest_final_window": {"scene": "smoke-soft-body", "fps": 6.22, "physics_ms": 144.428, "p95_frame_ms": 173.605},
+      "post_run_battery_percent": 88,
+      "post_run_battery_celsius": 24.7
+    },
+    "pixel7_exact_workloads": {
+      "status": "missing_required_capture",
+      "tier": "pixel7-gallery-v1",
+      "warmup_ticks_required": 600,
+      "measured_ticks_required": 7200,
+      "retain_all_successful_ticks": true,
+      "workloads": [
+        {"id": "rigid-gallery", "counts": {"authored_bricks_live": 4, "rigid_bodies_live": 6, "rigid_bodies_capacity": 6, "contact_capacity": 4096}},
+        {"id": "fluid-gallery", "counts": {"fluid_systems": 1, "fluid_particles_live": 128, "fluid_particles_capacity": 128, "neighbors_per_particle_capacity": 128, "contact_capacity": 4096}},
+        {"id": "coupled-gallery", "counts": {"coupled_dynamic_bodies_live": 4, "coupled_dynamic_bodies_capacity": 4, "couplings_live": 1, "couplings_capacity": 1, "contact_capacity": 4096}},
+        {"id": "smoke-gallery", "counts": {"smoke_systems": 1, "smoke_particles_live": 128, "smoke_particles_capacity": 128, "contact_capacity": 4096}}
+      ]
+    }
+  },
+  "timing": {
+    "policy": "Raw available timing is retained as informational F8 evidence. Unchanged final targets and stalls remain F9-07/F9-08 obligations.",
+    "targets": {
+      "physics_p95_ms_maximum": 8.5,
+      "frame_budget_ms": 16.666666666666668,
+      "render_input_reserve_ms_minimum": 8.166666666666668,
+      "minimum_simulated_to_wall_time_ratio": 0.99
+    },
+    "gallery_capture": {
+      "status": "retained_all_available_scene_statistics",
+      "scene_count": 28,
+      "per_scene_fields": ["frame_mean", "frame_p50", "frame_p95", "frame_p99", "physics_mean", "physics_p50", "physics_p95", "physics_p99", "render_mean", "render_p50", "render_p95", "render_p99", "present_mean", "present_p50", "present_p95", "present_p99", "simulation_to_wall_clock_rate", "realtime_work"]
+    },
+    "supplemental_schedule_telemetry": {
+      "status": "retained_not_exact_frozen_tier_capture",
+      "reason": "This bounded telemetry run used current one-substep 1/60 workload reports, but its tool schema and hard-coded labels still describe a legacy 30 Hz/eight-substep baseline. It is preserved without relabeling and is not qualification evidence for the exact pixel7-gallery-v1 tier.",
+      "warmup_schedules": 30,
+      "measured_schedules": 60,
+      "max_thermal_status": 0,
+      "scenes": [
+        {"id": "rigid-body", "physics_ms": 19.927, "gpu_ms": {"p50": 12.946615, "p95": 14.932129, "p99": 16.665365}, "cpu_record_ms": {"p50": 1.212525, "p95": 2.39209, "p99": 2.609823}, "cpu_submit_ms": {"p50": 0.259522, "p95": 0.568604, "p99": 0.731486}, "cpu_wait_ms": {"p50": 14.686401, "p95": 16.942871, "p99": 17.951783}, "submissions": 1, "dispatches": 34, "readbacks": 0},
+        {"id": "fluid", "physics_ms": 9.115, "gpu_ms": {"p50": 4.220174, "p95": 4.627645, "p99": 4.746419}, "cpu_record_ms": {"p50": 1.216512, "p95": 2.380005, "p99": 2.467285}, "submissions": 1, "dispatches": 80, "readbacks": 0},
+        {"id": "smoke-soft-body", "physics_ms": 148.24, "gpu_ms": {"p50": 103.767988, "p95": 119.602462, "p99": 124.214115}, "cpu_record_ms": {"p50": 24.233562, "p95": 36.868817, "p99": 39.341714}, "submissions": 4, "dispatches": 1276, "readbacks": 0}
+      ]
+    }
+  },
+  "health": {
+    "pre_run": {"battery_percent": 87, "battery_celsius": 22.5, "thermal_status": 0, "gpu_celsius": 27, "cpu_big_celsius": 27, "cpu_little_celsius": 28, "cpu_mid_celsius": 28, "skin_celsius": 24.095},
+    "post_run": {"battery_percent": 88, "battery_celsius": 24.7, "thermal_status": 0, "gpu_celsius": 33, "cpu_big_celsius": 33, "cpu_little_celsius": 35, "cpu_mid_celsius": 34, "skin_celsius": 28.0667},
+    "power": "USB",
+    "battery_health": "good"
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-30-CANDIDATE-V10-ANDROID-VULKAN.tar.zst",
+    "tracked_archive_sha256": "07b8d419c12fe9f571be5bcead248f4bb8a04d341bffbc0b2b4999a077e09c1c",
+    "tracked_archive_bytes": 1201654,
+    "tracked_archive_uncompressed_bytes": 6805603,
+    "tracked_archive_file_count": 138,
+    "tracked_archive_tree_sha256": "21b2d31a9c107847290551990e5df6c7b1c98024865d0040bf712c0a062e9280",
+    "tree_hash_method": "SHA-256 of sorted archive-relative sha256sum records; transferred payload binaries excluded",
+    "capture_sha256": "77eb6fb5a805e8fedc552e8ea36e8de531336a05b8dc2a6134ef54a9dd0f7d80",
+    "reference_report_sha256": "3058ae54bcb4ee17d4eaeadcb8d01f611f638cdf476e178c635c31da8effa804",
+    "rope_self_contact_report_sha256": "830053de11e277ce3ba67df02c4ed412a96bf175630e6347f055a5a1aba3fdee",
+    "fluid_soft_contact_report_sha256": "af1ddef32b98889ff535c91c883bbd68ab213955299cf3954adc92f8791c2fef",
+    "fluid_rope_contact_report_sha256": "408ee782845ceb4e27530319763ca75f2e687c2b7675f36236d2a0ec04d6ff4d",
+    "fluid_cloth_contact_report_sha256": "85019ce0afc2f1e2cfc25993a25c0072fa7c180af2234586915f8484d9692219",
+    "gallery_qualification_sha256": "1f81d2a290c768d1b5ce1326c718e83034c1ae40c9f9df76cf52d2d36dcc8cab",
+    "ui_summary_sha256": "7da30220dae2ce45ab96693645511ebefeb11a29cd9a5dfc2f3cb2a913917dde",
+    "performance_sha256": "9f79007af48ec4955f020189161029557144ef36479b653cf525a3994b69fb89",
+    "supplemental_schedule_sha256": "006f621161960cfa8d0ffa0c08d7792c11abea1a345caf3eb6bed39a31bd2663",
+    "device_health_sha256": "693030a74a66c42c9525274d99b323de58b3363beff0f70d07179c774eda63c9",
+    "lifecycle_reproduction_sha256": "704109b2b19df87b4f265aa4a86a62e0235a04c501f7d6c2de896e8cee1dbdf1",
+    "qualification_gap_sha256": "d4e6149a679148bfeb2774c65fd487d31b3262432fa3533b60496f3fce41de0d"
+  },
+  "qualification_effect": "Candidate v10 fails the physical Pixel 7 Slang Vulkan F8 integration/correctness row and cannot qualify. The Android Gallery, UI, fixed-work observations, sustained runner, and thermal behavior pass their exercised contracts, but they neither override the seven retained correctness failures nor supply the missing exact four-workload 600+7200-tick capture. Candidate-v9 evidence contributes nothing.",
+  "commands": {
+    "build": "PARALLEL_MATER_ANDROID_QUALIFICATION=ON ./gradlew assembleDebug",
+    "install": "/home/thomas/Android/Sdk/platform-tools/adb -s 2B241FDH20060P install -r examples/android/app/build/outputs/apk/debug/app-debug.apk",
+    "physical_native_suite": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --build-directory examples/android/app/.cxx/Debug/x5c2w3e5/arm64-v8a --output /tmp/f8-30-v10-native-capture-run --timeout 300 --conformance-timeout 3600",
+    "installed_gallery": "python3 scripts/Test-AndroidGallery.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --frames 120 --timeout 1800 --output /tmp/f8-30-v10-gallery",
+    "gallery_ui": "python3 scripts/Test-AndroidGalleryUi.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --output /tmp/f8-30-v10-ui --revision 05ca79236e8cdf942cba5995df48d0a0779e4495 --apk examples/android/app/build/outputs/apk/debug/app-debug.apk",
+    "sustained_gallery": "python3 scripts/Test-AndroidGalleryPerformance.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --windows 2 --scene-timeout 240 --qualification /tmp/f8-30-v10-gallery/qualification.json --apk examples/android/app/build/outputs/apk/debug/app-debug.apk --output /tmp/f8-30-v10-performance",
+    "supplemental_schedule": "python3 scripts/Test-AndroidVulkanSchedule.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --schedules 60 --warmup 30 --scene-timeout 240 --apk examples/android/app/build/outputs/apk/debug/app-debug.apk --output /tmp/f8-30-v10-vulkan-schedule",
+    "candidate_check": "python3 tools/check_realtime_candidate.py"
+  }
+}

@@ -42,7 +42,9 @@ class LeaseTests(unittest.TestCase):
     def test_ci_maintenance_is_coordination_but_runtime_still_requires_lease(self):
         tasks = {'F1-01': task()}
         ci = ['.github/workflows/sdk-install.yml', 'tools/ci/route.py',
-              'tests/ci/test_routing.py', 'docs/continuous-integration.md']
+              'tests/ci/test_routing.py', 'docs/continuous-integration.md',
+              'tools/check_realtime_candidate.py',
+              'tools/check_realtime_candidate_v10.py']
         self.assertEqual(roadmap.transitions(tasks, tasks, NOW, ci), [])
         with self.assertRaisesRegex(ValueError, 'implementation PR'):
             roadmap.transitions(tasks, tasks, NOW, ci + ['src/simulation/runtime.cpp'])
