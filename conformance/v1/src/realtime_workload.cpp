@@ -60,6 +60,14 @@ struct Workload {
                 {{1'024U, 5'766U, 5'766U}},
                 {{512U, 1'024U, 4U, 12U}}, {{512U}},
                 {{2'048U, 1U}}, 16U};
+    if (id == "rigid-gallery")
+        return {id, 6U, 0U, 4'096U};
+    if (id == "fluid-gallery")
+        return {id, 0U, 0U, 4'096U, {{256U, 128U}}};
+    if (id == "coupled-gallery")
+        return {id, 4U, 0U, 4'096U, {{256U, 128U}}, {}, {}, {}, {}, 1U};
+    if (id == "smoke-gallery")
+        return {id, 0U, 0U, 4'096U, {}, {}, {}, {}, {{128U, 1U}}};
     throw std::runtime_error("unknown realtime workload: " + std::string(id));
 }
 
@@ -68,6 +76,7 @@ struct Workload {
     result.rigidBodies = value.rigid != 0U;
     result.particleLiquids = !value.fluids.empty();
     result.liquidRigidCoupling = value.id == "fluid-rigid" ||
+        value.id == "coupled-gallery" ||
         value.id == "six-family-mixed";
     result.liquidLiquidCoupling = value.fluids.size() > 1U;
     result.cloth = !value.cloths.empty();
@@ -111,7 +120,29 @@ struct Workload {
     const auto set = [&](const char *name, std::uint64_t count) {
         result[name] = count;
     };
-    if (value.id == "rigid-wall") {
+    if (value.id == "rigid-gallery") {
+        set("authored_bricks_live", 4U);
+        set("rigid_bodies_live", 6U);
+        set("rigid_bodies_capacity", 6U);
+        set("contact_capacity", 4'096U);
+    } else if (value.id == "fluid-gallery") {
+        set("fluid_systems", 1U);
+        set("fluid_particles_live", 256U);
+        set("fluid_particles_capacity", 256U);
+        set("neighbors_per_particle_capacity", 128U);
+        set("contact_capacity", 4'096U);
+    } else if (value.id == "coupled-gallery") {
+        set("coupled_dynamic_bodies_live", 4U);
+        set("coupled_dynamic_bodies_capacity", 4U);
+        set("couplings_live", 1U);
+        set("couplings_capacity", 1U);
+        set("contact_capacity", 4'096U);
+    } else if (value.id == "smoke-gallery") {
+        set("smoke_systems", 1U);
+        set("smoke_particles_live", 128U);
+        set("smoke_particles_capacity", 128U);
+        set("contact_capacity", 4'096U);
+    } else if (value.id == "rigid-wall") {
         set("rigid_bodies_live", 386U);
         set("rigid_bodies_capacity", 386U);
         set("constraints_live", 0U);
@@ -386,7 +417,9 @@ struct WorkloadRuntime {
         for (std::uint32_t index = 0U; index < definition.rigid; ++index) {
             auto &body = rigid[index];
             body.active = PM_TRUE;
-            body.motionType = index == 0U ? PM_MOTION_STATIC : PM_MOTION_DYNAMIC;
+            body.motionType = index == 0U &&
+                    definition.id != "coupled-gallery"
+                ? PM_MOTION_STATIC : PM_MOTION_DYNAMIC;
             body.geometry = geometry;
             body.state.position[0] =
                 ((!definition.fluids.empty() || !definition.smoke.empty()) &&
@@ -700,7 +733,8 @@ struct WorkloadRuntime {
     }
 
     void make_couplings() {
-        if (definition.id == "fluid-rigid") {
+        if (definition.id == "fluid-rigid" ||
+                definition.id == "coupled-gallery") {
             couplings.push_back(liquid_rigid());
         } else if (definition.id == "deformable-mixed") {
             couplings.push_back(mechanical(PM_COUPLING_SOFT_BODY_CLOTH));
@@ -835,7 +869,8 @@ struct WorkloadRuntime {
 
 std::vector<std::string> conformance_realtime_workload_ids() {
     return {"rigid-wall", "fluid-rigid", "deformable-mixed",
-            "smoke-coupled", "six-family-mixed"};
+            "smoke-coupled", "six-family-mixed", "rigid-gallery",
+            "fluid-gallery", "coupled-gallery", "smoke-gallery"};
 }
 
 std::string conformance_realtime_workload(

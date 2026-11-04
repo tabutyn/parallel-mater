@@ -2,6 +2,7 @@ import importlib.util
 import json
 import pathlib
 import sys
+import tempfile
 import unittest
 
 
@@ -14,6 +15,46 @@ SPEC.loader.exec_module(MODULE)
 
 
 class RealtimeDeviceCaptureTests(unittest.TestCase):
+    def test_stored_capture_reloads_both_modes_without_device_execution(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            fixtures = {"scenarios": [{"id": "rigid-cold-impact-rotation"}]}
+            for label in ("plain", "validation"):
+                logs = root / "logs" / label
+                logs.mkdir(parents=True)
+                (logs / "provenance.log").write_text(
+                    '{"source_commit":"candidate"}', encoding="utf-8")
+                (logs / "capabilities.log").write_text(
+                    '[{"mode":"CONTACT"}]', encoding="utf-8")
+                public = root / "raw" / label / "public-cases"
+                public.mkdir(parents=True)
+                (public / "rigid-direct.json").write_text(
+                    '{"execution_status":"completed"}', encoding="utf-8")
+                scenario = root / "raw" / label / "scenarios" / \
+                    "rigid-cold-impact-rotation"
+                scenario.mkdir(parents=True)
+                (scenario / "rigid-cold-impact-rotation.json").write_text(
+                    '{"checkpoints":[]}', encoding="utf-8")
+                workloads = root / "raw" / label / "workloads"
+                workloads.mkdir(parents=True)
+                (workloads / "rigid-wall.json").write_text(
+                    '{"measured_ticks":7200}', encoding="utf-8")
+            stored = MODULE.StoredCapture(root, ("rigid-wall",))
+            plain = stored.mode(False, fixtures)
+            validation = stored.mode(True, fixtures)
+            self.assertEqual(plain["provenance"]["source_commit"], "candidate")
+            self.assertEqual(validation["workloads"]["rigid-wall"]
+                             ["measured_ticks"], 7200)
+
+    def test_target_workloads_follow_frozen_performance_tier(self):
+        self.assertEqual(MODULE._target_workload_ids(
+            self.contract, "ipados-m1-slang-metal"), (
+                "rigid-gallery", "fluid-gallery", "coupled-gallery",
+                "smoke-gallery"))
+        self.assertEqual(MODULE._target_workload_ids(
+            self.contract, "macos-m4-slang-metal"),
+            MODULE.DESKTOP_WORKLOAD_IDS)
+
     def test_scenario_definitions_retain_authored_measurement_fixture(self):
         suite = {
             "scenario_fixtures": [{
