@@ -165,6 +165,34 @@ class MobileMetalQualificationTests(unittest.TestCase):
             self.assertTrue(result["scenes"][0]["fixed_gate"]["passed"])
             self.assertTrue(result["scenes"][-1]["fixed_gate"]["passed"])
 
+    def test_reconciles_context_reused_across_reset(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            assets = pathlib.Path(temporary)
+            report, profiles = self.fixture(assets)
+            expanded = []
+            for context in range(1, len(mobile_metal.REQUIRED_COVERAGE) + 1):
+                values = [profile for profile in profiles
+                          if profile["context"] == context]
+                scene = report["scenes"][context - 1]
+                values.extend(native_profile(
+                    context, schedule, scene["realtime_work"], scene["id"])
+                    for schedule in (6, 7))
+                expanded.extend(values)
+            result = mobile_metal.evaluate(report, expanded, assets)
+            self.assertTrue(result["passed"])
+            self.assertTrue(all(scene["measured_ticks"] == 3
+                                for scene in result["scenes"]))
+
+    def test_rejects_unknown_context_overhead(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            assets = pathlib.Path(temporary)
+            report, profiles = self.fixture(assets)
+            scene = report["scenes"][0]
+            profiles.append(native_profile(
+                1, 6, scene["realtime_work"], scene["id"]))
+            with self.assertRaisesRegex(ValueError, "no bounded native context"):
+                mobile_metal.evaluate(report, profiles, assets)
+
     def test_rejects_native_public_counter_drift(self):
         with tempfile.TemporaryDirectory() as temporary:
             assets = pathlib.Path(temporary)

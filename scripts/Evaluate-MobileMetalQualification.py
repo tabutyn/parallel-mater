@@ -21,7 +21,12 @@ from mobile_gallery_report import validate_mobile_gallery_report  # noqa: E402
 PROFILE_SCHEMA = "parallel-mater-metal-schedule-profile/v1"
 REPORT_SCHEMA = "parallel-mater-mobile-metal-qualification/v1"
 FIXED_TICK_HZ = 60
-MEASUREMENT_OVERHEAD_SCHEDULES = 2  # initialization plus resume check
+# The measured window is preceded by one initialization schedule and followed
+# by the resume check.  Drivers that retain their native profiling context
+# across the qualification reset also retain the two post-window reset/scene
+# transition schedules in that same context.  Accept only these two exact,
+# reviewable layouts; the measured slice remains identical in both cases.
+MEASUREMENT_CONTEXT_OVERHEAD_SCHEDULES = (2, 4)
 REQUIRED_COVERAGE = (
     "rigid-body",
     "fluid",
@@ -185,7 +190,8 @@ def reconcile(report, profiles):
         found = None
         for position in range(search_at, len(contexts)):
             context, values = contexts[position]
-            if len(values) != frames + MEASUREMENT_OVERHEAD_SCHEDULES:
+            if len(values) - frames not in \
+                    MEASUREMENT_CONTEXT_OVERHEAD_SCHEDULES:
                 continue
             measured = values[1:1 + frames]
             if all(matches(value, expected) for value in measured):

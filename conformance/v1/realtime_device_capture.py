@@ -56,10 +56,26 @@ NATIVE_SCENARIOS = {
     "capacity-overflow-atomic-recovery",
     "empty-and-sparse-capacity",
 }
-WORKLOAD_IDS = (
+DESKTOP_WORKLOAD_IDS = (
     "rigid-wall", "fluid-rigid", "deformable-mixed", "smoke-coupled",
     "six-family-mixed",
 )
+
+
+def _target_workload_ids(
+    contract: Mapping[str, Any], target_id: str,
+) -> tuple[str, ...]:
+    performance = contract["performance"]
+    assignments = {
+        item["target"]: item["tier"]
+        for item in performance["target_assignments"]
+    }
+    tier_id = assignments.get(target_id)
+    tier = next((item for item in performance["tiers"]
+                 if item["id"] == tier_id), None)
+    if tier is None:
+        raise ValueError(f"target has no frozen performance tier: {target_id}")
+    return tuple(item["id"] for item in tier["workloads"])
 
 
 def _load_module(name: str, path: Path):
@@ -681,11 +697,13 @@ def _scenario_definitions(
 
 class NativeCapture:
     def __init__(self, runner: Path, driver_manifest: Path,
-                 layer_manifest: Path, output: Path):
+                 layer_manifest: Path, output: Path,
+                 workload_ids: Sequence[str]):
         self.runner = runner
         self.driver_manifest = driver_manifest
         self.layer_manifest = layer_manifest
         self.output = output
+        self.workload_ids = tuple(workload_ids)
 
     def environment(self, validation: bool) -> dict[str, str]:
         environment = dict(os.environ)
@@ -712,7 +730,26 @@ class NativeCapture:
                 + " ".join(command))
         return json.loads(completed.stdout) if stdout_json else completed.stdout
 
-    def mode(self, validation: bool, fixtures: Mapping[str, Any]) -> dict[str, Any]:
+    def workloads(self, validation: bool) -> dict[str, Any]:
+        label = "validation" if validation else "plain"
+        root = self.output / "raw" / label
+        logs = self.output / "logs" / label
+        workload_directory = root / "workloads"
+        for identity in self.workload_ids:
+            self.run([
+                "--workload", identity, "--warmup-ticks", "600",
+                "--measured-ticks", "7200", "--root", ROOT,
+                "--output", workload_directory,
+            ], logs / "workloads" / f"{identity}.log",
+                validation=validation)
+        return {
+            identity: read_json(workload_directory / f"{identity}.json")
+            for identity in self.workload_ids
+        }
+
+    def mode(
+        self, validation: bool, fixtures: Mapping[str, Any],
+    ) -> dict[str, Any]:
         label = "validation" if validation else "plain"
         root = self.output / "raw" / label
         logs = self.output / "logs" / label
@@ -747,15 +784,51 @@ class NativeCapture:
             self.run(command, logs / "scenarios" / f"{identity}.log",
                      validation=validation)
             scenarios[identity] = read_json(raw_path)
-        workload_directory = root / "workloads"
-        self.run([
-            "--workload", "all", "--warmup-ticks", "600",
-            "--measured-ticks", "7200", "--root", ROOT,
-            "--output", workload_directory,
-        ], logs / "workloads.log", validation=validation)
+        workloads = self.workloads(validation)
+        return {
+            "provenance": provenance,
+            "capabilities": capabilities,
+            "public": public,
+            "scenarios": scenarios,
+            "workloads": workloads,
+        }
+
+
+class StoredCapture:
+    """Load an immutable, previously completed native capture.
+
+    This is used when host-side candidate routing was wrong but the raw device
+    artifacts themselves came from the required source and binary.  Loading
+    the stored artifacts avoids rerunning or silently combining device rows.
+    The normal frozen validator still checks candidate provenance, complete
+    coverage, work, recovery, numerical results, and every retained sample.
+    """
+
+    def __init__(self, output: Path, workload_ids: Sequence[str]):
+        self.output = output
+        self.workload_ids = tuple(workload_ids)
+
+    def mode(self, validation: bool, fixtures: Mapping[str, Any]) -> dict[str, Any]:
+        label = "validation" if validation else "plain"
+        root = self.output / "raw" / label
+        logs = self.output / "logs" / label
+        provenance = json.loads(
+            (logs / "provenance.log").read_text(encoding="utf-8"))
+        capabilities = json.loads(
+            (logs / "capabilities.log").read_text(encoding="utf-8"))
+        public_directory = root / "public-cases"
+        public = {
+            path.stem: read_json(path)
+            for path in sorted(public_directory.glob("*.json"))
+        }
+        scenarios = {}
+        for definition in fixtures["scenarios"]:
+            identity = definition["id"]
+            scenarios[identity] = read_json(
+                root / "scenarios" / identity / f"{identity}.json")
         workloads = {
-            identity: read_json(workload_directory / f"{identity}.json")
-            for identity in WORKLOAD_IDS
+            identity: read_json(root / "workloads" / f"{identity}.json")
+            for identity in self.workload_ids
         }
         return {
             "provenance": provenance,
@@ -926,10 +999,15 @@ def build_capture(arguments: argparse.Namespace) -> tuple[dict[str, Any], dict[s
     candidate = read_json(candidate_path)
     candidate_digest = file_sha256(candidate_path, portable_text=True)
     candidate_identity = _candidate_identity(candidate, candidate_digest)
+    workload_ids = _target_workload_ids(contract, arguments.target_id)
 
-    native = NativeCapture(
-        arguments.runner.resolve(), arguments.driver_manifest.resolve(),
-        arguments.validation_layer_manifest.resolve(), arguments.output.resolve())
+    if arguments.reuse_raw is not None:
+        native = StoredCapture(arguments.output.resolve(), workload_ids)
+    else:
+        native = NativeCapture(
+            arguments.runner.resolve(), arguments.driver_manifest.resolve(),
+            arguments.validation_layer_manifest.resolve(),
+            arguments.output.resolve(), workload_ids)
     plain = native.mode(False, fixture)
     validation = native.mode(True, fixture)
     if plain["provenance"] != validation["provenance"]:
@@ -977,7 +1055,7 @@ def build_capture(arguments: argparse.Namespace) -> tuple[dict[str, Any], dict[s
         })
 
     workloads = []
-    for identity in WORKLOAD_IDS:
+    for identity in workload_ids:
         selected = copy.deepcopy(validation["workloads"][identity])
         selected["executions"] = [{
             "validation_enabled": bool(index),
@@ -1000,7 +1078,7 @@ def build_capture(arguments: argparse.Namespace) -> tuple[dict[str, Any], dict[s
         "device": {
             "target_id": arguments.target_id,
             "name": provenance["device_name"],
-            "os": platform.platform(),
+            "os": arguments.device_os or platform.platform(),
             "gpu": provenance["device_name"],
             "driver": str(provenance["driver_version"]),
             "toolchain": str(provenance["host_compiler"]),
@@ -1035,7 +1113,17 @@ def main() -> int:
     parser.add_argument("--validation-layer-manifest", type=Path, required=True)
     parser.add_argument("--runtime-variant", default="cuda-runtime")
     parser.add_argument("--target-id", default="linux-rtx3050ti-slang-cuda")
+    parser.add_argument(
+        "--device-os",
+        help="Physical device OS identity when the producer runs remotely")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--reuse-raw", type=Path,
+        help="Copy and re-evaluate one complete raw device capture without "
+             "rerunning the device")
+    parser.add_argument(
+        "--refresh-workloads", action="store_true",
+        help="With --reuse-raw, recapture only the target's frozen workloads")
     arguments = parser.parse_args()
     try:
         arguments.runner = arguments.runner.resolve(strict=True)
@@ -1046,6 +1134,31 @@ def main() -> int:
         if arguments.output.exists():
             raise ValueError("output already exists; retain it and choose a new path")
         arguments.output.mkdir(parents=True)
+        if arguments.refresh_workloads and arguments.reuse_raw is None:
+            raise ValueError("--refresh-workloads requires --reuse-raw")
+        if arguments.reuse_raw is not None:
+            arguments.reuse_raw = arguments.reuse_raw.resolve(strict=True)
+            for name in ("raw", "logs"):
+                source = arguments.reuse_raw / name
+                if not source.is_dir():
+                    raise ValueError(f"stored capture is missing {source}")
+                shutil.copytree(source, arguments.output / name)
+            if arguments.refresh_workloads:
+                workload_ids = _target_workload_ids(
+                    read_json(PROFILE_PATH), arguments.target_id)
+                for label in ("plain", "validation"):
+                    raw = arguments.output / "raw" / label / "workloads"
+                    logs = arguments.output / "logs" / label / "workloads"
+                    if raw.exists():
+                        shutil.rmtree(raw)
+                    if logs.exists():
+                        shutil.rmtree(logs)
+                native = NativeCapture(
+                    arguments.runner, arguments.driver_manifest,
+                    arguments.validation_layer_manifest, arguments.output,
+                    workload_ids)
+                native.workloads(False)
+                native.workloads(True)
         capture, report = build_capture(arguments)
         write_json(arguments.output / "capture.json", capture)
         write_json(arguments.output / "report.json", report)
