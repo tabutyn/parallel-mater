@@ -26,11 +26,14 @@ Drivers must rebuild against driver-interface version 2 and publish
 profile-selection ABI is incompatible and must not be loaded as an API 0.3
 implementation.
 
-The Slang/CUDA driver is the first qualified implementation. Native CUDA calls
-inside its device-services and dispatch layers are private driver machinery,
-not an alternate public API. Additional drivers must advertise only the
-features and interoperability paths they implement and pass the same command,
-physics, gallery, and architecture checks before being reported as available.
+CUDA is neither the default driver nor a separate simulation implementation.
+Native CUDA calls inside its device-services and dispatch layers are private
+driver machinery, as Metal, D3D12, and Vulkan calls are in those adapters.
+Every reference GPU driver compiles and executes the same shared Slang physics
+for capabilities it advertises. The current
+[F8 integration delivery](../F8-INTEGRATION-RELEASE.md) reports passing and
+failing device rows separately; an installed driver is not described as
+qualified merely because its package, Gallery, or shaders run.
 
 ## Qualification gates
 

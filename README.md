@@ -21,6 +21,13 @@ coverage, and complete physical and performance qualification is still open.
 Use the [qualification index](docs/QUALIFICATION.md) to check evidence for the
 specific driver, device, revision, and interaction you intend to use.
 
+The current [F8 development integration delivery](docs/F8-INTEGRATION-RELEASE.md)
+uses one fixed 1/60-second production schedule for normal creation on every
+backend; it is not an optional mode. Its release table names the targets that
+pass and the Android, D3D12, Linux-reference, scene-quality, and timing failures
+that remain. Do not read “shipped integration” as broad conformance or a
+universal 60-FPS claim.
+
 ## How it works
 
 Applications link the `parallel-mater` loader and include

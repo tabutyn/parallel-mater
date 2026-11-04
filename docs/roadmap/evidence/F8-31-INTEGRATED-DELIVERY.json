@@ -1,0 +1,276 @@
+{
+  "schema": "parallel-mater-f8-integrated-delivery/v1",
+  "task": "F8-31",
+  "status": "shipped-development-integration",
+  "recorded_at": "2026-11-04T19:04:21Z",
+  "lease_token": "602aad42-9d5f-4aa9-9c65-24b1fc69af6d",
+  "release": {
+    "classification": "development integration delivery",
+    "broad_conformance_qualified": false,
+    "broad_60hz_performance_qualified": false,
+    "scene_quality_qualified": false,
+    "api_version": "0.3.0",
+    "driver_interface_version": 2,
+    "execution_contract": "fixed-tick-60hz-v1",
+    "normal_creation_selects_single_path": true,
+    "user_facing_execution_toggle": false
+  },
+  "candidate": {
+    "id": "realtime-single-step-v1-5bacbe2",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "exact_source_ci_run": 41708083151,
+    "material_change_rule": "Any runtime, kernel, public API, driver, or Gallery application change requires a new candidate and affected requalification."
+  },
+  "compatibility": {
+    "api_0_2": "rejected with PM_ERROR_INCOMPATIBLE_VERSION",
+    "api_0_3": "required",
+    "simulation_create_pnext": "must be NULL",
+    "step_timestep_seconds": 0.016666666666666666,
+    "step_substeps": 1,
+    "removed_public_selection": [
+      "PM_EXT_simulation_profile",
+      "PmSimulationProfileCreateInfo",
+      "pmEnumerateExecutionProfiles"
+    ]
+  },
+  "device_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "backend": "cuda",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "passed",
+      "performance": "not_qualified",
+      "limitations": [
+        "six-family physics p95 is 16.7733 ms plain and 22.2918 ms with validation",
+        "PEG PAINT deposits 7 texels against the required 100; F9-09 owns repair"
+      ]
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "backend": "d3d12",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "failed",
+      "performance": "not_adjudicated",
+      "limitations": [
+        "46 of 49 required capability rows are advertised",
+        "the required six-family-mixed workload cannot be selected",
+        "27 of 28 Gallery scenes pass; PEG PAINT fails"
+      ]
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "backend": "metal",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "passed",
+      "performance": "not_qualified",
+      "limitations": [
+        "six-family physics p95 is 12.111333 ms plain and 11.656125 ms with validation versus the 10 ms target"
+      ]
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "backend": "metal",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "passed_with_scoped_scene_debt",
+      "performance": "passed",
+      "limitations": [
+        "fluid-rope reciprocal and endpoint-distribution quality checks fail; F9-02 and F9-05 own repair",
+        "rope native dispatch count is 83 while the public estimate is 84; actual work remains within the frozen ceiling"
+      ]
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "backend": "vulkan",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "failed",
+      "performance": "not_qualified",
+      "limitations": [
+        "three required lifecycle profiles and four of twelve quality evaluations fail",
+        "the exact pixel7-gallery-v1 600-warmup plus 7200-measured-tick workload capture is missing"
+      ]
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "backend": "cpu",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "failed",
+      "performance": "passed",
+      "limitations": [
+        "all 12 applicable public cases differ from the frozen CUDA reference"
+      ]
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "backend": "cuda",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "failed",
+      "performance": "passed_with_stalls_retained",
+      "limitations": [
+        "all 30 public cases differ from the frozen reference and cloth-water fails repeatability"
+      ]
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "backend": "vulkan",
+      "fixed_tick_sdk_gallery_integration": "passed",
+      "frozen_correctness": "failed",
+      "performance": "passed_with_stalls_retained",
+      "limitations": [
+        "all 30 public cases differ from the frozen reference; cloth-water, rope-fluid, and rope-soft-body fail repeatability"
+      ]
+    }
+  ],
+  "packages": {
+    "relocation": {
+      "windows_cuda_checks_passed": 12,
+      "windows_d3d12_checks_passed": 12,
+      "linux_cpu_checks_passed": 14,
+      "linux_cuda_checks_passed": 12,
+      "linux_vulkan_checks_passed": 12,
+      "incompatible_0_2_and_0_4_packages_rejected": true,
+      "external_consumers_passed": true
+    },
+    "archives": [
+      {
+        "path": "docs/roadmap/evidence/F8-26-CANDIDATE-V10-WINDOWS-CUDA.zip",
+        "sha256": "b780ff46f01be7be38fd43d075e99af683134ba1e939068f3168eba591603ef6"
+      },
+      {
+        "path": "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.zip",
+        "sha256": "0038963bc78cabb1e948ca37ce270e0d878dd5bde3fa4311899774d2732de3dd"
+      },
+      {
+        "path": "docs/roadmap/evidence/F8-28-CANDIDATE-V10-MACOS-METAL.tar.zst",
+        "sha256": "f097064eb56855b2f1a2a7705fba9ac332e4a3a1765266f35f04f9fd2bb47ff0"
+      },
+      {
+        "path": "docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.tar.zst",
+        "sha256": "ffe1d7706521a4db3125dc438324b57f05501e54612a0fbc1b5899900bf541ed"
+      },
+      {
+        "path": "docs/roadmap/evidence/F8-30-CANDIDATE-V10-ANDROID-VULKAN.tar.zst",
+        "sha256": "07b8d419c12fe9f571be5bcead248f4bb8a04d341bffbc0b2b4999a077e09c1c"
+      },
+      {
+        "path": "docs/roadmap/evidence/F8-85-CANDIDATE-V10-LINUX-CPU.tar.zst",
+        "sha256": "a08170002236b41cf05905289a832ec0236e09421bba27d3577b9b815b43afb8"
+      },
+      {
+        "path": "docs/roadmap/evidence/F8-86-CANDIDATE-V10-LINUX-CUDA.tar.zst",
+        "sha256": "efb8886be619d0ca5b412e00826f485695eb194f9908150ee4f6a5c75442227c"
+      },
+      {
+        "path": "docs/roadmap/evidence/F8-87-CANDIDATE-V10-LINUX-VULKAN.tar.zst",
+        "sha256": "5a9181680a7cb00f0bce3588ff7a4f3913f997072aef9e11b0fb761d98ce6020"
+      }
+    ]
+  },
+  "installed_applications": {
+    "macos": {
+      "path": "/Applications/ParallelMater Gallery.app",
+      "dock_launcher": "canonical installed path found in persistent-apps",
+      "codesign": "codesign --verify --deep --strict passed",
+      "backend": "metal",
+      "revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "build_info_sha256": "a22e53bca21a369b3c66fb2792cc246fe53414ef53f9b0f80b4228e4d4494fd2",
+      "executable_sha256": "cbdcfaac896d0b11a3260bf5ccfd71f9977767952a8b737aea1139e9d72e6e7b",
+      "driver_sha256": "9c070ad015e5f8e981e4842254466a5b8137e617e1256916f053e0855f54aa84",
+      "native_smoke_frames": 6,
+      "native_smoke_image_sha256": "9ad90eb9ca30bb46296e95cbf58d791fa056d7940a66205a03921d132a86adf4"
+    },
+    "ipados": {
+      "device": "iPad13,8; Apple M1 GPU",
+      "backend": "metal",
+      "revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "runtime_report": "docs/roadmap/evidence/F8-31-IPAD-RUNTIME.json",
+      "runtime_report_sha256": "a6bda728790a462d9ea84deb39eb5d213f5ea9571cdf2ab01c24c987cd336d5b",
+      "device_copy_sha256": "d174a663074ca0d28abb0d165aecce097409f55fe6edcda208ff83bb8bb48461",
+      "gallery_executable_sha256": "7ad4bfc3fe0fa82395fedd08d7d774caf1a6ab2b293280223f10ae4782b75f20",
+      "driver_sha256": "c50158bf0bfb64d78b41735527d881357a14f7b15ae7eedb934af4da2fe344f5",
+      "runtime_sdk_sha256": "ee91ef3b92a380a3cb32d959d8e9f6072a58f3cb29a10b9b1cc214e58ac1ddeb"
+    },
+    "android": {
+      "device": "Google Pixel 7; Mali-G710",
+      "backend": "vulkan",
+      "apk_sha256": "d4f634982d92190db0a948f8ae70f5c0e9dfd0dbebbb4499de68355135d2fb79",
+      "driver_sha256": "53310cb682bd2adbe2bae688c529581c9b53b98cf6c80933496003bd2dd1c048",
+      "identity_verified": true,
+      "qualification": "failed_correctness"
+    }
+  },
+  "gallery_contract": {
+    "display_rates_tested_hz": [30, 60, 90, 120, 144],
+    "maximum_ticks_per_callback": 1,
+    "catch_up_ticks": 0,
+    "interpolation_above_60hz": true,
+    "overload_below_60hz": "deliberate slow motion",
+    "lifecycle_debt_reset": ["pause", "reset", "scene-change", "background", "long-stall"],
+    "ipados_all_scenes_frames_each": 120,
+    "ipados_peak_memory_footprint_bytes": 361923352,
+    "ipados_peak_memory_scene": "cloth-tear",
+    "normal_mobile_render_readback": "diagnostic-only"
+  },
+  "dispatch_reduction": {
+    "metal_rigid_public_fixture": {
+      "baseline_total_dispatches": 112,
+      "final_total_dispatches": 35,
+      "reduction_percent": 68.75,
+      "baseline_domain_dispatches": 88,
+      "final_domain_dispatches": 11,
+      "domain_reduction_percent": 87.5,
+      "cooperative_solve_dispatches": 1,
+      "host_waits": 0,
+      "intra_tick_host_readbacks": 0
+    },
+    "coupling_ceiling": {
+      "total_dispatches_maximum": 512,
+      "coupling_dispatches_maximum": 288,
+      "candidate_dispatches_maximum": 16,
+      "spatial_builds": 1,
+      "spatial_publications": 1,
+      "intra_tick_host_readbacks": 0
+    },
+    "apple_smoke_soft_body": {
+      "baseline_dispatches_per_tick": 1277,
+      "final_dispatches_per_tick": 269,
+      "dispatch_reduction_percent": 78.935,
+      "baseline_dependency_barriers_per_tick": 1712,
+      "final_dependency_barriers_per_tick": 632,
+      "macos_gpu_p50_reduction_percent": 26.292,
+      "ipados_gpu_p50_reduction_percent": 31.603,
+      "frame_throughput_claim": "not established"
+    }
+  },
+  "timing_policy": {
+    "desktop_physics_p95_ms_maximum": 10.0,
+    "frame_p95_ms_maximum": 16.666666666666668,
+    "ipados_physics_p95_ms_maximum": 8.5,
+    "simulated_to_wall_ratio_minimum": 0.99,
+    "f8_timing_misses_are_informational": true,
+    "remaining_owners": ["F9-07", "F9-08"]
+  },
+  "evidence_sources": [
+    {"path": "docs/roadmap/evidence/F8-26-CANDIDATE-V10-WINDOWS-CUDA.json", "sha256": "92924fe0775572c5b6fd6424c876491720f6a7a4708fc123a3ac9fe8e74e24df"},
+    {"path": "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.json", "sha256": "655cf5b3086dd407cc35b6a69410779e0b84c6b987185bf7e868924caa732aa1"},
+    {"path": "docs/roadmap/evidence/F8-28-CANDIDATE-V10-MACOS-METAL.json", "sha256": "ce8116ddacfdf73aa0d9540981f5ae85ba35a9df9b397f8f9c27fd2618362497"},
+    {"path": "docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.json", "sha256": "7bf40c88ade9977027d2ad49c2a71fccf12142da859a154c08d5211e1df5342f"},
+    {"path": "docs/roadmap/evidence/F8-30-CANDIDATE-V10-ANDROID-VULKAN.json", "sha256": "3f974fcab8ee8eee412a4349a62fd5d4c2d4151d9fec619d539d38fff09c0bee"},
+    {"path": "docs/roadmap/evidence/F8-51-gallery-fixed-tick.json", "sha256": "6d3b4b783a4684338eba1e994a900b03bc333fab86d52fc6ed81d7778ca7472a"},
+    {"path": "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json", "sha256": "739215962f7406c01481805372e608d72e848928219202470b739e34e16061ea"},
+    {"path": "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json", "sha256": "6cb06f247a4bbe3d9eb1f35aa3e7f66a4889a4c3c23adbd6437f2088bcf1b0ea"},
+    {"path": "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json", "sha256": "0658114f6fa0da86dbcabc7c3c19e63196f82f466e28164005317377fdeb8e02"},
+    {"path": "docs/roadmap/evidence/F8-74-CANDIDATE-V10-FREEZE.json", "sha256": "320bd0d066aadbdb6048a4dfed6299111e60847dcee0af0c9fbb1823c0dd44e8"},
+    {"path": "docs/roadmap/evidence/F8-85-CANDIDATE-V10-LINUX-CPU.json", "sha256": "3b73b94f540e97d2a7a70f930d4845ea357131875832cb3284c784af3f801ef7"},
+    {"path": "docs/roadmap/evidence/F8-86-CANDIDATE-V10-LINUX-CUDA.json", "sha256": "57677e8cbc2f1b95f180da1d2cc57c8f7096780f0cd66ba10a537287f8103e75"},
+    {"path": "docs/roadmap/evidence/F8-87-CANDIDATE-V10-LINUX-VULKAN.json", "sha256": "4fc22d8c7a68f8806572950b3370de5e68c825f81a934aa99c4a142fc5ee257e"}
+  ],
+  "release_notes": {
+    "integration_correctness_work_budget": "Reported independently for every target above.",
+    "scene_quality": "Not qualified; F9-01 through F9-06 and F9-09 own named repairs.",
+    "performance": "Not broadly qualified; F9-07 and F9-08 own retained timing targets and fresh qualification.",
+    "historical_evidence_relabelled": false
+  }
+}
