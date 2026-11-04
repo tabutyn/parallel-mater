@@ -1,0 +1,309 @@
+{
+  "schema": "parallel-mater-realtime-device-qualification/v2",
+  "task": "F8-85",
+  "status": "failed_frozen_reference_correctness",
+  "final_performance_qualified": true,
+  "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/674",
+  "lease_token": "dbe39245-d62f-4702-8f3f-91fa922928c7",
+  "captured_at": "2026-11-04T16:18:36Z",
+  "candidate": {
+    "id": "realtime-single-step-v1-5bacbe2",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "active_pointer_sha256": "692857c3e6e9a5b5c4406bb54f61974498e10501557095a819b949dcd71508d7",
+    "exact_source_ci_run": 41708083151,
+    "target": "linux-thomas-laptop-slang-cpu",
+    "tier": "cpu-reference-v1",
+    "runtime_variant": "cpu-runtime",
+    "evidence_union_allowed": false
+  },
+  "device": {
+    "machine": "ThomasLaptop",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-54-amd64 x86_64",
+    "cpu": "11th Gen Intel Core i7-11370H @ 3.30GHz",
+    "topology": "1 socket, 4 cores, 8 threads",
+    "physical_device": "Parallel Mater Slang CPU (Slang CPU reference)",
+    "driver_version": 202618,
+    "gpu_timing": "unavailable on the CPU target and not replaced by host timing",
+    "power_state": {
+      "scaling_driver": "intel_pstate",
+      "scaling_governor": "powersave",
+      "platform_profile": "performance"
+    }
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "generator": "Ninja 1.11.1",
+    "build_type": "Release",
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18",
+    "architecture": "x86_64"
+  },
+  "verdicts": {
+    "f8_integration_correctness": {
+      "status": "failed",
+      "basis": "All twelve applicable advertised rigid public cases execute, but every case fails its checked-in frozen CUDA reference. The 1,582 retained differences include numerical state and invariant failures in every case, not only additional schema or telemetry fields. Passing analytic quality, recovery, fixed-work and long-run stability checks do not override the frozen public-case correctness failures."
+    },
+    "fixed_tick_sdk_and_gallery_integration": {
+      "status": "passed",
+      "basis": "The exact clean source builds, all 104 executable registered or isolated tests pass, fourteen installed SDK relocation checks pass, ordinary API 0.3 plain and validation observations agree, and the production runtime preserves one 1/60 advance, one publication, one submission and zero intra-tick host readbacks."
+    },
+    "final_performance": {
+      "status": "passed",
+      "basis": "The exact cpu-reference-v1 workload retains 120 cold ticks, 600 warmup ticks and all 7,200 measured ticks. Sustained physics p95 is 0.785253 ms and the simulated/wall ratio is 25.7221198, both within the frozen targets. This performance pass does not repair the independent F8 correctness failure."
+    }
+  },
+  "results": {
+    "clean_release_build": {
+      "status": "passed",
+      "source_dirty": false,
+      "compiled_targets": 611,
+      "failed_targets": 0
+    },
+    "registered_tests": {
+      "status": "passed_with_expected_unsupported_skips",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 15,
+      "total": 116,
+      "elapsed_seconds": 8.80,
+      "isolated_discovery_and_launcher_passed": 3,
+      "isolated_failed": 0,
+      "unsupported_rule": "The fifteen fixtures exercise unadvertised CPU domains or cross-domain interactions and returned the configured skip code; they are neither passes nor capability claims."
+    },
+    "installed_sdk_relocation": {
+      "status": "passed",
+      "checks_passed": 14,
+      "checks_failed": 0,
+      "external_consumers": "passed",
+      "installed_conformance_runner": "passed",
+      "explicit_incompatible_versions": "API/profile versions 0.2 and 0.4 rejected with expected exit 1",
+      "unsupported_case": "expected exit 77",
+      "missing_driver": "expected exit 2"
+    },
+    "installed_public_execution": {
+      "status": "passed",
+      "case": "f8-kernel-entrypoint-execution/cpu",
+      "modes": ["plain", "validation"],
+      "creation": "ordinary API 0.3 creation with no profile opt-in",
+      "schedule": "fixed-tick version 1",
+      "timestep_seconds": 0.0166666675,
+      "substeps": 1,
+      "time_advances": 1,
+      "spatial_index_publications": 1,
+      "queue_submissions": 1,
+      "intra_tick_host_readbacks": 0,
+      "plain_validation_public_state_identical": true,
+      "plain_validation_fixed_work_identical": true,
+      "fixed_work": {
+        "dispatches": 18,
+        "workgroups": 18,
+        "barriers": 24,
+        "rigid_contact_and_joint_sweeps": 8
+      }
+    },
+    "production_runtime": {
+      "status": "passed",
+      "result": "production realtime resources are fixed and atomic"
+    },
+    "installed_conformance": {
+      "input_closure": "passed",
+      "provenance_source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+      "advertised_capabilities": [
+        "RIGID_BODY-to-RIGID_BODY CONTACT same-domain bidirectional endpoint-native",
+        "RIGID_BODY-to-RIGID_BODY ATTACHMENT same-domain bidirectional endpoint-native"
+      ],
+      "execution": {
+        "completed": 12,
+        "unsupported": 18,
+        "failed_to_execute": 0
+      },
+      "frozen_reference_evaluation": {
+        "status": "failed_correctness",
+        "passed": 0,
+        "failed": 12,
+        "difference_records": 1582,
+        "all_cases_include_numerical_failures": true,
+        "case_difference_counts": {
+          "rigid-direct": 37,
+          "compound-weld-lifecycle": 144,
+          "constraint-breaking": 29,
+          "passive-active": 69,
+          "constraint-fixed": 921,
+          "constraint-point": 101,
+          "constraint-hinge": 35,
+          "constraint-slider": 32,
+          "constraint-piston": 11,
+          "constraint-generic": 51,
+          "constraint-generic-spring": 48,
+          "constraint-motor": 104
+        }
+      },
+      "applicable_cases": [
+        "rigid-direct",
+        "compound-weld-lifecycle",
+        "constraint-breaking",
+        "passive-active",
+        "constraint-fixed",
+        "constraint-point",
+        "constraint-hinge",
+        "constraint-slider",
+        "constraint-piston",
+        "constraint-generic",
+        "constraint-generic-spring",
+        "constraint-motor"
+      ],
+      "unsupported_cases": [
+        "cloth-core",
+        "cloth-tear",
+        "cloth-water",
+        "fluid-lifecycle",
+        "fluid-rigid",
+        "rope-cloth",
+        "rope-core",
+        "rope-fluid",
+        "rope-soft-body",
+        "smoke-cloth",
+        "smoke-grid",
+        "smoke-rope",
+        "smoke-soft-body",
+        "smoke-water",
+        "soft-body-cloth",
+        "soft-body-core",
+        "soft-body-fluid",
+        "soft-body-rigid"
+      ]
+    },
+    "applicable_quality": {
+      "status": "passed",
+      "profiles_passed": 2,
+      "profiles_failed": 0,
+      "samples_passed": 6,
+      "profiles": {
+        "rigid-brick-penetration-v1": {
+          "maximum_penetration_m": 0.0010505542159080505,
+          "maximum_penetration_frame": 132
+        },
+        "rigid-attachment-v1": {
+          "samples": 5,
+          "constraints_unbroken": true,
+          "maximum_hinge_anchor_error_m": 4.915127078675141e-7,
+          "maximum_slider_sideways_drift_m": 0.0003209221176803112
+        }
+      }
+    },
+    "cpu_qualification": {
+      "status": "passed",
+      "qualification_claim": true,
+      "workload": {
+        "tier": "cpu-reference-v1",
+        "id": "rigid-brick-oracle",
+        "rigid_bodies_live": 8,
+        "rigid_bodies_capacity": 8,
+        "constraints_live": 8,
+        "constraints_capacity": 8,
+        "contact_capacity": 2048
+      },
+      "successful_ticks": 7800,
+      "failed_ticks": 0,
+      "invalid_substeps_rejected_synchronously": true,
+      "all_public_states_finite": true,
+      "fixed_work_per_tick": {
+        "dispatches": 20,
+        "workgroups": 1421,
+        "rigid_contact_and_joint_sweeps": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "time_advances": 1,
+        "queue_submissions": 1,
+        "intra_tick_host_readbacks": 0
+      },
+      "cold_start": {
+        "ticks": 120,
+        "p50_ms": 0.461382,
+        "p95_ms": 0.583619,
+        "p99_ms": 0.64499,
+        "maximum_ms": 0.708683
+      },
+      "sustained": {
+        "warmup_ticks": 600,
+        "measured_ticks": 7200,
+        "retained_samples": 7200,
+        "p50_ms": 0.625745,
+        "p95_ms": 0.785253,
+        "p99_ms": 0.934599,
+        "maximum_ms": 1.604703,
+        "wall_seconds": 4.66524536,
+        "simulated_to_wall_time_ratio": 25.7221198
+      },
+      "budgets": {
+        "physics_p95_ms_maximum": 10.0,
+        "minimum_simulated_to_wall_time_ratio": 0.99,
+        "physics_p95_passed": true,
+        "realtime_ratio_passed": true,
+        "contract_manifest_sha256": "0cca981dd77d5e18b6d7a4846c8a00c586bb0a7a6c6df707b4020d39c2e7fd17"
+      }
+    },
+    "gallery_behavior": {
+      "status": "passed",
+      "presentation_interpolation": "parallel-mater-gallery-presentation-interpolation-tests passed",
+      "fixed_tick_scene": "parallel-mater-gallery-fixed-tick-scene-tests passed",
+      "shared_session_lifecycle": "parallel-mater-gallery-session-contract-tests passed, including create/destroy/recreate, reset, failure recovery and validation-enabled reset",
+      "slow_motion_and_clock": "parallel-mater-gallery-session-clock-tests passed",
+      "background_and_no_catch_up": "parallel-mater-gallery-frame-policy-tests passed, including zero background physics and no foreground catch-up"
+    },
+    "independent_assertions": {
+      "conformance": "446/446 passed",
+      "roadmap": "94/94 passed",
+      "reflected_abi": "10/10 passed",
+      "candidate_closure": "passed"
+    }
+  },
+  "artifacts": {
+    "tracked_archive": "docs/roadmap/evidence/F8-85-CANDIDATE-V10-LINUX-CPU.tar.zst",
+    "tracked_archive_sha256": "a08170002236b41cf05905289a832ec0236e09421bba27d3577b9b815b43afb8",
+    "tracked_archive_bytes": 163557,
+    "tracked_archive_uncompressed_bytes": 972186,
+    "tracked_archive_file_count": 68,
+    "tracked_archive_tree_sha256": "d5fac106311de5073437f336c66c7e2c83b276661a34f2d23830a1977049593c",
+    "tree_hash_method": "SHA-256 of sorted archive-relative sha256sum records",
+    "audit_sha256": "e6023cc9ebfd2c6d083af78103dedf71d0c812715a125adfedde21b59f9675a9",
+    "cpu_qualification_sha256": "83d9ff7686789f67c9c0eb60e40a2b3d5d8b6d3cff42a1ff11c36590a02dacd7",
+    "qualification_executable_sha256": "b3328fb07e101fbe3bd2a56017712cd36b3a8b00f5086a6fd45a4d5085a5e670",
+    "conformance_executable_sha256": "bdceb1fe089a5f83136434f56e9f7e418a73091d862be5a8f895ab43df7a9f0d",
+    "registered_ctest_log_sha256": "a652b294c33f51e2cde9c5a5eaeb86c665edee1d06435c306548653a9420c3de",
+    "isolated_ctest_log_sha256": "a728792b37e09899e595d67055e39d46fc4943566a4aadf58764d0619055c6b6",
+    "sdk_report_sha256": "49a121d8f7fa83ba3e55e50cf9a33a45ce61ca7e22c8804f5e1f17b7c710501e",
+    "v10_plain_observation_sha256": "eea5777425332525639ff77b853eef4439e68bfb0aae6b94d487856f3d4540e3",
+    "v10_validation_observation_sha256": "f2939c4f150f468e1e7e18b90a6564defeed370833a68aa906945df0bc57b4f5",
+    "provenance_sha256": "45b6a6218b043f410f86ead70ffe905737473389609f8428c1f14a2cd9ddda88",
+    "capabilities_sha256": "d3e35af10b5472e263c67a9fcae85763f8a3f0e154302215f744461207e99048",
+    "rigid_brick_quality_result_sha256": "1aa395c7dd62cd74208869f3e751606ba45379335904531382dec795cfd1279d",
+    "rigid_brick_quality_report_sha256": "f6932a429f350d5c5dff2f01fefd85210ca82a2e19ca36b0a5d1aa9cb9a9aca1",
+    "rigid_attachment_quality_result_sha256": "f1b02af3c182e916069a5d383fd8cfa5e2d2a8ce463c1ed593221b58329cc657",
+    "rigid_attachment_quality_report_sha256": "c35f1979af3719ea3581c06a3ea6186676a4ea41735ee9b75e0413574138f943",
+    "loader_sha256": "b6ad5d274269a6a5d466ab4e1c65ee42d1db6c991769e030dc81a496e3d79afe",
+    "driver_sha256": "cc089ec80a2daf7e5037fbb9bcd6e3acded4426b65dcae0a92774828f688f13d",
+    "driver_manifest_sha256": "627449185d2ed0a61ddc71d596ab2240fe9b16f33c27ece6ca1f27cc92035d1c",
+    "validation_layer_sha256": "24cb94b1d78c46d9f035778afda7f6938189056bd6eb6fcdf435a5e710f19deb",
+    "validation_manifest_sha256": "4a44eb9512ee93d68d91d49a1581401e9e1c0d9aff52edb3b45673fff25473b0"
+  },
+  "qualification_effect": "Candidate v10 fails the Linux ThomasLaptop Slang CPU F8 integration/correctness row. The exact CPU workload performance, long-run stability, applicable analytic quality, installed SDK, recovery, fixed-work and Gallery lifecycle checks pass, but all twelve advertised public rigid cases fail the frozen reference with retained numerical divergences. Candidate-v9 evidence contributes nothing and the candidate cannot qualify from this row.",
+  "commands": {
+    "configure": "cmake -S /tmp/parallel-mater-f8-85-v10-source -B /tmp/parallel-mater-f8-85-v10-cpu-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPARALLEL_MATER_BUILD_CUDA=OFF -DPARALLEL_MATER_BUILD_VULKAN=OFF -DPARALLEL_MATER_BUILD_D3D12=OFF -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON -DPARALLEL_MATER_BUILD_GALLERY=ON",
+    "build": "cmake --build /tmp/parallel-mater-f8-85-v10-cpu-build --config Release --parallel 4",
+    "registered_suite": "PM_DRIVER_FILES=<build>/Release/manifests/slang-cpu.json PM_LAYER_FILES=<build>/Release/manifests/validation.json ctest --test-dir <build> -C Release --output-on-failure -E 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "isolated_suite": "PM_DRIVER_FILES and PM_LAYER_FILES unset; ctest --test-dir <build> -C Release --output-on-failure -R 'parallel-mater-(loader-(driver|unicode-driver)-discovery-tests|linux-gallery-launcher-tests)' -j1",
+    "install_relocation": "python3 tools/check_sdk_install.py --build-dir /tmp/parallel-mater-f8-85-v10-cpu-build --output /tmp/f8-85-v10-evidence/sdk --config Release --require-realtime-driver",
+    "public_cases": "PM_DRIVER_FILES=<installed-cpu-manifest> PM_LAYER_FILES=<installed-validation-manifest> PM_TEST_VALIDATION=1 parallel-mater-conformance --root <installed-share-root> --case all --output <case-output>",
+    "reference_evaluation": "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <case-output> --case <applicable-case> --report <report>",
+    "quality": "parallel-mater-conformance --root <installed-share-root> --quality rigid-brick-penetration-v1|rigid-attachment-v1 --output <quality-output>; python3 conformance/v1/quality.py --profile <profile> --actual <result> --report <report>",
+    "candidate_check": "python3 tools/check_realtime_candidate.py",
+    "conformance_tests": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+    "roadmap_tests": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+    "reflected_abi_tests": "python3 tests/solver/test_slang_abi.py"
+  }
+}
