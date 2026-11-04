@@ -4,7 +4,7 @@ For work selected from `docs/ROADMAP.md`, read `docs/roadmap/WORKFLOW.md` first.
 Task cards in `docs/roadmap/tasks/` are canonical; the roadmap index is generated.
 For physics work, also read [the current development policy](docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md).
 Finish the existing F8 integration, qualification and release sequence before
-starting scene-quality follow-ups F9-01 through F9-06. Keep the one-step,
+starting the F9 scene-quality follow-ups. Keep the one-step,
 one-spatial-update and solver-work limits. Full mixed-workload timing and
 all-device qualification are not prerequisites for scoped development merges
 or labeled previews; affected correctness tests and required CI still apply.

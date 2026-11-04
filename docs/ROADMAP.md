@@ -238,8 +238,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F9-04](roadmap/tasks/F9-04.json) | Improve soft-body deformation and recovery in the Gallery | deferred | F8-14, F8-50, F8-51, F8-99 | — |
 | [F9-05](roadmap/tasks/F9-05.json) | Improve rope hanging and swinging in the Gallery | deferred | F8-15, F8-50, F8-51, F8-99 | — |
 | [F9-06](roadmap/tasks/F9-06.json) | Improve smoke transport and buoyancy in the Gallery | deferred | F8-16, F8-50, F8-51, F8-99 | — |
-| [F9-07](roadmap/tasks/F9-07.json) | Meet Windows GTX 1080 timing targets after scene repairs | deferred | F8-78, F8-99, F9-01, F9-02, F9-03, F9-04, F9-05, F9-06 | — |
+| [F9-07](roadmap/tasks/F9-07.json) | Meet Windows GTX 1080 timing targets after scene repairs | deferred | F8-78, F8-99, F9-01, F9-02, F9-03, F9-04, F9-05, F9-06, F9-09 | — |
 | [F9-08](roadmap/tasks/F9-08.json) | Plan final timing qualification across the device matrix | deferred | F8-99, F9-01, F9-02, F9-03, F9-04, F9-05, F9-06, F9-07 | — |
+| [F9-09](roadmap/tasks/F9-09.json) | Repair PEG PAINT liquid containment and deposition | deferred | F8-26, F8-99 | — |
 
 ### P1. Deferred domain and interaction coverage
 
