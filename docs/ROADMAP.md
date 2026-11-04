@@ -171,7 +171,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65 | — |
 | [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67 | — |
 | [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
-| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | leased | F8-22, F8-36, F8-38, P1-59, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | codex-windows-d3d12-qualification / windows-gtx1080 / 2026-11-05T14:07:19Z |
+| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | done | F8-22, F8-36, F8-38, P1-59, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | done | F8-02, F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
@@ -223,9 +223,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-76](roadmap/tasks/F8-76.json) | Repair Windows CUDA managed metadata access | done | F8-70, F8-75 | — |
 | [F8-77](roadmap/tasks/F8-77.json) | Replace Windows public completion polling sleeps | done | F8-76 | — |
 | [F8-78](roadmap/tasks/F8-78.json) | Validate integrated Windows repair and record timing | done | F8-73, F8-76, F8-77 | — |
-| [F8-85](roadmap/tasks/F8-85.json) | Requalify candidate v10 on Linux CPU | ready | F8-53, F8-74 | — |
-| [F8-86](roadmap/tasks/F8-86.json) | Requalify candidate v10 on Linux CUDA | ready | F8-68, F8-74 | — |
-| [F8-87](roadmap/tasks/F8-87.json) | Requalify candidate v10 on Linux Vulkan | ready | F8-71, F8-74 | — |
+| [F8-85](roadmap/tasks/F8-85.json) | Requalify candidate v10 on Linux CPU | done | F8-53, F8-74 | — |
+| [F8-86](roadmap/tasks/F8-86.json) | Requalify candidate v10 on Linux CUDA | done | F8-68, F8-74 | — |
+| [F8-87](roadmap/tasks/F8-87.json) | Requalify candidate v10 on Linux Vulkan | leased | F8-71, F8-74 | codex-linux-thomas-laptop / ThomasLaptop / 2026-11-05T16:53:08Z |
 | [F8-99](roadmap/tasks/F8-99.json) | Review F8 integration, correctness and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32, F8-33, F8-34, F8-35, F8-36, F8-37, F8-38, F8-39, F8-40, F8-41, F8-42, F8-43, F8-44, F8-45, F8-46, F8-47, F8-48, F8-49, F8-50, F8-51, F8-52, F8-53, F8-54, F8-55, F8-56, F8-57, F8-58, F8-59, F8-60, F8-61, F8-62, F8-63, F8-64, F8-65, F8-66, F8-67, F8-68, F8-69, F8-70, F8-71, F8-72, F8-73, F8-74, F8-75, F8-76, F8-77, F8-78, F8-85, F8-86, F8-87 | — |
 
 ### F9. Scene physics quality and repairs

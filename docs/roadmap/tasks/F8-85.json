@@ -1,7 +1,7 @@
 {
   "id": "F8-85",
   "title": "Requalify candidate v10 on Linux CPU",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F8-53",
     "F8-74"
@@ -21,7 +21,27 @@
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes. Preserve failures; do not weaken physics, workload, tolerance, timeout or advertised capability.",
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/evidence/F8-85-CANDIDATE-V10-LINUX-CPU.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "dbe39245-d62f-4702-8f3f-91fa922928c7",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F8-85/ThomasLaptop-v10",
+        "claimed_at": "2026-11-04T15:41:08Z",
+        "heartbeat_at": "2026-11-04T15:41:08Z",
+        "expires_at": "2026-11-05T15:41:08Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-04T16:22:48Z",
+      "reason": "candidate-v10-linux-cpu-failed-frozen-reference-correctness; 12-of-12-applicable-public-cases-numerically-diverged; fixed-tick-sdk-quality-and-performance-passed",
+      "evidence": [
+        "docs/roadmap/evidence/F8-85-CANDIDATE-V10-LINUX-CPU.json"
+      ]
+    }
+  ]
 }

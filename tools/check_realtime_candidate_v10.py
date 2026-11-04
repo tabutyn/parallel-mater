@@ -124,6 +124,32 @@ HISTORICAL_ROWS = {
         "a5398863cf27a25d9c6438c6723f0f3e99539563dc1c9f0e91124d063eec2104",
     ),
 }
+
+
+def replacement_leaf_state_is_valid(
+    task: Mapping[str, Any], historical_task: str
+) -> bool:
+    """Return whether a routed replacement leaf is in a legal workflow state."""
+    status = task.get("status")
+    lease = task.get("lease")
+    if status == "open":
+        state_is_valid = lease is None
+    elif status == "leased":
+        state_is_valid = isinstance(lease, Mapping)
+    elif status == "done":
+        state_is_valid = (
+            lease is None and
+            bool(task.get("evidence")) and
+            bool(task.get("history"))
+        )
+    else:
+        state_is_valid = False
+    return (
+        state_is_valid and
+        set(task.get("dependencies", [])) == {historical_task, "F8-74"}
+    )
+
+
 INTEGRATION_EVIDENCE = {
     "F8-73": (
         "docs/roadmap/evidence/F8-73-DEVELOPMENT-ACCEPTANCE.json",
@@ -593,8 +619,7 @@ def validate_candidate(
     ):
         task = load_json(root / TASK_DIR.relative_to(ROOT) / f"{task_id}.json")
         _expect(errors,
-                task.get("status") == "open" and task.get("lease") is None and
-                set(task.get("dependencies", [])) == {historical, "F8-74"},
+                replacement_leaf_state_is_valid(task, historical),
                 f"{task_id} is not a bounded replacement leaf")
     for task_id in ("F8-31", "F8-99"):
         dependencies = set(load_json(

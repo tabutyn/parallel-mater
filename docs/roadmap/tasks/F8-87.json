@@ -1,7 +1,7 @@
 {
   "id": "F8-87",
   "title": "Requalify candidate v10 on Linux Vulkan",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-71",
     "F8-74"
@@ -22,6 +22,14 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "44a9730a-09af-47b5-8eeb-38447fd5a803",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F8-87/ThomasLaptop-v10",
+    "claimed_at": "2026-11-04T16:53:08Z",
+    "heartbeat_at": "2026-11-04T16:53:08Z",
+    "expires_at": "2026-11-05T16:53:08Z"
+  },
   "history": []
 }
