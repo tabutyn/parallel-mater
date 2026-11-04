@@ -1,0 +1,26 @@
+{
+  "id": "F8-88",
+  "title": "Repair Windows D3D12 capability and workload closure",
+  "status": "open",
+  "dependencies": [
+    "F8-27",
+    "F8-74"
+  ],
+  "locks": [
+    "f8-exit-correctness-repair"
+  ],
+  "requires": [
+    "Physical Windows GTX 1080 with D3D12 and CUDA comparison access"
+  ],
+  "scope": "Repair the non-timing candidate-v10 Windows D3D12 exit blocker recorded by F8-27: the driver advertises only 46 of 49 required capabilities, omits the three separate-system liquid-liquid modes and rejects the six-family mixed workload. Preserve shared Slang physics, the sole fixed-tick schedule, API 0.3, driver ABI 2 and CUDA behavior. This is repair work for a replacement candidate; it does not mutate or relabel candidate-v10 evidence.",
+  "acceptance": [
+    "Reproduce the exact F8-27 capability reduction and workload rejection before changing source, retaining installed driver, SDK, device and manifest identities.",
+    "Expose contact, pressure and viscosity for separate liquid systems through ordinary D3D12 public execution without platform-specific physics equations, CPU fallback, capability spoofing or a private qualification path.",
+    "Pass all 49 capability obligations, 30 public cases, 12 physical scenarios, lifecycle/recovery assertions, independent work budgets and five negative controls in plain and validation modes on the physical D3D12 target.",
+    "Preserve one 1/60 advance, one shared spatial publication, bounded solver work and the existing dispatch, submission, readback and synchronization ceilings. No hidden substep, retry or alternate schedule is permitted.",
+    "Run the affected Windows CUDA, portable shader, SDK relocation and installed Gallery regressions. Publish exact-source artifacts and classify timing and scene-quality results separately."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

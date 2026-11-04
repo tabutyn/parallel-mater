@@ -1,0 +1,26 @@
+{
+  "id": "F8-97",
+  "title": "Qualify the F8 exit candidate on Linux",
+  "status": "open",
+  "dependencies": [
+    "F8-93"
+  ],
+  "locks": [
+    "f8-exit-linux-qualification"
+  ],
+  "requires": [
+    "Physical ThomasLaptop with Slang CPU, RTX 3050 Ti CUDA and Vulkan targets"
+  ],
+  "scope": "Qualify only the F8-93 replacement candidate from scratch on the registered Linux CPU, CUDA and Vulkan rows after F8-90--92 repair. Preserve candidate-v10 failures and require independent verdicts for all three installed runtimes.",
+  "acceptance": [
+    "Bind exact source, installed SDK and driver manifests, CPU/GPU, OS, CUDA/Vulkan toolchains and candidate manifest hashes for each runtime variant.",
+    "Pass every applicable public case against the reviewed frozen reference in plain and validation modes, plus repeated-run comparisons for all previously unstable cases.",
+    "Pass advertised capabilities, all 12 scenarios, analytic quality, lifecycle/recovery, fixed-work assertions and negative controls without backend fallback or vendor-specific equations.",
+    "Complete the exact CPU and desktop workloads with declared warmup/measurement counts, zero failed ticks and every timing sample and stall retained. Timing misses route to F9 only after correctness passes.",
+    "Pass relocated installed SDK and Gallery lifecycle checks for CPU, CUDA and Vulkan and publish separate raw verdicts for each row.",
+    "Publish current revisioned CPU, CUDA and Vulkan capability evidence suitable for the generated public qualification index."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

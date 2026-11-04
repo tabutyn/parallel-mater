@@ -1,0 +1,26 @@
+{
+  "id": "F8-90",
+  "title": "Repair Linux CPU frozen-reference correctness",
+  "status": "open",
+  "dependencies": [
+    "F8-74",
+    "F8-85"
+  ],
+  "locks": [
+    "f8-exit-correctness-repair"
+  ],
+  "requires": [
+    "Physical ThomasLaptop Linux CPU target"
+  ],
+  "scope": "Adjudicate and repair the F8-85 Linux Slang CPU result in which all 12 applicable rigid public cases execute but produce 1,582 retained frozen-reference differences including numerical state and invariant failures. Determine whether each divergence is a runtime defect, shared-kernel defect or independently justified oracle defect; never replace a golden merely to match current output. Preserve candidate-v10 as immutable failed evidence.",
+  "acceptance": [
+    "Reproduce all 12 public-case failures from the installed API 0.3 CPU runtime with exact source, package and host identities and separate plain and validation captures.",
+    "Use independent analytic invariants and cross-backend traces to identify the first material divergence. Any oracle correction requires a reviewed physical rationale and must continue to reject injected defects.",
+    "Pass all applicable public cases within existing tolerances, analytic quality, lifecycle/recovery, rejected-step atomicity, fixed-work and repeatability checks without changing the one-step schedule.",
+    "Pass the Linux CPU SDK relocation, Gallery lifecycle, long-run workload and negative-control suites. Retain all performance samples while treating timing separately from correctness.",
+    "Publish reviewable exact-source evidence and the complete before/after difference inventory."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,26 @@
+{
+  "id": "F8-96",
+  "title": "Qualify the F8 exit candidate on Android",
+  "status": "open",
+  "dependencies": [
+    "F8-93"
+  ],
+  "locks": [
+    "f8-exit-android-qualification"
+  ],
+  "requires": [
+    "Physical Pixel 7 Vulkan device and Android deployment access"
+  ],
+  "scope": "Qualify only the F8-93 replacement candidate on the registered Pixel 7 Vulkan target after F8-89 repair. Use the installed public producer and shared Gallery; candidate-v10 observations remain failed history and cannot contribute to this verdict.",
+  "acceptance": [
+    "Bind exact source, APK, embedded Vulkan driver, SDK, device, OS, GPU and candidate manifest hashes and verify ordinary API 0.3 sole-schedule creation.",
+    "Pass every advertised capability, applicable public case, physical scenario, quality profile, lifecycle/recovery assertion, independent work budget and negative control in plain and validation modes.",
+    "Capture all exact pixel7-gallery-v1 workloads with 600 warmup and all 7200 measured ticks retained, zero failed ticks and no workload substitution. Report timing separately.",
+    "Pass all Gallery scenes and semantic controls plus background/foreground, surface recreation, resize/rotation, failure recovery, sustained windows and thermal recording.",
+    "Publish raw installed evidence and an explicit integration/correctness verdict. Any non-timing failure keeps F8-99 blocked.",
+    "Publish current revisioned Vulkan capability evidence suitable for the generated public qualification index."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

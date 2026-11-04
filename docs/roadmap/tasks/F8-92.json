@@ -1,0 +1,26 @@
+{
+  "id": "F8-92",
+  "title": "Repair Linux Vulkan reference and repeatability correctness",
+  "status": "open",
+  "dependencies": [
+    "F8-74",
+    "F8-87"
+  ],
+  "locks": [
+    "f8-exit-correctness-repair"
+  ],
+  "requires": [
+    "Physical ThomasLaptop RTX 3050 Ti Vulkan target with pinned validation SDK"
+  ],
+  "scope": "Repair the F8-87 Linux Vulkan exit blocker: all 30 public cases retain 5,941 frozen-reference differences with numerical or invariant failures, while cloth-water, rope-fluid and rope-soft-body fail fresh plain-run repeatability. Preserve the sole schedule, shared Slang equations and immutable candidate-v10 failure record.",
+  "acceptance": [
+    "Reproduce all 30 public-reference failures and all three repeatability failures with exact installed source, Vulkan driver, SDK, GPU, validation and manifest identities.",
+    "Locate the first nondeterministic or cross-reference divergence with state, dispatch, barrier and ownership evidence. Repair synchronization, initialization, resource or shared-kernel causes without weakening tolerances or hiding validation messages.",
+    "Pass all 30 public cases in plain and validation modes, repeated-run comparisons, 49 capability obligations, 12 physical scenarios, five negative controls and lifecycle/recovery assertions.",
+    "Preserve the one-step schedule, single spatial epoch and independent solver-work limits. Retain every workload timing sample and stall while keeping timing verdicts separate.",
+    "Pass installed SDK relocation and Gallery checks and publish complete before/after evidence."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,29 @@
+{
+  "id": "F8-98",
+  "title": "Ship the qualified F8 exit SDK and Gallery",
+  "status": "open",
+  "dependencies": [
+    "F8-94",
+    "F8-95",
+    "F8-96",
+    "F8-97"
+  ],
+  "locks": [
+    "f8-exit-integration-delivery"
+  ],
+  "requires": [
+    "All replacement-candidate physical rows and protected package CI"
+  ],
+  "scope": "Package and deploy the F8-93 replacement candidate after every registered physical row passes non-timing integration and correctness. Replace the F8-31 development-integration identity with one exact release candidate while preserving its migration contract and immutable candidate-v10 limitations. This delivery remains separate from F9 scene-quality and final timing qualification.",
+  "acceptance": [
+    "Publish one machine-readable delivery record binding candidate/source/tree/manifest, API and ABI, protected packages, installed applications, every device verdict and all evidence hashes.",
+    "Pass clean Linux, Windows and macOS SDK build/install/relocation, component selection, independent consumer and reproducibility checks. Reject API 0.2 and incompatible driver interfaces explicitly.",
+    "Deploy and verify exact installed Gallery revisions/backends on Mac, iPad, Android and Windows; retain Linux installed SDK/Gallery identities. Remove stale Dock, shortcut or package ambiguity.",
+    "Document the sole fixed-tick creation and migration path, dispatch reductions, presentation behavior, memory/lifecycle results, permitted F9 scene debt and every timing-only miss without claiming broad 60 Hz performance.",
+    "Provide a deterministic validator and tests for the delivery record. Any runtime, kernel, API, driver or Gallery material change requires another freeze and affected requalification before F8-99.",
+    "Regenerate the public qualification index from current passing revisioned records. Zero qualified capabilities or stale candidate records keep F8-99 open."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

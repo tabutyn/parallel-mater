@@ -146,6 +146,17 @@ wall-clock target misses remain F9-07/F9-08 obligations and do not become a
 replacement-candidate performance pass.
 Numeric quality limits may not be weakened to make this migration pass.
 
+The preliminary F8-99 exit audit on 2026-11-04 therefore keeps F8 open. The
+single-path architecture and dispatch-reduction gates pass, but candidate v10
+has five non-timing blockers: Windows D3D12 capability/workload closure,
+Android Vulkan correctness and exact workload capture, and Linux CPU, CUDA and
+Vulkan frozen-reference or repeatability correctness. The review is retained
+in [`F8-99-EXIT-AUDIT.json`](evidence/F8-99-EXIT-AUDIT.json). F8-88 through
+F8-92 own the repairs; F8-93 freezes a replacement; F8-94 through F8-97 repeat
+physical qualification; and F8-98 ships the resulting SDK and Gallery before
+F8-99 runs again. Candidate v10 remains immutable development-integration
+evidence and cannot be relabeled as the exit candidate.
+
 Existing branches may temporarily contain migration scaffolding, but "F8 done"
 requires its removal: one public creation path, one production scheduler, no
 legacy selection, complete supported-domain coverage, shared Gallery adoption,

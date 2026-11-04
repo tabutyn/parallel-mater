@@ -1,0 +1,273 @@
+{
+  "schema": "parallel-mater-f8-exit-audit/v1",
+  "task": "F8-99",
+  "reviewed_at": "2026-11-04T20:03:52Z",
+  "decision": "blocked_on_non_timing_correctness",
+  "reviewed_roadmap_commit": "bbadf1badd6263162e007129feeb1ca0a82141c8",
+  "candidate": {
+    "id": "realtime-single-step-v1-5bacbe2",
+    "source_revision": "5bacbe2b1e0fbfad565fb9477bb6873396e31d5d",
+    "source_tree": "67f5088c2e9f50938c55856e3683326e42675310",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v10.json",
+    "manifest_sha256": "29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a",
+    "classification": "immutable development-integration candidate with failed required rows"
+  },
+  "dependency_review": {
+    "existing_dependency_cards": 82,
+    "merged_done": 82,
+    "with_nonempty_evidence": 82,
+    "with_completed_lease_history": 82,
+    "result": "task completion metadata is complete but does not override failed qualification verdicts"
+  },
+  "architecture_review": {
+    "sole_public_creation_path": "passed",
+    "production_schedule_count": 1,
+    "successful_tick_advance_seconds": 0.016666666666666666,
+    "shared_spatial_publications_per_tick": 1,
+    "retired_selector_symbols_in_runtime": 0,
+    "retired_schedule_sources": 0,
+    "native_physics_forks": 0,
+    "api_version": "0.3",
+    "driver_abi_version": 2,
+    "domains": 6,
+    "interaction_modes": 8,
+    "candidate_capabilities": 49,
+    "public_cases": 30,
+    "physical_scenarios": 12,
+    "independent_measurements": 37,
+    "result": "passed"
+  },
+  "dispatch_review": {
+    "metal_rigid_total_dispatches": {
+      "before": 112,
+      "after": 35,
+      "reduction_percent": 68.75
+    },
+    "metal_rigid_domain_dispatches": {
+      "before": 88,
+      "after": 11,
+      "reduction_percent": 87.5
+    },
+    "metal_cooperative_solve_dispatches": 1,
+    "coupling_total_dispatch_ceiling": 512,
+    "coupling_dispatch_ceiling": 288,
+    "candidate_dispatch_ceiling": 16,
+    "spatial_builds_per_tick": 1,
+    "spatial_publications_per_tick": 1,
+    "intra_tick_host_readbacks": 0,
+    "apple_smoke_soft_body_dispatches": {
+      "before": 1277,
+      "after": 269,
+      "reduction_percent": 78.935
+    },
+    "result": "passed for candidate-v10 development integration; replacement freeze must revalidate affected protected changes"
+  },
+  "device_rows": [
+    {
+      "target": "windows-gtx1080-slang-cuda",
+      "evidence": "docs/roadmap/evidence/F8-26-CANDIDATE-V10-WINDOWS-CUDA.json",
+      "sha256": "92924fe0775572c5b6fd6424c876491720f6a7a4708fc123a3ac9fe8e74e24df",
+      "integration": "passed",
+      "correctness": "passed",
+      "performance": "not_qualified",
+      "exit_classification": "permitted timing debt and explicit F9-09 PEG PAINT debt"
+    },
+    {
+      "target": "windows-gtx1080-slang-d3d12",
+      "evidence": "docs/roadmap/evidence/F8-27-CANDIDATE-V10-WINDOWS-D3D12.json",
+      "sha256": "655cf5b3086dd407cc35b6a69410779e0b84c6b987185bf7e868924caa732aa1",
+      "integration": "failed",
+      "correctness": "incomplete",
+      "performance": "not_adjudicated",
+      "exit_classification": "hard blocker",
+      "blocking_task": "F8-88",
+      "failures": [
+        "46 of 49 required capabilities advertised",
+        "liquid-liquid contact, pressure and viscosity omitted",
+        "six-family-mixed workload rejected"
+      ]
+    },
+    {
+      "target": "macos-m4-slang-metal",
+      "evidence": "docs/roadmap/evidence/F8-28-CANDIDATE-V10-MACOS-METAL.json",
+      "sha256": "ce8116ddacfdf73aa0d9540981f5ae85ba35a9df9b397f8f9c27fd2618362497",
+      "integration": "passed",
+      "correctness": "passed",
+      "performance": "not_qualified",
+      "exit_classification": "permitted timing debt"
+    },
+    {
+      "target": "ipados-m1-slang-metal",
+      "evidence": "docs/roadmap/evidence/F8-29-CANDIDATE-V10-IPADOS-METAL.json",
+      "sha256": "7bf40c88ade9977027d2ad49c2a71fccf12142da859a154c08d5211e1df5342f",
+      "integration": "passed",
+      "correctness": "passed",
+      "performance": "passed",
+      "exit_classification": "permitted F9-02/F9-05 scene-quality debt",
+      "limitations": [
+        "three fluid-rope analytic scene-quality assertions fail",
+        "native rope dispatch count is 83 while the public estimate is 84; actual work remains below budget"
+      ]
+    },
+    {
+      "target": "android-pixel7-slang-vulkan",
+      "evidence": "docs/roadmap/evidence/F8-30-CANDIDATE-V10-ANDROID-VULKAN.json",
+      "sha256": "3f974fcab8ee8eee412a4349a62fd5d4c2d4151d9fec619d539d38fff09c0bee",
+      "integration": "failed",
+      "correctness": "failed",
+      "performance": "not_qualified",
+      "exit_classification": "hard blocker",
+      "blocking_task": "F8-89",
+      "failures": [
+        "three required lifecycle profiles fail at the first public step",
+        "four of twelve independent quality evaluations fail",
+        "30 of 30 public cases differ from the checked-in reference",
+        "exact four-workload pixel7-gallery-v1 capture is missing"
+      ]
+    },
+    {
+      "target": "linux-thomas-laptop-slang-cpu",
+      "evidence": "docs/roadmap/evidence/F8-85-CANDIDATE-V10-LINUX-CPU.json",
+      "sha256": "3b73b94f540e97d2a7a70f930d4845ea357131875832cb3284c784af3f801ef7",
+      "integration": "passed",
+      "correctness": "failed",
+      "performance": "passed",
+      "exit_classification": "hard blocker",
+      "blocking_task": "F8-90",
+      "failures": [
+        "12 of 12 applicable public cases fail the frozen reference",
+        "1582 retained numerical state or invariant differences"
+      ]
+    },
+    {
+      "target": "linux-rtx3050ti-slang-cuda",
+      "evidence": "docs/roadmap/evidence/F8-86-CANDIDATE-V10-LINUX-CUDA.json",
+      "sha256": "57677e8cbc2f1b95f180da1d2cc57c8f7096780f0cd66ba10a537287f8103e75",
+      "integration": "passed",
+      "correctness": "failed",
+      "performance": "passed_with_stalls_retained",
+      "exit_classification": "hard blocker",
+      "blocking_task": "F8-91",
+      "failures": [
+        "30 of 30 public cases fail the frozen reference",
+        "5928 retained numerical state or invariant differences",
+        "cloth-water fails fresh plain-run repeatability"
+      ]
+    },
+    {
+      "target": "linux-rtx3050ti-slang-vulkan",
+      "evidence": "docs/roadmap/evidence/F8-87-CANDIDATE-V10-LINUX-VULKAN.json",
+      "sha256": "4fc22d8c7a68f8806572950b3370de5e68c825f81a934aa99c4a142fc5ee257e",
+      "integration": "passed",
+      "correctness": "failed",
+      "performance": "passed_with_stalls_retained",
+      "exit_classification": "hard blocker",
+      "blocking_task": "F8-92",
+      "failures": [
+        "30 of 30 public cases fail the frozen reference",
+        "5941 retained numerical state or invariant differences",
+        "cloth-water, rope-fluid and rope-soft-body fail fresh plain-run repeatability"
+      ]
+    }
+  ],
+  "public_qualification_index": {
+    "path": "conformance/v1/evidence/index-v1.json",
+    "valid": true,
+    "qualified_capabilities": 0,
+    "total_capabilities": 336,
+    "report_records": 47,
+    "classification": "public qualification publication gap; replacement device tasks and F8-98 must publish current passing records rather than treating candidate-suite reports as a silent substitute"
+  },
+  "permitted_post_exit_debt": [
+    {
+      "owners": [
+        "F9-01",
+        "F9-02",
+        "F9-03",
+        "F9-04",
+        "F9-05",
+        "F9-06"
+      ],
+      "classification": "convincing Gallery scene behavior",
+      "condition": "frozen core correctness and work budgets pass"
+    },
+    {
+      "owners": [
+        "F9-07",
+        "F9-08"
+      ],
+      "classification": "timing-only misses and final broad performance qualification",
+      "condition": "all required workloads execute and retain every sample and stall"
+    },
+    {
+      "owners": [
+        "F9-09"
+      ],
+      "classification": "PEG PAINT deposits 7 of 100 required texels",
+      "condition": "normal frame execution, frozen core checks and all other required Gallery checks pass"
+    }
+  ],
+  "blocking_plan": {
+    "repairs": [
+      "F8-88",
+      "F8-89",
+      "F8-90",
+      "F8-91",
+      "F8-92"
+    ],
+    "replacement_freeze": "F8-93",
+    "physical_qualification": [
+      "F8-94",
+      "F8-95",
+      "F8-96",
+      "F8-97"
+    ],
+    "integrated_delivery": "F8-98",
+    "exit_review": "F8-99"
+  },
+  "supporting_evidence": [
+    {
+      "path": "docs/roadmap/evidence/F8-31-INTEGRATED-DELIVERY.json",
+      "sha256": "d32992cbd16e339de2513c3693be1dd6fdfaf33c04b21b25701d25d637928162"
+    },
+    {
+      "path": "docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+      "sha256": "739215962f7406c01481805372e608d72e848928219202470b739e34e16061ea"
+    },
+    {
+      "path": "docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+      "sha256": "6cb06f247a4bbe3d9eb1f35aa3e7f66a4889a4c3c23adbd6437f2088bcf1b0ea"
+    },
+    {
+      "path": "docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json",
+      "sha256": "0658114f6fa0da86dbcabc7c3c19e63196f82f466e28164005317377fdeb8e02"
+    }
+  ],
+  "verification": [
+    {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "passed; candidate-v10 protected closure and routing are exact"
+    },
+    {
+      "command": "python3 tools/check_realtime_candidate_v10.py",
+      "result": "passed; candidate-v10 protected closure and routing are exact"
+    },
+    {
+      "command": "python3 tools/check_f8_31_delivery.py",
+      "result": "passed; delivery record and retained failures are exact"
+    },
+    {
+      "command": "python3 tests/solver/check_slang_architecture.py",
+      "result": "passed; native runtime contains no physics kernels or direct physics launches"
+    },
+    {
+      "command": "python3 conformance/v1/evidence_index.py --check",
+      "result": "index is structurally valid and current; 0 of 336 capabilities are publicly qualified from 47 records"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p test_*.py",
+      "result": "99 tests passed before blocker planning"
+    }
+  ],
+  "exit_rule": "F8-99 remains open until F8-88 through F8-98 merge done and one replacement candidate has passing non-timing correctness, recovery, work-budget and installed-public evidence for every registered row. Timing and explicitly routed F9 scene debt may remain only with failed results disclosed."
+}

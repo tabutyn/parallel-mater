@@ -84,7 +84,18 @@
     "F8-78",
     "F8-85",
     "F8-86",
-    "F8-87"
+    "F8-87",
+    "F8-88",
+    "F8-89",
+    "F8-90",
+    "F8-91",
+    "F8-92",
+    "F8-93",
+    "F8-94",
+    "F8-95",
+    "F8-96",
+    "F8-97",
+    "F8-98"
   ],
   "locks": [
     "foundation-8-review"
@@ -92,7 +103,7 @@
   "requires": [
     "Access to every registered machine's durable candidate evidence and independent review"
   ],
-  "scope": "Audit F8 against the sole-production-architecture requirement in docs/roadmap/F8-SINGLE-EXECUTION-PATH.md and the 2026-11-03 timing deferral in docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md. Require complete native/public/Gallery integration, the sole schedule, physical/numerical correctness, resource recovery and independent work-budget evidence on one final integration candidate. Record outstanding scene-quality work under F9-01 through F9-06 and timing targets under F9-07/F9-08. Mandatory dispatch reduction requirements remain in docs/roadmap/F8-DISPATCH-REDUCTION.md. Carry the specifically recorded PEG PAINT scene-quality failure under F9-09 according to the existing scene-deferral direction. The exit retains separate frozen-core correctness and Gallery-quality verdicts.",
+  "scope": "Audit F8 against the sole-production-architecture requirement in docs/roadmap/F8-SINGLE-EXECUTION-PATH.md and the 2026-11-03 timing deferral in docs/roadmap/PHYSICS-QUALITY-DEVELOPMENT.md. Require complete native/public/Gallery integration, the sole schedule, physical/numerical correctness, resource recovery and independent work-budget evidence on one final integration candidate. Record outstanding scene-quality work under F9-01 through F9-06 and timing targets under F9-07/F9-08. Mandatory dispatch reduction requirements remain in docs/roadmap/F8-DISPATCH-REDUCTION.md. Carry the specifically recorded PEG PAINT scene-quality failure under F9-09 according to the existing scene-deferral direction. The exit retains separate frozen-core correctness and Gallery-quality verdicts. The blocked 2026-11-04 preliminary review is retained at docs/roadmap/evidence/F8-99-EXIT-AUDIT.json; it cannot become completion evidence until the added repair, replacement-candidate, device and delivery dependencies pass.",
   "acceptance": [
     "All dependency cards and every current-candidate required correctness/kernel/device row are merged done with reviewable evidence. Missing required hardware, frozen public/primitive physical failures, execution/resource/recovery failures and exceeded solver-work budgets keep this gate open. Timing-only misses and the explicitly recorded F9-09 PEG PAINT scene-quality debt permit this integration exit with their failed results disclosed.",
     "Verify one fixed 1/60 step, one shared dynamic index publication, no hidden time subdivision/catch-up, bounded algebraic work, interpolation and deliberate overload slow-motion.",
