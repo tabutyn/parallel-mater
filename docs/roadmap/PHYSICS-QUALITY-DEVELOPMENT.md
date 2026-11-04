@@ -124,6 +124,32 @@ candidate and bounded device/performance qualification tasks needed for a broad
 
 ## F9 scene repair series
 
+### Recorded PEG PAINT scene-quality debt
+
+The maintainer assigned broken Gallery scene repairs to F9 before the Windows
+v10 qualification run. The 2026-11-04 audit gives that direction a concrete
+reproduction. Installed PEG PAINT completes the normal 240 fixed ticks with
+zero capacity overflows, then fails its existing deposition check with 7 painted
+texels against 100 required. Liquid Y bounds end at -11.9014 to -11.4821. The
+other 27 scene checks and an interactive startup pass. The frozen public and
+primitive physical, numerical, capability, resource/recovery and independent
+work-budget checks also pass. Full results are retained in
+[the scene-debt record](evidence/F8-26-CANDIDATE-V10-GALLERY-DEBT.json).
+
+F8-26 may accept this exact recorded scene-quality debt under F9-09 while
+publishing separate integration, Gallery-quality and timing verdicts. Keep the
+deposition assertion failed in the v10 evidence. F8-99 carries the same named
+debt into F9 after its integration exit. Every frozen core check, complete frame
+execution and the remaining required Gallery checks still gate F8-26. Additional
+faults require their own reviewed classification and bounded task.
+
+F9-09 repairs this concrete PEG PAINT behavior after F8-99. F9-07 timing work
+waits for that repair along with the first six scene improvements. This records
+the existing scene-deferral direction while preserving the original failure,
+threshold, workload and source identity.
+
+### Initial scene task migration
+
 F9 owns the scene-quality improvements after F8. These six deferred cards had
 no lease, evidence or execution history when moved on 2026-11-03. Only their
 IDs changed; their scope, dependencies, locks and acceptance checks are intact.
@@ -146,16 +172,16 @@ focused-change acceptance above continue to apply.
 
 ## Immediate queue
 
-F8-73 is merged under its revised development acceptance. Complete remaining
-F8-78 integrated Windows correctness and timing capture,
-F8-74 integration-candidate refreeze, physical qualification rows, delivery and
-F8-99 exit review according to dependencies and available hardware.
+F8-73, F8-78 and F8-74 are merged. Complete the candidate-v10 physical
+qualification rows, delivery and F8-99 exit review according to dependencies
+and available hardware, carrying the specifically recorded F9-09 scene debt.
 
 After that exit, reactivate F9-01 through F9-06 through planning. They cover a
 first visible improvement to rigid bodies, liquids, cloth, soft bodies, ropes,
 and smoke respectively. No all-six completion barrier precedes their individual
 merges. Follow existing leases and locks.
-F9-07 then addresses Windows timing after those first scene improvements.
+F9-09 addresses the recorded PEG PAINT defect after the F8 exit.
+F9-07 then addresses Windows timing after those scene improvements.
 F9-08 plans the remaining exact-candidate performance qualification.
 
 These are new follow-ups to previously completed implementation tasks, not a

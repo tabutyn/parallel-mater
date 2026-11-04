@@ -10,7 +10,8 @@
     "F9-03",
     "F9-04",
     "F9-05",
-    "F9-06"
+    "F9-06",
+    "F9-09"
   ],
   "locks": [
     "f8-native-realtime-schedule",

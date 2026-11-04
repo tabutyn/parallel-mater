@@ -1,0 +1,27 @@
+{
+  "id": "F9-09",
+  "title": "Repair PEG PAINT liquid containment and deposition",
+  "status": "deferred",
+  "dependencies": [
+    "F8-26",
+    "F8-99"
+  ],
+  "locks": [
+    "liquid-equations",
+    "paint-transfer"
+  ],
+  "requires": [
+    "Physical Windows GTX 1080 CUDA reproduction of the retained candidate-v10 PEG PAINT capture, with shared Slang physics and installed Gallery state/trajectory evidence"
+  ],
+  "scope": "Post-F8 scene-quality repair under the maintainer's existing F9 deferral. Reproduce PEG PAINT at the normal 240-frame duration and default 5707-particle scene on source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d. The retained capture completes every fixed tick with zero capacity overflows, reports liquid Y bounds -11.9014 to -11.4821, and paints 7 texels against the existing 100-texel requirement. Diagnose the liquid escape and deposition failure with a small physical reproduction, then repair this concrete scene behavior in shared physics or its scene definition. Coordinate shared changes with F9-02 through the liquid-equations lock. Split independent causes through planning before expanding beyond this scene.",
+  "acceptance": [
+    "Reproduce and preserve docs/roadmap/evidence/F8-26-CANDIDATE-V10-GALLERY-DEBT.json with exact source/device/backend, default inputs, scale/materials, state or trajectories, original failed check and complete 240-frame work record.",
+    "Identify why liquid escapes the intended geometry and why deposition remains below 100 texels. Distinguish collision/containment, transfer and rendering contributions with independent physical checks and a bounded reproduction.",
+    "Retain comparable before/after installed Gallery motion and particle/paint state. The default PEG PAINT scene completes its normal 240-frame capture with at least 100 painted texels and physically justified containment/contact behavior. Preserve workload size, the existing threshold and actual particle motion.",
+    "Keep one 1/60-second advance, one spatial publication and all solver-work limits. Pass affected public/primitive physical, numerical, capability, lifetime, interaction and recovery regressions plus required CI.",
+    "Verify the installed source/backend and retain raw logs, frame ledgers, images and hashes. Record timing and remaining quality limitations under the current development policy."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
