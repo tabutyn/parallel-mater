@@ -1,7 +1,7 @@
 {
   "id": "F8-31",
   "title": "Ship the integrated single-path SDK and Gallery",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-23",
     "F8-24",
@@ -39,6 +39,14 @@
     "Release notes distinguish passing integration/correctness/work-budget evidence from outstanding scene quality and measured timing targets. Report timing-only misses under F9-07/F9-08. A broad 60 Hz performance qualification claim requires later passing evidence."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "602aad42-9d5f-4aa9-9c65-24b1fc69af6d",
+    "owner": "codex-f8-single-path-release",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-31/Thomass-MacBook-Air",
+    "claimed_at": "2026-11-04T18:55:07Z",
+    "heartbeat_at": "2026-11-04T18:55:07Z",
+    "expires_at": "2026-11-05T18:55:07Z"
+  },
   "history": []
 }

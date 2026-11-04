@@ -175,7 +175,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | done | F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
 | [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | done | F8-02, F8-22, F8-36, F8-38, F8-52, F8-61, F8-63, F8-65, F8-67, F8-70, F8-74 | — |
-| [F8-31](roadmap/tasks/F8-31.json) | Ship the integrated single-path SDK and Gallery | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-51, F8-52, F8-53, F8-56, F8-58, F8-59, F8-60, F8-61, F8-85, F8-86, F8-87 | — |
+| [F8-31](roadmap/tasks/F8-31.json) | Ship the integrated single-path SDK and Gallery | leased | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-51, F8-52, F8-53, F8-56, F8-58, F8-59, F8-60, F8-61, F8-85, F8-86, F8-87 | codex-f8-single-path-release / Thomass-MacBook-Air / 2026-11-05T18:55:07Z |
 | [F8-32](roadmap/tasks/F8-32.json) | Expose the real-time profile through the registry and SDK | done | F8-00 | — |
 | [F8-33](roadmap/tasks/F8-33.json) | Integrate the shared spatial epoch into production runtime | done | F8-22 | — |
 | [F8-34](roadmap/tasks/F8-34.json) | Bind fixed realtime phases and telemetry to native adapters | done | F8-33 | — |
