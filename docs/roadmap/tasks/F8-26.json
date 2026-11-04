@@ -1,7 +1,7 @@
 {
   "id": "F8-26",
   "title": "Qualify the candidate on Windows CUDA devices",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -30,16 +30,14 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery identity, startup and frame behavior. Run every Gallery scene at its normal 240-frame window. Preserve the original results and exact deployment hashes.",
     "The v10 Windows PEG PAINT capture completes 240 one-step frames with zero capacity overflows, then fails its unchanged 100-texel deposition assertion with 7 texels. Retain that quality failure, particle bounds, command, source, logs and CSV under docs/roadmap/evidence/F8-26-CANDIDATE-V10-GALLERY-DEBT.json and F9-09. This named scene-quality debt permits F8 integration acceptance under the maintainer's existing F9 scene deferral. All other required Gallery checks and every frozen public/primitive correctness, resource/recovery and work-budget check remain required. Report the separate integration, Gallery-quality and timing verdicts."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "2ea51857-9fb2-4fc2-9aff-d5917efde830",
-    "owner": "codex-windows-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-26/windows-gtx1080-v10-final-20261104",
-    "claimed_at": "2026-11-04T13:28:12Z",
-    "heartbeat_at": "2026-11-04T13:28:12Z",
-    "expires_at": "2026-11-05T13:28:12Z"
-  },
+  "evidence": [
+    "PASS: exact candidate realtime-single-step-v1-5bacbe2, manifest 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a, source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d and tree 67f5088c2e9f50938c55856e3683326e42675310. Verified 46 retained build artifacts and all nine frozen closures, then freshly passed 146 registered tests including 58 CUDA-labeled tests with zero skips and all 12 SDK checks.",
+    "PASS: fresh v10-bound installed-public capture completes all 30 cases, 49 capability rows and 12 physical scenarios per mode. Frozen physical/numerical/work/recovery assertions pass. All 72000 measured workload ticks succeed at unchanged counts and sample windows, retaining 288000 timing values. Independent validator agrees and all five injected violations are independently rejected in both modes.",
+    "SCOPED GALLERY: installed Gallery 0.3.0 and Start-menu target bind source 5bacbe2b. All 28 scenes complete 240 one-step frames, 27 built-in scene checks pass, and six-frame interactive startup passes. PEG PAINT fails with 7/100 painted texels after full execution and zero capacity overflows. PR 667 assigns that preserved scene-quality defect to F9-09. Verified staging accommodates the frozen Ninja manifest layout.",
+    "DISCLOSED: six-family physics p95 is 16.7733 ms plain and 22.2918 ms validation, with validation deformable at 11.138 ms. Original failed timing results and timing-contaminated canonical controls remain F9-07/F9-08 debt. docs/roadmap/evidence/F8-26-CANDIDATE-V10-WINDOWS-CUDA.json separates integration, scene-quality and performance verdicts and both execution/completion leases.",
+    "ARTIFACT: docs/roadmap/evidence/F8-26-CANDIDATE-V10-WINDOWS-CUDA.zip SHA-256 b780ff46f01be7be38fd43d075e99af683134ba1e939068f3168eba591603ef6, 11913098 bytes, 295 verified members. Complete raw captures, original failures, logs, Gallery images/frame ledgers, deployment identities and reproduction scripts retained. Candidate-v9 history remains preserved."
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -70,6 +68,27 @@
       "at": "2026-11-04T13:07:20Z",
       "reason": "Release for explicit F9 scene-quality routing: v10 core/public/work/recovery checks pass, but normal 240-frame PEG PAINT produces 7/100 required painted texels. Retain work/F8-26/windows-gtx1080-v10-20261104 and complete raw evidence for replan and fresh claim.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "2ea51857-9fb2-4fc2-9aff-d5917efde830",
+        "owner": "codex-windows-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-26/windows-gtx1080-v10-final-20261104",
+        "claimed_at": "2026-11-04T13:28:12Z",
+        "heartbeat_at": "2026-11-04T13:28:12Z",
+        "expires_at": "2026-11-05T13:28:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-11-04T13:40:08Z",
+      "reason": "Candidate v10 Windows CUDA integration passes under the scoped contract from PR 667. Fresh 146-test, SDK, public/scenario/work/recovery and Gallery execution evidence is retained. PEG PAINT quality remains failed under F9-09, and timing/control qualification remains F9-07/F9-08 debt.",
+      "evidence": [
+        "PASS: exact candidate realtime-single-step-v1-5bacbe2, manifest 29e051d94a89a39d51c2128b212165d60da6da7de4b2c107a72ae7cc5b77f20a, source 5bacbe2b1e0fbfad565fb9477bb6873396e31d5d and tree 67f5088c2e9f50938c55856e3683326e42675310. Verified 46 retained build artifacts and all nine frozen closures, then freshly passed 146 registered tests including 58 CUDA-labeled tests with zero skips and all 12 SDK checks.",
+        "PASS: fresh v10-bound installed-public capture completes all 30 cases, 49 capability rows and 12 physical scenarios per mode. Frozen physical/numerical/work/recovery assertions pass. All 72000 measured workload ticks succeed at unchanged counts and sample windows, retaining 288000 timing values. Independent validator agrees and all five injected violations are independently rejected in both modes.",
+        "SCOPED GALLERY: installed Gallery 0.3.0 and Start-menu target bind source 5bacbe2b. All 28 scenes complete 240 one-step frames, 27 built-in scene checks pass, and six-frame interactive startup passes. PEG PAINT fails with 7/100 painted texels after full execution and zero capacity overflows. PR 667 assigns that preserved scene-quality defect to F9-09. Verified staging accommodates the frozen Ninja manifest layout.",
+        "DISCLOSED: six-family physics p95 is 16.7733 ms plain and 22.2918 ms validation, with validation deformable at 11.138 ms. Original failed timing results and timing-contaminated canonical controls remain F9-07/F9-08 debt. docs/roadmap/evidence/F8-26-CANDIDATE-V10-WINDOWS-CUDA.json separates integration, scene-quality and performance verdicts and both execution/completion leases.",
+        "ARTIFACT: docs/roadmap/evidence/F8-26-CANDIDATE-V10-WINDOWS-CUDA.zip SHA-256 b780ff46f01be7be38fd43d075e99af683134ba1e939068f3168eba591603ef6, 11913098 bytes, 295 verified members. Complete raw captures, original failures, logs, Gallery images/frame ledgers, deployment identities and reproduction scripts retained. Candidate-v9 history remains preserved."
+      ]
     }
   ]
 }
