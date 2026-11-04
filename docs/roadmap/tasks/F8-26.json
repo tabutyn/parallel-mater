@@ -1,7 +1,7 @@
 {
   "id": "F8-26",
   "title": "Qualify the candidate on Windows CUDA devices",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -30,7 +30,15 @@
     "Use normal public simulation creation with the sole schedule and no execution-profile opt-in. Verify all applicable supported domains/interactions and installed Gallery behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "1ebf889f-b148-449a-bf31-cf46b413c729",
+    "owner": "codex-windows-qualification",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-26/windows-gtx1080-v10-20261104",
+    "claimed_at": "2026-11-04T12:09:06Z",
+    "heartbeat_at": "2026-11-04T12:09:06Z",
+    "expires_at": "2026-11-05T12:09:06Z"
+  },
   "history": [
     {
       "lease": {
