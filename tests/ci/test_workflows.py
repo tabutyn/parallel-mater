@@ -17,7 +17,7 @@ def workflow(name):
 
 class WorkflowTests(unittest.TestCase):
     def test_one_automatic_entrypoint_no_branch_push_duplicate(self):
-        automatic = {'pull_request', 'push', 'merge_group', 'schedule'}
+        automatic = {'pull_request', 'push', 'merge_group'}
         for path in (ROOT / '.github/workflows').glob('*.yml'):
             events = workflow(path.name)['on']
             if path.name == 'roadmap-leases.yml':

@@ -14,7 +14,7 @@ be dispatched manually for focused investigations.
 | `docs/reference/**`, `tools/reference/**`, reference-artifact unit test | Quick checks + complete reference-artifact reproduction |
 | Shared source, shaders, API/registry, build inputs, examples, platform code/tests, CI files, any unknown path | Quick checks + every existing platform suite |
 | Mixed PR | Union of all changed paths; documentation never exempts accompanying code |
-| Nightly (04:23 UTC) or manual **CI** dispatch | Full suite regardless of changed files |
+| Manual **CI** dispatch | Full suite regardless of changed files |
 
 Full verification retains shader compilation/reflection/host tests on Linux,
 Windows and macOS; all three installed-SDK checks; mobile iPad/Android builds and
