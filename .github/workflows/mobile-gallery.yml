@@ -1,53 +1,16 @@
-name: Mobile Gallery builds
+# Isolated diagnostic branch only; do not merge into the schedule-removal PR.
+name: Android Maven diagnostic
 on:
   workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  ipad:
-    runs-on: macos-26
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - name: Select Xcode 26 (required, never skip an older SDK)
-        run: |
-          xcodebuild -version | tee "$RUNNER_TEMP/xcode-version.txt"
-          grep -q '^Xcode 26' "$RUNNER_TEMP/xcode-version.txt"
-          xcrun --sdk iphoneos --show-sdk-version
-          if ! xcrun --sdk iphoneos metal --version; then
-            xcodebuild -downloadComponent MetalToolchain
-          fi
-      - run: cmake --preset ipad-ci
-      - run: cmake --build --preset ipad-ci
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ipad-unsigned-preview
-          path: build-ipad-ci/Release-iphoneos/ParallelMater Gallery.app
-  android:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
-      - run: sdkmanager 'platforms;android-36' 'ndk;29.0.14206865' 'cmake;4.1.2'
-      - run: bash scripts/Build-AndroidGallery.sh -Pqualification=true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-vulkan-preview
-          path: examples/android/app/build/outputs/apk/debug/app-debug.apk
   android-ui:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      GRADLE_USER_HOME: ${{ runner.temp }}/android-maven-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -65,10 +28,77 @@ jobs:
           sudo chown "$USER" /dev/kvm
           sudo chmod 660 /dev/kvm
       - run: sdkmanager 'platforms;android-36' 'ndk;29.0.14206865' 'cmake;4.1.2'
+      - name: Verify fresh Gradle home and probe official POM HTTP responses
+        shell: bash
+        run: |
+          test ! -e "$GRADLE_USER_HOME"
+          echo "Confirmed an unused Gradle user home for this diagnostic."
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import socket
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          import xml.etree.ElementTree as ET
+
+          urls = [
+              'https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.3.1/error_prone_annotations-2.3.1.pom',
+              'https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5.pom',
+              'https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.2.0/kotlin-stdlib-2.2.0.pom',
+              'https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.8/asm-9.8.pom',
+              'https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/9.0.1/gradle-9.0.1.pom',
+          ]
+          records = []
+          for url in urls:
+              host = urllib.parse.urlsplit(url).hostname
+              try:
+                  addresses = sorted({entry[4][0] for entry in socket.getaddrinfo(host, 443)})
+              except OSError as error:
+                  addresses = [type(error).__name__]
+              for method in ('GET', 'HEAD'):
+                  record = {'url': url, 'method': method, 'resolved_addresses': addresses}
+                  try:
+                      request = urllib.request.Request(url, method=method)
+                      with urllib.request.urlopen(request, timeout=15) as response:
+                          body = response.read()
+                          record.update(status=response.status, final_url=response.url, bytes=len(body))
+                          record['response_headers'] = {
+                              key: response.headers[key] for key in
+                              ('Server', 'Via', 'X-Cache', 'Age', 'Content-Type')
+                              if response.headers.get(key) is not None
+                          }
+                          if method == 'GET':
+                              record['sha256'] = hashlib.sha256(body).hexdigest()
+                              try:
+                                  pom = ET.fromstring(body)
+                                  record['pom_artifact'] = pom.findtext(
+                                      '{http://maven.apache.org/POM/4.0.0}artifactId')
+                              except ET.ParseError:
+                                  record['pom_parse_error'] = True
+                  except urllib.error.HTTPError as error:
+                      body = error.read()
+                      record.update(status=error.code, final_url=error.url,
+                                    bytes=len(body), error_type=type(error).__name__)
+                      record['response_headers'] = {
+                          key: error.headers[key] for key in
+                          ('Server', 'Via', 'X-Cache', 'Age', 'Content-Type')
+                          if error.headers.get(key) is not None
+                      }
+                  except (urllib.error.URLError, OSError, TimeoutError) as error:
+                      record.update(status=None, error_type=type(error).__name__, error=str(error))
+                  records.append(record)
+                  print(json.dumps(record, sort_keys=True), flush=True)
+          report = Path(os.environ['RUNNER_TEMP']) / 'android-maven-diagnostic' / 'pom-probes.json'
+          report.parent.mkdir(parents=True, exist_ok=True)
+          report.write_text(json.dumps(records, indent=2) + '\n')
+          PY
       - name: Build x86_64 Slang CPU Gallery for UI evidence
         env:
           ANDROID_ABIS: x86_64
-        run: bash scripts/Build-AndroidGallery.sh -PphysicsBackend=cpu
+        run: bash scripts/Build-AndroidGallery.sh -PphysicsBackend=cpu --refresh-dependencies --info
       - name: Exercise phone controls and capture accessibility evidence
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -84,5 +114,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: android-gallery-ui-evidence
-          path: out/android/gallery-ui
+          name: android-maven-diagnostic-evidence
+          path: |
+            out/android/gallery-ui
+            ${{ runner.temp }}/android-maven-diagnostic/pom-probes.json
